@@ -97,9 +97,16 @@ async function main() {
   check("total customers", (db.prepare("SELECT COUNT(*) AS n FROM customers WHERE merchant_id = ?").get(merchantId) as { n: number }).n, fixture.customers.total);
 
   // 7. Redemption events reference consented customers with correct amounts
+  // (DB customer ids are tenant-scoped: "<merchant>_CUST-001" - compare the local part)
+  const eligibleLocalIds = new Set(
+    audience.eligibleIds.map((id) => {
+      const idx = id.lastIndexOf("_CUST-");
+      return idx >= 0 ? "CUST-" + id.slice(idx + "_CUST-".length) : id;
+    })
+  );
   for (const ev of fixture.simulatedRedemptionEvents) {
     check(`event ${ev.eventId} amount`, ev.amountPaise, fixture.bundle.proposedPricePaise * ev.quantity);
-    check(`event ${ev.eventId} customer consented`, audience.eligibleIds.includes(ev.customerId), true);
+    check(`event ${ev.eventId} customer consented`, eligibleLocalIds.has(ev.customerId), true);
   }
 
   // 8. Expected simulated result reconciles with the cap and bundle economics
