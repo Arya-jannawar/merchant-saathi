@@ -20,6 +20,8 @@ export interface FixtureInventoryItem {
   unitVariableCostPaise: number;
 }
 
+export type FixtureVersion = "bakery-v1" | "bakery-thin-v1";
+
 export interface Fixture {
   fixtureVersion: string;
   definitionVersion: string;
@@ -37,8 +39,21 @@ export interface Fixture {
     cap: number;
   };
   windows: {
-    previous: { label: string; mondayIsoDate: string; completedAfternoonOrders: number; netSalesPaise: number };
-    current: { label: string; mondayIsoDate: string; completedAfternoonOrders: number; netSalesPaise: number };
+    previous: {
+      label: string;
+      mondayIsoDate: string;
+      completedAfternoonOrders: number;
+      netSalesPaise: number;
+      /** Explicit per-order totals (rupees -> count). Must sum to netSalesPaise/100. */
+      orderDistribution?: Record<string, number>;
+    };
+    current: {
+      label: string;
+      mondayIsoDate: string;
+      completedAfternoonOrders: number;
+      netSalesPaise: number;
+      orderDistribution?: Record<string, number>;
+    };
   };
   customers: { total: number; activeSms: number; revokedSms: number; noConsent: number; channel: string; consentSources: string[] };
   campaign: { validity: string; redemptionCap: number; maxDiscountExposurePaise: number };
@@ -58,8 +73,8 @@ export interface Fixture {
   }[];
 }
 
-export function loadFixture(): Fixture {
-  const fixturePath = path.resolve(process.cwd(), "src", "fixtures", "bakery-v1.json");
+export function loadFixture(version: FixtureVersion = "bakery-v1"): Fixture {
+  const fixturePath = path.resolve(process.cwd(), "src", "fixtures", `${version}.json`);
   const raw = fs.readFileSync(fixturePath, "utf8");
   return JSON.parse(raw) as Fixture;
 }

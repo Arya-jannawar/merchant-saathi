@@ -125,6 +125,37 @@ describe("fixture totals (bakery-v1)", () => {
   });
 });
 
+describe("thin fixture (insufficient-evidence behavior)", () => {
+  it("refuses to recommend when both windows are too small", () => {
+    const db = openTestDb();
+    const fixture = loadFixture("bakery-thin-v1");
+    const thinMerchant = resetTenant(db, "test-thin", fixture);
+    const ops = getOpportunities(db, thinMerchant, fixture, getNow());
+    expect(ops.items).toHaveLength(0);
+    expect(ops.lowDataReason).toContain("20");
+    expect(ops.eligibility.previousOrders).toBe(12);
+    expect(ops.eligibility.currentOrders).toBe(8);
+    expect(ops.fixtureVersion).toBe("bakery-thin-v1");
+  });
+
+  it("reconciles thin fixture window totals with a flat Rs 80 AOV", () => {
+    const db = openTestDb();
+    const fixture = loadFixture("bakery-thin-v1");
+    const thinMerchant = resetTenant(db, "test-thin-verify", fixture);
+    const now = getNow();
+    const currWin = lastCompleteAfternoonWindow(now);
+    const prevWin = previousAfternoonWindow(currWin);
+    const prev = completedAfternoonTotals(db, thinMerchant, prevWin);
+    const curr = completedAfternoonTotals(db, thinMerchant, currWin);
+    expect(prev.orders).toBe(12);
+    expect(prev.netSalesPaise).toBe(96000);
+    expect(curr.orders).toBe(8);
+    expect(curr.netSalesPaise).toBe(64000);
+    expect(averageOrderValuePaise(prev)).toBe(8000);
+    expect(averageOrderValuePaise(curr)).toBe(8000);
+  });
+});
+
 describe("clock and timezone handling", () => {
   it("computes the exact demo windows for the injected clock", () => {
     const currWin = lastCompleteAfternoonWindow(getNow());

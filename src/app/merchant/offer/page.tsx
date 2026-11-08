@@ -17,6 +17,7 @@ const OPPORTUNITY_ID = "afternoon-decline-v1";
 export default function OfferWorkspacePage() {
   const [priceInput, setPriceInput] = useState("70");
   const [capInput, setCapInput] = useState("20");
+  const [locale, setLocale] = useState<"en" | "hi">("en");
   const [copyTitle, setCopyTitle] = useState("");
   const [copyBody, setCopyBody] = useState("");
 
@@ -58,7 +59,7 @@ export default function OfferWorkspacePage() {
           campaignId: draft?.campaignId,
           opportunityId: OPPORTUNITY_ID,
           offer: { pricePaise, cap },
-          locale: "en",
+          locale,
           ...(saveCopy ? { copyOverride: { title: copyTitle, body: copyBody } } : {}),
         }),
       });
@@ -113,7 +114,15 @@ export default function OfferWorkspacePage() {
         <h1 className="mt-1 text-2xl font-extrabold text-navy">Design the offer, see the math live</h1>
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
           Every suggestion ships with the numbers behind it. Change a term and the check updates before anything is
-          queued. Try an unsafe price (e.g. <button type="button" className="font-semibold text-brand underline" onClick={() => setPriceInput("50")}>₹50</button>) to see the margin floor reject it.
+          queued. Try an unsafe price (e.g.{" "}
+          <button type="button" data-testid="try-50" className="font-semibold text-brand underline" onClick={() => setPriceInput("50")}>
+            ₹50
+          </button>
+          , then back to{" "}
+          <button type="button" data-testid="try-70" className="font-semibold text-brand underline" onClick={() => setPriceInput("70")}>
+            ₹70
+          </button>
+          ) to see the margin floor reject it.
         </p>
       </div>
 
@@ -144,12 +153,30 @@ export default function OfferWorkspacePage() {
                 <input value={capInput} onChange={(e) => setCapInput(e.target.value)} inputMode="numeric" className="mt-1 w-full" aria-label="Redemption cap" />
               </label>
             </div>
-            <button type="button" onClick={() => prepareDraft(false)} disabled={busy !== ""} className="btn-primary w-full">
+            <label className="block">
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Customer message language</span>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value === "hi" ? "hi" : "en")}
+                className="mt-1 w-full"
+                aria-label="Customer message language"
+              >
+                <option value="en">English</option>
+                <option value="hi">हिन्दी (Hindi)</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => prepareDraft(false)}
+              disabled={busy !== ""}
+              data-testid="prepare-draft"
+              className="btn-primary w-full"
+            >
               {busy === "draft" ? "Computing..." : draft ? "Update draft (new version)" : "Prepare offer draft"}
             </button>
             <p className="text-xs leading-relaxed text-slate-400">
               Server-side code computes margin, stock capacity and exposure. The AI only drafts explanations and copy -
-              it can never set prices or caps.
+              it can never set prices or caps. Changing the language requires an update to regenerate the draft copy.
             </p>
           </div>
 
@@ -230,6 +257,12 @@ export default function OfferWorkspacePage() {
                     <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Copy body (editable)</span>
                     <textarea value={copyBody} onChange={(e) => setCopyBody(e.target.value)} rows={3} className="mt-1 w-full" />
                   </label>
+                  {draft.copyLocale === "hi" ? (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                      Hindi copy is a draft translation - have a Hindi speaker review the financial wording before any
+                      real use.
+                    </p>
+                  ) : null}
                   {copyDirtyExact ? (
                     <button type="button" onClick={() => prepareDraft(true)} disabled={busy !== ""} className="btn-secondary">
                       Save copy into a new draft version
@@ -289,6 +322,7 @@ export default function OfferWorkspacePage() {
                     type="button"
                     onClick={approve}
                     disabled={busy !== "" || termsDirty || !draft.computed.passes || Boolean(executed)}
+                    data-testid="approve"
                     className="btn-secondary"
                   >
                     {busy === "approve" ? "Approving..." : "Approve this exact version"}
@@ -297,12 +331,13 @@ export default function OfferWorkspacePage() {
                     type="button"
                     onClick={execute}
                     disabled={busy !== "" || !approved || termsDirty}
+                    data-testid="queue"
                     className="btn-primary"
                   >
                     {busy === "execute" ? "Queueing..." : "Queue simulated campaign"}
                   </button>
                   {executed ? (
-                    <a href={`/campaigns/${draft.campaignId}`} className="btn-primary">
+                    <a href={`/campaigns/${draft.campaignId}`} data-testid="view-campaign" className="btn-primary">
                       View campaign activity ({executed.count} recipients)
                     </a>
                   ) : null}

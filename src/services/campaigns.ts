@@ -137,6 +137,7 @@ export interface DraftResult {
   explanation: string;
   assumptions: string[];
   copy: StoredCopy;
+  copyLocale: "en" | "hi";
   copySource: "model" | "template";
   aiMode: "live" | "fixture" | "fallback";
   aiNote: string | null;
@@ -256,6 +257,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
     explanation: ai.draft.explanation,
     assumptions: ai.draft.assumptions,
     copy,
+    copyLocale: input.locale,
     copySource: ai.copySource,
     aiMode: ai.reportedMode,
     aiNote: ai.note,

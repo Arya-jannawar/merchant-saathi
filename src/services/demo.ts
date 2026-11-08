@@ -88,8 +88,12 @@ export function getDemoState(db: SqliteDatabase, sessionId: string): DemoState {
   };
 }
 
-export function resetDemo(db: SqliteDatabase, sessionId: string): { fixtureVersion: string; merchantName: string } {
-  const fixture = loadFixture();
-  resetTenant(db, sessionId);
+export function resetDemo(
+  db: SqliteDatabase,
+  sessionId: string,
+  fixtureVersion: "bakery-v1" | "bakery-thin-v1" = "bakery-v1"
+): { fixtureVersion: string; merchantName: string } {
+  const fixture = loadFixture(fixtureVersion);
+  resetTenant(db, sessionId, fixture);
   return { fixtureVersion: fixture.fixtureVersion, merchantName: fixture.merchant.displayName };
 }

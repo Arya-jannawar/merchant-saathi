@@ -46,3 +46,7 @@ export const executeRequestSchema = z.object({
 export const redeemRequestSchema = z.object({
   eventId: z.string().regex(/^R-\d{3}$/, "Event id must look like R-001."),
 });
+
+export const resetRequestSchema = z.object({
+  fixtureVersion: z.enum(["bakery-v1", "bakery-thin-v1"]).optional(),
+});

@@ -40,10 +40,13 @@ export default function MerchantDashboard() {
     void load();
   }, [load]);
 
-  async function loadSampleData() {
+  async function loadSampleData(fixtureVersion: "bakery-v1" | "bakery-thin-v1" = "bakery-v1") {
     setBusy(true);
     try {
-      await api<ResetResponseDto>("/api/demo/reset", { method: "POST" });
+      await api<ResetResponseDto>("/api/demo/reset", {
+        method: "POST",
+        body: JSON.stringify({ fixtureVersion }),
+      });
       await load();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Reset failed.");
@@ -72,9 +75,25 @@ export default function MerchantDashboard() {
           Clock: {formatDateTime(state.nowIso)} IST {state.clockInjected ? "(injected)" : "(wall clock)"}
         </Badge>
         {state.seeded ? (
-          <button type="button" onClick={loadSampleData} disabled={busy} className="btn-secondary ml-auto !py-1.5 text-xs">
-            {busy ? "Resetting..." : "Reset demo"}
-          </button>
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={() => loadSampleData("bakery-thin-v1")}
+              disabled={busy}
+              className="btn-secondary !py-1.5 text-xs"
+            >
+              Thin-data demo
+            </button>
+            <button
+              type="button"
+              onClick={() => loadSampleData("bakery-v1")}
+              disabled={busy}
+              data-testid="reset-demo"
+              className="btn-secondary !py-1.5 text-xs"
+            >
+              {busy ? "Resetting..." : "Reset demo"}
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -88,9 +107,21 @@ export default function MerchantDashboard() {
             synthetic bakery dataset (fixture <strong>bakery-v1</strong>) so every number on screen can be traced and
             reconciled. No real customer or payment data is used.
           </p>
-          <button type="button" onClick={loadSampleData} disabled={busy} className="btn-primary mx-auto mt-6 !px-6 !py-3 text-base">
+          <button type="button" onClick={() => loadSampleData("bakery-v1")} disabled={busy} className="btn-primary mx-auto mt-6 !px-6 !py-3 text-base">
             {busy ? "Loading sample data..." : "Load sample data"}
           </button>
+          <p className="mt-3 text-xs text-slate-400">
+            or{" "}
+            <button
+              type="button"
+              onClick={() => loadSampleData("bakery-thin-v1")}
+              disabled={busy}
+              className="font-semibold text-brand underline"
+            >
+              load the thin-data demo
+            </button>{" "}
+            to see the app say &quot;insufficient evidence&quot; when windows are too small.
+          </p>
         </Card>
       ) : (
         <>

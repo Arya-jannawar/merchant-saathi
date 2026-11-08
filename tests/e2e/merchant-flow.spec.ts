@@ -10,7 +10,7 @@ test("merchant hero path: from decline to simulated contribution", async ({ page
   // 1. Dashboard: load sample data
   await page.goto("/merchant");
   await page.getByRole("button", { name: /load sample data/i }).click();
-  await expect(page.getByText("Completed 3-6 p.m. orders", { exact: false })).toBeVisible();
+  await expect(page.getByText("Completed 3-6 p.m. orders", { exact: true })).toBeVisible();
   await expect(page.getByText("-30.0%").first()).toBeVisible();
 
   // 2. Offer workspace: prepare the draft

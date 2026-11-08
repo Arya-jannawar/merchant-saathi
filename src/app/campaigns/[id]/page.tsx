@@ -165,7 +165,7 @@ export default function CampaignPage() {
             <thead>
               <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400">
                 <th className="py-2 pr-4">Customer</th>
-                <th className="py-2 pr-4">Demo address (non-deliverable)</th>
+                <th className="hidden py-2 pr-4 sm:table-cell">Demo address (non-deliverable)</th>
                 <th className="py-2 pr-4">Channel</th>
                 <th className="py-2">Status</th>
               </tr>
@@ -176,7 +176,7 @@ export default function CampaignPage() {
                   <td className="py-2 pr-4 font-medium text-navy">
                     {row.label} <span className="text-xs text-slate-400">({row.customerId})</span>
                   </td>
-                  <td className="py-2 pr-4 font-mono text-xs text-slate-500">{row.demoChannelId}</td>
+                  <td className="hidden py-2 pr-4 font-mono text-xs text-slate-500 sm:table-cell">{row.demoChannelId}</td>
                   <td className="py-2 pr-4">{row.channel}</td>
                   <td className="py-2">{row.status}</td>
                 </tr>
@@ -198,10 +198,10 @@ export default function CampaignPage() {
             enforced atomically.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={redeemAll} disabled={busy} className="btn-primary">
+            <button type="button" onClick={redeemAll} disabled={busy} data-testid="apply-all" className="btn-primary">
               {busy ? "Applying..." : "Apply all 10 events"}
             </button>
-            <button type="button" onClick={() => redeem("R-003")} disabled={busy} className="btn-secondary">
+            <button type="button" onClick={() => redeem("R-003")} disabled={busy} data-testid="reapply-dup" className="btn-secondary">
               Re-apply R-003 (duplicate demo)
             </button>
           </div>

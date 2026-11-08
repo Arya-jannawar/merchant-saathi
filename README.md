@@ -14,8 +14,8 @@ owner's decision into a trackable, **simulated** campaign - inspect, edit terms,
 ## What it does (the hero workflow)
 
 1. **Load sample data** - one transparent synthetic bakery dataset (`bakery-v1`) with an injected demo clock.
-2. **See the opportunity** - completed 3-6 p.m. orders fell 100 -> 70 (-30%) between 26-30 Oct and 2-6 Nov 2026; AOV flat at Rs 80. Every number links to a metric definition, window, and source (the "evidence receipt").
-3. **Build an offer** - two samosas + one tea at Rs 70 (usual Rs 90). Server code computes contribution (Rs 30), margin (42.9% vs a 25% floor), stock capacity (25 bundles), cap (20/day) and max discount exposure (Rs 400). Try Rs 50: the check fails at 20% margin and the offer cannot be approved.
+2. **See the opportunity** - completed 3-6 p.m. orders fell 100 -> 70 (-30%) between 26-30 Oct and 2-6 Nov 2026; AOV flat at Rs 80. Every number links to a metric definition, window, and source (the "evidence receipt"). Load the **Thin-data demo** (12 vs 8 orders) to watch the app refuse to recommend and say "insufficient evidence" instead.
+3. **Build an offer** - two samosas + one tea at Rs 70 (usual Rs 90). Server code computes contribution (Rs 30), margin (42.9% vs a 25% floor), stock capacity (25 bundles), cap (20/day) and max discount exposure (Rs 400). Try Rs 50: the check fails at 20% margin and the offer cannot be approved. Customer copy can be toggled to Hindi (draft translation - review before real use).
 4. **AI draft, bounded** - the model (fixture or live Z.ai) drafts the explanation and customer copy from verified facts only. It cannot change prices, caps, dates, or eligibility; generated copy is validated against computed terms.
 5. **Approve the exact version** - the approval binds a payload hash. Any change to price, stock, consent or terms invalidates it (409).
 6. **Queue the simulated campaign** - 40 consented demo customers enter a simulated outbox (idempotent, transactional). The button never says "send".

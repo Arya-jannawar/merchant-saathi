@@ -138,6 +138,7 @@ export interface DraftResponseDto {
   explanation: string;
   assumptions: string[];
   copy: { title: string; body: string };
+  copyLocale: "en" | "hi";
   copySource: "model" | "template";
   aiMode: "live" | "fixture" | "fallback";
   aiNote: string | null;

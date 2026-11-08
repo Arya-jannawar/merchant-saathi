@@ -72,7 +72,17 @@ function composeOrderTargets(
 }
 
 /** Exact per-order totals for the two hero windows (sum must match fixture). */
-function heroWindowTotals(window: "previous" | "current"): number[] {
+function heroWindowTotals(fixture: Fixture, window: "previous" | "current"): number[] {
+  // Distribution-driven fixtures (e.g. the thin-data demo) are fully explicit.
+  const distribution = fixture.windows[window].orderDistribution;
+  if (distribution) {
+    const list: number[] = [];
+    for (const [rupees, count] of Object.entries(distribution)) {
+      const each = Number(rupees) * 100;
+      for (let i = 0; i < count; i++) list.push(each);
+    }
+    return list;
+  }
   if (window === "previous") {
     // 100 orders, exactly Rs 8,000: 30x60 + 30x80 + 20x90 + 20x100
     const list: number[] = [];
@@ -144,8 +154,8 @@ function planOrders(fixture: Fixture, rand: () => number): PlannedOrder[] {
   }
 
   // Hero windows - exact fixture totals.
-  pushDaySpread(fixture.windows.previous.mondayIsoDate, heroWindowTotals("previous"));
-  pushDaySpread(fixture.windows.current.mondayIsoDate, heroWindowTotals("current"));
+  pushDaySpread(fixture.windows.previous.mondayIsoDate, heroWindowTotals(fixture, "previous"));
+  pushDaySpread(fixture.windows.current.mondayIsoDate, heroWindowTotals(fixture, "current"));
 
   // Morning trade for both hero weeks (context: shows the decline is afternoon-specific).
   for (const monday of [fixture.windows.previous.mondayIsoDate, fixture.windows.current.mondayIsoDate]) {
@@ -371,7 +381,7 @@ export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: F
   return merchantId;
 }
 
-export function resetTenant(db: SqliteDatabase, demoSessionId: string): string {
+export function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
   const existing = db.prepare("SELECT id FROM merchants WHERE demo_session_id = ?").get(demoSessionId) as
     | { id: string }
     | undefined;
@@ -384,7 +394,7 @@ export function resetTenant(db: SqliteDatabase, demoSessionId: string): string {
       db.prepare("DELETE FROM merchants WHERE id = ?").run(existing.id); // cascades to all child rows
     }
   });
-  return seedTenant(db, demoSessionId);
+  return seedTenant(db, demoSessionId, fixture);
 }
 
 /** For CLI seeding of the default local database. */
