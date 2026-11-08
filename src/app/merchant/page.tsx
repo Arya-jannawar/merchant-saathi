@@ -10,6 +10,7 @@ import type { OpportunitiesDto } from "@/lib/client";
 export default function MerchantDashboard() {
   const [state, setState] = useState<DemoStateDto | null>(null);
   const [opps, setOpps] = useState<OpportunitiesDto | null>(null);
+  const [oppsLoading, setOppsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,10 +20,19 @@ export default function MerchantDashboard() {
       const s = await api<DemoStateDto>("/api/demo/state");
       setState(s);
       if (s.seeded) {
-        setOpps(await api<OpportunitiesDto>("/api/opportunities"));
+        setOppsLoading(true);
+        try {
+          setOpps(await api<OpportunitiesDto>("/api/opportunities"));
+        } finally {
+          setOppsLoading(false);
+        }
+      } else {
+        setOpps(null);
       }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not reach the demo API.");
+    } finally {
+      setOppsLoading(false);
     }
   }, []);
 
@@ -121,7 +131,11 @@ export default function MerchantDashboard() {
           ) : null}
 
           {/* Opportunity */}
-          {opps && opps.items.length > 0 ? (
+          {oppsLoading ? (
+            <Card className="p-5">
+              <p className="text-sm text-slate-500">Loading opportunity...</p>
+            </Card>
+          ) : opps && opps.items.length > 0 ? (
             <OpportunityCard item={opps.items[0]} />
           ) : (
             <Card className="p-5">

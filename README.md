@@ -131,6 +131,14 @@ ephemeral serverless storage). For multi-instance production you would move the 
 PostgreSQL, add durable jobs, real authentication and rate limits, and per-tenant fixture isolation. That design is
 future work, not something this build claims.
 
+## Troubleshooting: "Cannot find module './NNN.js'" (dev server)
+
+If the dev server shows `Server Error: Cannot find module './276.js'` (or a similar chunk number) after you ran
+`npm run build`, the production build clobbered the dev server's `.next` cache — both share that folder and cannot run
+at the same time. Fix: stop the dev server (`Ctrl+C`), delete `.next`, and start `npm run dev` again. Rule of thumb:
+**never run `npm run build` while `npm run dev` is running** (use `npm run fixtures:verify` + `npm test` for quick
+checks instead — they do not touch `.next`).
+
 ## Demo script (3 minutes)
 
 1. 0:00-0:25 - the bakery's quiet afternoons; synthetic data label.

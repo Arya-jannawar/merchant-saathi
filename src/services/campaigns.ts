@@ -619,6 +619,12 @@ export interface CampaignResults {
   caveats: string[];
 }
 
+function shortCustomerId(id: string): string {
+  // DB ids are tenant-scoped ("mrc_<session>_CUST-001"); display the local part.
+  const idx = id.lastIndexOf("_CUST-");
+  return idx >= 0 ? "CUST-" + id.slice(idx + "_CUST-".length) : id;
+}
+
 export function getCampaignResults(db: SqliteDatabase, merchantId: string, fixture: Fixture, campaignId: string): CampaignResults {
   const version = latestVersion(db, merchantId, campaignId);
   if (version === 0) throw new ApiError("not_found", "Campaign not found for this session.");
@@ -664,7 +670,7 @@ export function getCampaignResults(db: SqliteDatabase, merchantId: string, fixtu
       queued: outboxCount,
       simulated: true,
       sample: outboxRows.map((r) => ({
-        customerId: r.customer_id,
+        customerId: shortCustomerId(r.customer_id),
         label: r.display_label,
         demoChannelId: r.demo_channel_id,
         channel: r.channel,
