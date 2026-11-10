@@ -209,3 +209,20 @@ export interface ResetResponseDto {
   merchantName: string;
   reset: boolean;
 }
+
+export interface AssistantChatDto {
+  answer: string;
+  reasoning: string[];
+  followUps: string[];
+  mode: "live" | "fixture" | "fallback";
+  note: string | null;
+  intent: string | null;
+}
+
+export interface AssistantSettingsDto {
+  configured: boolean;
+  maskedKey: string | null;
+  model: string | null;
+  baseUrl: string | null;
+  setAtIso: string | null;
+}
