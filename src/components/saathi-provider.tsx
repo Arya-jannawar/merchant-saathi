@@ -276,6 +276,15 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
             </div>
             <button
               type="button"
+              onClick={startTour}
+              className="rounded-lg px-2 py-1 text-sm transition hover:bg-white/70"
+              title="Show me around (guided tour)"
+              aria-label="Show me around (guided tour)"
+            >
+              🗺
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setBrainOpen(true);
                 soundKit.play("open");
