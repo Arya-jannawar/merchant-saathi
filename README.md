@@ -10,6 +10,14 @@ A dashboard alone tells a small merchant that orders are down. It does not tell 
 > All data, people, and customers in this demo are synthetic. Campaigns are simulated. No real messages are ever sent.
 > This is not an official Paytm product and claims no endorsement.
 
+## Watch the walkthrough (8 minutes, narrated)
+
+A complete narrated product tour lives in
+[`docs/media/merchant-saathi-walkthrough.mp4`](docs/media/merchant-saathi-walkthrough.mp4):
+the problem and the evidence receipts, the offer math, the Rs 50 guardrail rejection, the bounded
+AI draft (English and Hindi), hash-bound approval, the simulated outbox, idempotent redemptions and
+cap enforcement, the audit trail, the architecture, and the honest labels - ending with the credits.
+
 ---
 
 ## At a glance
