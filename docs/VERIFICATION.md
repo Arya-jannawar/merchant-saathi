@@ -40,8 +40,8 @@ All fixture checks passed.
 
 ```
 > npm test
-Test Files  7 passed (7)
-     Tests  80 passed (80)
+Test Files  8 passed (8)
+     Tests  88 passed (88)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
@@ -59,6 +59,11 @@ IPv4/IPv6 loopback/private/link-local/reserved literals and localhost-style name
 IPv6 zone ids refused, numeric address encodings (decimal/octal/hex) refused, single-label
 intranet names refused, IPv4 rules applied to IPv4-mapped addresses; the live fetch is
 issued with redirect:"error" so a redirect cannot move the request onto an unvalidated host),
+`merchants.test.ts` (multi-business sessions: adding capped at 6, ownership
+guards that refuse foreign merchant ids without leaking them, variant reset in
+place with identical regenerated numbers, removal isolation, insights whose
+per-day 3-6 p.m. series sums exactly to the window totals, funnel stages null
+until a campaign exists),
 `assistant.test.ts` (chat intent routing; fact-book answers built from the seeded tenant's
 computed numbers: decline 100 -> 70, margin 42.9% vs the 25% floor, the Rs 50 rejection,
 the Rs 700/Rs 400/Rs 300 results story after the ten simulated events; rupee-token guard
@@ -148,6 +153,19 @@ ok 1 tests\e2e\merchant-flow.spec.ts (hero path)
   -> apply all 10 events -> Rs 300 contribution -> duplicate replay changes nothing
 1 passed
 ```
+
+A second QA round added these observed results (production build):
+
+- Multi-business: add/switch/remove verified in the browser; the second
+  business shows different (still declining, still honest) numbers; ownership
+  guard refuses foreign ids (404); cap enforced at 6.
+- Mascot picker: all six characters render; choosing one switches the dock,
+  chat header, tour and reactions; mood chips preview the animation + voice.
+- Dashboard infographic: metric switcher (orders/sales/AOV) recomputes the
+  story line; day-by-day bars match the KPI totals; funnel strip appears after
+  queueing and fills to Rs 300.
+- Resetting a business to a different fixture refreshes its generated name
+  ("(thin-data demo)" does not survive a reset to standard data).
 
 ## Known limitations (honest list)
 

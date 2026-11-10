@@ -14,7 +14,16 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
   [x] +10 assistant tests: intent routing, fact-book answers against a real
       seeded tenant, rupee guard for live replies, key settings guards
   [x] +2 draft opportunity guard tests: made-up opportunity ids refused,
-      thin-data drafting refused (80 total)
+      thin-data drafting refused
+  [x] +8 multi-business tests: creation cap, ownership isolation, variant
+      reset in place, per-day insights reconciling with window totals
+      (88 total)
+  [x] Mascot cast of six with four signature animations each and a distinct
+      synthesized voice per mascot x mood; picker dialog with live previews
+  [x] Multiple businesses: add/switch/remove from the 🏪 strip; ownership
+      guard on every route; per-merchant idempotency keys
+  [x] Dashboard infographic: metric switcher, day-by-day bars with tooltips,
+      campaign funnel strip (all values from /api/demo/insights)
   [x] Mithu mascot: moods, speech bubbles, guided spotlight tour per screen,
       chat drawer with fact-book answers; optional live brain via the key
       dialog (server-memory key, masked status, rupee-checked replies,

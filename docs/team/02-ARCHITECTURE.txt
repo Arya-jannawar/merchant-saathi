@@ -55,7 +55,11 @@ KEY FILES (start reading here)
                            model prompts + response validation (rupee guard)
   src/lib/assistant-settings.ts  Per-process, in-memory store for the chat
                            brain's API key (never on disk, masked to the client)
-  src/components/mascot.tsx           Mithu (SVG, mood-driven, CSS-animated)
+  src/components/mascot.tsx           The cast: 6 SVG characters, mood-driven,
+                           CSS-animated, with per-mood particle layers
+  src/lib/mascots-config.ts           Cast registry: names, signature moods,
+                           voice profiles (waveform/transpose/tempo/flourish)
+  src/components/mascot-picker.tsx    "Pick your buddy" dialog with live previews
   src/components/saathi-provider.tsx  Mascot dock, speech bubble, chat drawer,
                            sound toggle, tour entry point; exposes useSaathi()
                            so pages can trigger reactions (say/react/openChat)
@@ -69,14 +73,18 @@ KEY FILES (start reading here)
                            prefers-reduced-motion disables the whole system
   src/app/merchant/*       Dashboard, opportunity, offer workspace pages
   src/app/campaigns/[id]/  Activity / simulated outbox / results page
-  src/app/api/**           10 route handlers (incl. /api/assistant/*)
+  src/app/api/**           12 route handlers (incl. /api/assistant/*, /api/merchants/*, /api/demo/insights)
   scripts/verify-fixtures.ts  Reconciles every fixture number; CI-style gate
 
 SESSIONS AND TENANTS (important!)
   - Each browser gets an httpOnly cookie "ms_demo_sid" (a UUID).
-  - The session maps to ONE synthetic tenant row in `merchants`
-    (merchants.demo_session_id). All business rows carry merchant_id and every
-    query filters by it. Tenant identity NEVER comes from the request body.
+  - A session can own UP TO SIX merchant rows (multi-business). All business
+    rows carry merchant_id and every query filters by it. A client-supplied
+    business id (x-merchant-id header) is honored ONLY when the row belongs to
+    this session - otherwise not_found, without leaking existence.
+  - Variant businesses are seeded deterministically from a variant_seed stored
+    on the merchant row (see seed.ts: trimmed hero windows, pooled names), so
+    every business differs but stays reproducible and reconciled.
   - "Load sample data" / "Reset demo" (POST /api/demo/reset) deletes that
     session's tenant (cascade) and reseeds it. Multiple judges can demo
     simultaneously without resetting each other.

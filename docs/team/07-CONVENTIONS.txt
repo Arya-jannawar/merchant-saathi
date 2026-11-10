@@ -31,8 +31,11 @@ DATA HONESTY (the USP - guard it)
 VALIDATION & ERRORS
  11. Every API route: Zod-parse the body (src/lib/validation.ts), throw ApiError
      with a code from src/lib/errors.ts. Never return raw exceptions.
- 12. Tenant identity comes from the session cookie ONLY. Never accept a
-     merchant id from the client. Every query filters by merchant_id.
+ 12. Tenant identity comes from the session cookie ONLY. A client-supplied
+     business id (x-merchant-id) is a SELECTOR, not an authorization: it is
+     honored only when the merchant row belongs to this session
+     (resolveMerchant). Every query filters by merchant_id. Client
+     idempotency keys are stored per merchant (req:<merchantId>:<key>).
  13. Never log or return stack traces to the client; log server-side instead.
 
 AI SAFETY (src/adapters/ai.ts, src/lib/saathi-brain.ts)

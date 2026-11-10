@@ -63,12 +63,19 @@ LIFECYCLE SEMANTICS (what makes this defensible)
 
 ENDPOINTS (all session-scoped; JSON)
   GET  /api/demo/state
-       -> { seeded, sessionId, merchant?, nowIso, clockInjected, aiMode,
+       -> { seeded, sessionId, merchants[], activeMerchantId, merchant?, nowIso, clockInjected, aiMode,
             kpis { previous{label,orders,netSalesPaise,aovPaise}, current{...},
                    ordersDeltaPct, salesDeltaPct }, audience{eligible,excluded} }
   POST /api/demo/reset
        -> reseeds THIS session's tenant; { fixtureVersion }
-  GET  /api/opportunities
+  GET  /api/demo/insights
+       -> per-day 3-6 p.m. totals for both windows + campaign funnel
+          { days { previous[5], current[5] }, funnel { customers, eligible,
+            queued?, redemptions?, contributionPaise?, simulated: true } | null }
+GET  /api/merchants                -> { merchants[] } (this session's businesses)
+POST /api/merchants { name? }      -> 201 MerchantDto (cap 6; deterministic variant seed)
+DELETE /api/merchants/{id}         -> removes an OWNED business + all its rows
+GET  /api/opportunities
        -> { items: [ { id, observation, metricIds, limitations, windows,
                        suggestedOffer, evidence[] } ], lowDataReason?,
             eligibility { previousOrders, currentOrders, minOrdersRequired,
@@ -118,6 +125,8 @@ GET/POST/DELETE /api/assistant/settings
 ERROR ENVELOPE (every failure looks like this)
   { "error": { "code": "stale_preview", "message": "...",
                "fieldErrors"?: {...}, "retryable"?: bool } }
+  Every route accepts an optional x-merchant-id header to pick one of the
+  session's own businesses; ids from other sessions resolve to not_found.
   Codes -> status: invalid_input 400, missing_session 401, disallowed 403,
   not_found 404, stale_preview/stale_version/conflict 409, business_rule /
   stale_inventory / stale_consent / expired / cap_reached 422, rate_limited 429,

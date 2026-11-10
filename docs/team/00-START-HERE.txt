@@ -42,10 +42,15 @@ CURRENT STATE (honest summary)
   - The complete hero workflow is implemented and verified end to end:
     dashboard -> evidence -> offer workspace -> approval -> simulated outbox ->
     simulated redemptions -> results (Rs 700 - Rs 400 = Rs 300 contribution).
-  - 78 unit tests + 1 Playwright browser flow, all passing.
+  - 88 unit tests + 1 Playwright browser flow, all passing.
   - Lint, typecheck and production build all pass.
-  - Mithu, the mascot, now guides the whole site: a floating cupcake with moods,
-    speech bubbles, a guided spotlight tour per screen, and a chat drawer that
+  - A cast of SIX mascots now guides the whole site - pick your buddy with the
+    🎭 button. Mithu (cupcake) is joined by Chotu (samosa), Dhoom (chai),
+    Shona (coin), Laddu (laddu) and Jalebi (jalebi). Each has four signature
+    animations (happy/angry/dance/hearts/curious/enthusiastic) and a distinct
+    synthesized voice per move - hover the mood chips in the picker to hear
+    them. The mascot also does: speech bubbles, a guided spotlight tour per
+    screen, and a chat drawer that
     answers business questions from the session's verified numbers only
     (the "fact book"). Optional live brain: paste a provider API key in the
     chat's brain (emoji) dialog; the key stays in server memory, never on disk,
@@ -56,9 +61,19 @@ CURRENT STATE (honest summary)
     and cap meters in the offer workspace, cap-utilization bar and a money
     waterfall (Rs 700 - Rs 400 = Rs 300) on the campaign page. All values come
     from the same computed DTOs as before - no hand-drawn numbers.
-  - Sounds: small synthesized effects for taps, approval, rejection, tour steps
-    and the mascot (Web Audio, no audio files). Mute toggle lives bottom-left;
-    the preference is remembered per browser. Honors prefers-reduced-motion.
+  - MULTIPLE BUSINESSES: the 🏪 strip (top-left) lets you add, switch and
+    remove businesses in one click. Each business gets its own deterministic
+    synthetic numbers, consent register, offers and campaigns; the server only
+    honors business ids owned by your session. Up to 6 per session.
+  - Sounds: a full synthesized kit (Web Audio, compressor on the master bus,
+    noise-sweep textures, no audio files) for taps, approvals, rejections,
+    tour steps, business switching and every mascot x mood pair. Mute toggle
+    lives bottom-left; the preference is remembered per browser. Honors
+    prefers-reduced-motion.
+  - The dashboard is a one-glance infographic: interactive metric switcher
+    (orders / net sales / AOV), per-day 3-6 p.m. bars with hover tooltips
+    (from /api/demo/insights - computed from order rows), and a campaign
+    funnel strip that fills in as you queue and redeem.
   - AI runs in "fixture" mode by default (labeled, no credentials needed).
     The live Z.ai adapter is implemented but NOT yet smoke-tested with a real
     API key - that is task T-A3 for whoever owns credentials.

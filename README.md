@@ -34,19 +34,34 @@ cap enforcement, the audit trail, the architecture, and the honest labels - endi
 
 ---
 
-## Mithu, the guide (mascot + chat)
+## Pick your buddy - a cast of six mascots
 
-A cupcake named **Mithu** floats on every screen and runs the tour for you:
+A mascot floats on every screen and runs the tour for you. **Mithu** the cupcake is joined by five friends, each with four signature animations and a unique voice for every move (hover the mood chips in the picker to hear them):
+
+| Buddy | Is | Signature moves |
+| --- | --- | --- |
+| **Mithu** | cupcake | happy, dance, hearts, curious |
+| **Chotu** | samosa | angry, enthusiastic, dance, curious |
+| **Dhoom** | chai glass | enthusiastic, happy, dance, curious |
+| **Shona** | rupee coin | dance, happy, enthusiastic, hearts |
+| **Laddu** | laddu | dance, happy, angry, enthusiastic |
+| **Jalebi** | jalebi | curious, dance, hearts, angry |
+
+Pick via the 🎭 button (floating by the mascot or in the chat header). The choice persists per browser; the chat, tour and reactions all use your buddy.
 
 - **Guided tour** - "Show me around" in the chat walks through each screen with a spotlight on the exact element (per-route steps, skip/next, progress dots, honors reduced-motion).
 - **Chat that only knows real numbers** - ask *why orders fell*, *is ₹70 safe*, *what approving does*, or *what the campaign earned*. Without any key, a deterministic "fact book" answers from the session's computed facts (same domain functions as the screens). Each answer shows a *How I reasoned* trace.
 - **Optional live brain** - paste a provider API key + model id in the brain (🧠) dialog and answers become generative with deeper reasoning. A rupee guard re-checks every amount in the model's reply against the computed facts; any invented number, malformed reply or endpoint failure falls back to the labeled fact book instead.
 - **The key stays server-side** - process memory only, never on disk, never sent back to the browser (masked status only), validated against the same public-host rules as the live draft adapter. A server restart clears it.
-- **Reactions** - Mithu celebrates approvals, panics at unsafe prices, and explains refusals; pages trigger her through a tiny `useSaathi()` API.
+- **Reactions** - your buddy celebrates approvals, panics at unsafe prices, and explains refusals; pages trigger reactions through a tiny `useSaathi()` API. Every mascot x mood pair has its own synthesized jingle (waveform + transposition + tempo + flourish), and the UI kit runs through a compressor for a glued mix.
+
+## Multiple businesses
+
+Add and switch between businesses from the 🏪 strip (top-left): **+ Add a business** seeds a new one in one click - its own deterministic synthetic numbers, customers, consent register, offers and campaigns. Every request carries the active business id and the server only honors ids owned by your session, so tenants stay isolated. Same client idempotency keys are scoped per business, resetting a business refreshes its rows in place, and deleting one removes its data for good. Up to 6 businesses per demo session.
 
 ## Charts & sound (zero new dependencies)
 
-- Every screen shows the numbers as pictures: window-comparison bars and a flat-AOV line on the dashboard, a consent donut, live **margin-vs-floor and cap-vs-capacity meters** in the offer workspace, cap utilization and a **money waterfall (₹700 − ₹400 = ₹300)** on the campaign page. Hand-rolled SVG/CSS in `src/components/charts.tsx`; values come straight from the same computed DTOs as the text - no hand-drawn chart data.
+- Every screen shows the numbers as pictures: the dashboard is a one-glance infographic (interactive metric switcher across the two windows, per-day 3-6 p.m. bars with hover tooltips, campaign funnel strip), plus a consent donut, live **margin-vs-floor and cap-vs-capacity meters** in the offer workspace, cap utilization and a **money waterfall (₹700 − ₹400 = ₹300)** on the campaign page. Hand-rolled SVG/CSS in `src/components/charts.tsx`; values come straight from server-computed DTOs (`/api/demo/insights`) - no hand-drawn chart data.
 - UI and mascot sounds are synthesized at runtime with the Web Audio API (`src/lib/sound.ts`) - no audio assets in the repo; the 🔊 toggle sits bottom-left and the preference is remembered per browser.
 
 ---
@@ -250,16 +265,16 @@ Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with 
 ```
 src/
   app/                     # pages + API route handlers (thin)
-    api/...                # demo/state, demo/reset, opportunities, campaigns/draft|approve|execute|results, demo redeem, assistant/chat, assistant/settings
+    api/...                # demo/state|reset|insights, merchants list/add/remove, opportunities, campaigns/draft|approve|execute|results, demo redeem, assistant/chat|settings
     merchant/              # dashboard, opportunity, offer workspace
     campaigns/[id]/        # activity, simulated outbox, redemptions, results
   components/              # opportunity-card, evidence-drawer, ui primitives,
-                           # mascot + saathi provider/chat/tour/brain-modal, charts
+                           # mascot cast (6 characters) + picker + provider/chat/tour/brain-modal, charts
   domain/                  # metrics, offers, consent (pure business logic)
   services/                # campaigns lifecycle, demo state (transactional core)
   adapters/ai.ts           # bounded AI adapter: fixture | live Z.ai | fallback
   lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http,
-                           # saathi-brain (fact book + live prompts + rupee guard), assistant-settings, sound
+                           # seed (deterministic variants), saathi-brain, assistant-settings, mascots-config, sound
   fixtures/bakery-v1.json  # single source of truth for every demo number
 scripts/                   # seed CLI + fixture verifier
 tests/                     # vitest suites (incl. assistant.test.ts) + playwright e2e
@@ -271,7 +286,7 @@ docs/screenshots/          # UI captures used in this README
 Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
 
 - `npm run fixtures:verify` - all checks PASS
-- `npm test` - 78 unit tests passing (including the config-guard suites for database paths and the model endpoint, and the assistant suites for the fact book, the rupee guard and the key settings)
+- `npm test` - 88 unit tests passing (config guards, assistant brain, and the multi-business suites: creation caps, ownership isolation, per-day insights reconciliation)
 - `npm run lint` / `npm run typecheck` - clean
 - `npm run build` - production build succeeds
 - `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)
