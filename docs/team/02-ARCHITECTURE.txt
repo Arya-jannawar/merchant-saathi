@@ -1,0 +1,106 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+02-ARCHITECTURE
+================================================================================
+
+STACK
+  - Next.js 14 (App Router) + TypeScript strict + Tailwind CSS
+  - SQLite via better-sqlite3 (synchronous, server-side only)
+  - Zod validation on every API payload and every AI response
+  - Vitest (unit) + Playwright (one browser hero-path flow)
+  - Node 20+ (we verified on Node 24)
+
+REQUEST FLOW (all business logic server-side)
+
+  Browser (client components, fetch)
+      |
+      v
+  API route handlers (src/app/api/**)   <-- thin: session + zod parse + service call
+      |
+      v
+  Services (src/services/)              <-- transactional campaign lifecycle
+      |         |
+      |         +--> Domain (src/domain/)  <-- PURE logic: metrics, offers, consent
+      |
+      +--> Adapters (src/adapters/)   <-- ai.ts (fixture/live), bounded
+      |
+      v
+  SQLite (src/lib/db.ts, schema auto-created)
+
+LAYER RULES
+  - Route handlers stay thin: read session, parse+validate body with Zod,
+    call a service, wrap errors. No business decisions in routes.
+  - Domain functions are pure-ish (they take the db handle as a parameter so
+    tests can create isolated tenants). No React, no HTTP there.
+  - The AI adapter can NEVER write to the database. It only returns prose
+    (headline/explanation/assumptions/copy). Money terms in copy are validated
+    against computed values; on any violation we fall back to a template.
+  - The db handle is a per-process singleton (globalThis) so dev hot-reload
+    reuses the connection.
+
+KEY FILES (start reading here)
+  src/lib/clock.ts         Injected demo clock + IST window math (no TZ libs)
+  src/lib/money.ts         Integer-paise rule + INR formatting
+  src/lib/db.ts            Connection, schema DDL, withTransaction()
+  src/lib/seed.ts          Deterministic seeder (seeded PRNG mulberry32(20261106))
+  src/lib/fixture.ts       Loads src/fixtures/bakery-v1.json (single source of truth)
+  src/domain/metrics.ts    Window totals (5 daily 3-6pm bands!), delta, AOV,
+                           opportunity + evidence entries
+  src/domain/offers.ts     computeOffer(): cost/margin/capacity/exposure checks
+  src/domain/consent.ts    Eligible audience + audience hash (sha256 of sorted ids)
+  src/services/campaigns.ts  draft -> approve -> execute -> redeem -> results
+  src/adapters/ai.ts       Fixture/live AI, 15s timeout, 1 retry, Zod + allowlist
+  src/app/merchant/*       Dashboard, opportunity, offer workspace pages
+  src/app/campaigns/[id]/  Activity / simulated outbox / results page
+  src/app/api/**           8 route handlers
+  scripts/verify-fixtures.ts  Reconciles every fixture number; CI-style gate
+
+SESSIONS AND TENANTS (important!)
+  - Each browser gets an httpOnly cookie "ms_demo_sid" (a UUID).
+  - The session maps to ONE synthetic tenant row in `merchants`
+    (merchants.demo_session_id). All business rows carry merchant_id and every
+    query filters by it. Tenant identity NEVER comes from the request body.
+  - "Load sample data" / "Reset demo" (POST /api/demo/reset) deletes that
+    session's tenant (cascade) and reseeds it. Multiple judges can demo
+    simultaneously without resetting each other.
+  - Consequence for tests: customer/snapshot ids are prefixed with the
+    merchant id, e.g. "mrc_abc123_CUST-007".
+
+TIME HANDLING (bug we already fixed - do not regress)
+  - Timestamps stored in UTC ISO strings. Trading periods bucketed in IST
+    (UTC+05:30 fixed, no DST - simple offset math, no date-fns-tz).
+  - An afternoon window is the UNION of five daily 15:00-18:00 IST bands,
+    NOT the continuous Mon-15:00-to-Fri-18:00 range. A continuous range would
+    wrongly count Tue-Fri morning orders. See afternoonBands() +
+    completedAfternoonTotals() in src/domain/metrics.ts and the test
+    "counts only the five daily 3-6 p.m. bands".
+  - DEMO_MODE=true (default) pins "now" to 2026-11-06T19:00:00+05:30 so the
+    two demo windows stay complete on any machine, any real date.
+
+AI ADAPTER CONTRACT (src/adapters/ai.ts)
+  Modes: AI_MODE=fixture (default, no key, deterministic) | AI_MODE=live.
+  Live: POST {ZAI_BASE_URL}/chat/completions (default
+  https://api.z.ai/api/paas/v4), Authorization: Bearer ZAI_API_KEY,
+  model = ZAI_MODEL. 15-second AbortSignal timeout, ONE bounded retry for
+  transient failures (network/timeout/429/5xx), max_tokens 1200.
+  Before the call the endpoint is validated (validateModelEndpoint):
+  http/https only, public hosts only - loopback/private/link-local/reserved
+  IP literals, IPv6 zone ids, localhost-style names, single-label intranet
+  names and numeric address encodings (2130706433, 0177.0.0.1, 0x7f000001)
+  are refused. The fetch sets redirect:"error" so a redirect can never move
+  the request (and the bearer token) onto an unvalidated host.
+  Response handling: strip code fences -> JSON.parse -> Zod schema ->
+  evidence IDs checked against an allowlist (EVIDENCE_IDS) -> copy checked by
+  copyMonetaryTermsValid() (only the computed price token may appear, and the
+  cap number must appear). ANY failure -> labeled fallback draft with the
+  reason in aiNote. The system prompt forbids inventing causes, lift, or
+  Paytm endorsement.
+
+DATABASE PATH (src/lib/db.ts)
+  DATABASE_PATH is validated by resolveDatabasePath() before the file is
+  opened: project-relative paths only, no URL schemes, no control
+  characters, no ../ escapes outside the project folder. App server, seed
+  CLI, fixture verifier and tests all use project-relative paths, so this
+  changes nothing legitimate. Transactions use better-sqlite3's
+  db.transaction().immediate() (BEGIN IMMEDIATE + rollback on throw).
+================================================================================

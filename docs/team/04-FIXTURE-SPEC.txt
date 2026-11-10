@@ -1,0 +1,90 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+04-FIXTURE-SPEC (bakery-v1)
+================================================================================
+
+Single source of truth: src/fixtures/bakery-v1.json
+Deterministic seeder:    src/lib/seed.ts (PRNG seed 20261106 - same data every time)
+Reconciliation gate:     npm run fixtures:verify  (must be ALL PASS)
+
+THE STORY IN NUMBERS (memorize for the demo)
+  Hero: a Pune bakery owner; "today" = Friday 6 Nov 2026, 7:00 PM IST
+        (injected clock; DEMO_MODE=true).
+
+  Windows compared (completed orders, 3-6 p.m., Mon-Fri):
+    26-30 Oct 2026: 100 orders, Rs 8,000 net sales
+     2-6 Nov 2026:  70 orders, Rs 5,600 net sales
+    Delta: -30% on both orders and sales.
+    AOV: Rs 80 -> Rs 80 (flat - the decline is order COUNT).
+
+  Per-order totals distribution (these sum EXACTLY to the window totals):
+    Previous window: 30x Rs 60 + 30x Rs 80 + 20x Rs 90 + 20x Rs 100 = Rs 8,000
+    Current window:  10x Rs 60 + 15x Rs 70 + 20x Rs 80 + 15x Rs 90 + 10x Rs 100 = Rs 5,600
+  The seeder also adds: two context weeks (Oct 12-16, Oct 19-23 afternoons,
+  plausible counts, no exact invariant), morning orders (8-11 a.m.) for both
+  hero weeks, ONE pending order (Fri 17:30) and ONE canceled order (Wed 16:10)
+  in the current window - both must stay OUT of completed totals.
+
+MENU / SKUS (price / variable cost, in paise in the fixture)
+  SKU-SAMOSA   Samosa            Rs 35 / cost Rs 15
+  SKU-TEA      Tea               Rs 20 / cost Rs 10
+  SKU-PASTRY   Veg pastry        Rs 40 / cost Rs 18
+  SKU-SANDWICH Grilled sandwich  Rs 50 / cost Rs 22
+  SKU-JUICE    Fresh lime juice  Rs 60 / cost Rs 25
+
+THE OFFER
+  Bundle: two samosas + one tea (2 x SKU-SAMOSA + 1 x SKU-TEA)
+  Usual combined price: 2x35 + 20 = Rs 90
+  Proposed price: Rs 70  ->  discount Rs 20 (22.2%)
+  Variable cost: 2x15 + 10 = Rs 40
+  Contribution: 70 - 40 = Rs 30
+  Margin: 30/70 = 42.857%  (policy floor: 25%)
+  Inventory: 60 samosas, 25 teas (plus other SKUs) -> capacity = min(60/2, 25) = 25
+  Redemption cap: 20/day  ->  max discount exposure = 20 x 20 = Rs 400
+  At cap: revenue Rs 1,400, cost Rs 800, contribution Rs 600;
+          remaining stock: 20 samosas, 5 teas.
+
+CUSTOMERS + CONSENT (demo CRM; never inferred from payments)
+  50 synthetic customers (non-deliverable demo ids "demo-block-40xx").
+  40 active SMS consents (sources: "in-store signup card" / "QR opt-in at counter").
+  5 revoked, 5 never captured -> 40 eligible / 10 excluded.
+
+SIMULATED RESULTS (what the demo shows at the end)
+  10 unique redemption events (R-001..R-010), each 1 bundle @ Rs 70:
+    revenue Rs 700 - variable cost Rs 400 = Rs 300 contribution
+    discount given Rs 200. Cap 20 NOT reached (10 < 20).
+  R-003 replayed -> no double count (idempotent).
+  No open-rate, no causal lift, no acquisition claims. Ever.
+
+EVIDENCE IDS (the allowlist the AI may reference)
+  afternoon-order-delta-v1   100 -> 70 orders (-30%)
+  afternoon-net-sales-v1     Rs 8,000 -> Rs 5,600 (-30%)
+  afternoon-aov-v1           Rs 80 -> Rs 80
+  bundle-margin-v1           Rs 70 - Rs 40 = Rs 30 (42.9%) vs 25% floor
+  bundle-capacity-v1         25 bundles max; cap 20; exposure Rs 400
+  audience-consent-v1        40 eligible / 10 excluded (SMS)
+
+OPPORTUNITY RULES (demo heuristic, not statistics)
+  Both windows complete, >= 20 completed afternoon orders each, decline
+  >= 10%, and inventory can physically support the bundle. Otherwise the API
+  returns items: [] with a lowDataReason string - the UI shows that honestly.
+
+CLOCK RULES
+  DEMO_MODE=true (default) -> now = fixture clock. DEMO_NOW=<iso> overrides.
+  DEMO_MODE=false -> real wall clock (only sensible on the right weekday/time).
+  Expiry: offer valid until the NEXT weekday (Mon-Fri) 18:00 IST.
+
+THIN-DATA FIXTURE (bakery-thin-v1) - the "insufficient evidence" demo
+  Second fixture file: src/fixtures/bakery-thin-v1.json
+  Same menu, inventory, bundle, customers and events as bakery-v1, but the
+  hero windows hold only 12 (previous) and 8 (current) completed afternoon
+  orders, all Rs 80 (net Rs 960 / Rs 640).
+  Effect: eligibility requires >= 20 completed afternoon orders per window,
+  so getOpportunities returns items: [] and the UI shows:
+    "Both compared windows need at least 20 completed afternoon orders each
+     (found 12 and 8)..."
+  Load it from the dashboard: "Thin-data demo" button (seeded state) or the
+  link under "Load sample data" (empty state). POST /api/demo/reset accepts
+  { fixtureVersion: "bakery-thin-v1" | "bakery-v1" }.
+  npm run fixtures:verify still verifies ONLY bakery-v1.
+================================================================================

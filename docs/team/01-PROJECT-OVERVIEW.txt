@@ -1,0 +1,65 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+01-PROJECT-OVERVIEW
+================================================================================
+
+THE PITCH (one sentence)
+"A daily growth partner that tells a small merchant which opportunity deserves
+attention, proves the numbers behind it, and turns the owner's decision into a
+trackable campaign."
+
+THE PROBLEM (from our slide deck)
+Our hero user is a Pune bakery owner (fictional). Between the two most recent
+complete Mon-Fri windows, completed 3-6 p.m. orders fell from 100 to 70 (-30%)
+and net sales from Rs 8,000 to Rs 5,600. Average order value stayed flat at
+Rs 80 - so the problem is order COUNT, not basket size. A dashboard alone just
+shows the decline; the owner still has to figure out WHAT to do, whether it is
+affordable, what to say to customers, and whether it worked.
+
+THE SOLUTION (our hero workflow)
+  1. Owner sees the decline with evidence (windows, counts, definitions).
+  2. Owner asks for a margin-safe idea: "two samosas + one tea" at Rs 70
+     (usual combined Rs 90), capped at 20 redemptions/day.
+  3. The app computes - in code, not AI - contribution (Rs 30/bundle),
+     margin (42.9% vs a 25% floor), stock capacity (25 bundles), and maximum
+     discount exposure (Rs 400). An unsafe price (Rs 50 -> 20% margin) is
+     visibly REJECTED before anything can be queued.
+  4. The AI drafts the explanation and the customer message FROM those
+     verified numbers only. It cannot change money, stock or consent.
+  5. Owner approves the EXACT version (hash-bound). Any later change
+     invalidates the approval.
+  6. 40 consented demo customers enter a SIMULATED outbox. Nothing is sent.
+  7. Ten simulated redemption events are applied: Rs 700 revenue
+     - Rs 400 variable cost = Rs 300 contribution toward fixed costs.
+     Every screen labels this "Simulated campaign outcomes".
+
+WHY THIS IS DIFFERENT (USP)
+  - Evidence receipt: every number links to a metric id, definition, period
+    and source. There is a dedicated evidence drawer on the screens.
+  - The product can say "insufficient data" and REFUSES unprofitable offers.
+  - Honest labels everywhere: synthetic data, injected clock, AI mode
+    (fixture/live/fallback), simulated outcomes. Judges can trust the demo.
+
+WHAT IS REAL VS SIMULATED (memorize this for the demo)
+  REAL (computed in code):   sales metrics, offer economics, capacity,
+                             consent filtering, approval binding, idempotency,
+                             cap enforcement, results arithmetic.
+  SIMULATED (labeled):       the bakery dataset (fixture bakery-v1),
+                             the customer list and consents (50 fake IDs),
+                             message delivery (outbox, never sends),
+                             redemptions (10 fixed fixture events),
+                             the clock (pinned to Fri 6 Nov 2026, 7:00 PM IST).
+  AI:                        drafts explanation + copy only, from verified
+                             facts; can be fixture (default) or live Z.ai.
+
+BUSINESS MODEL HYPOTHESIS (to validate, not to claim)
+Monthly subscription per active shop covering recurring sales reviews, offer
+preparation with evidence checks, and campaign reporting. Pricing stays open
+until 3-5 Pune bakery owners have tried the workflow (our proposed pilot).
+
+ONE-LINE TECH SUMMARY
+Next.js + TypeScript + Tailwind app; SQLite database; deterministic business
+logic in tested pure functions; a bounded AI adapter (fixture or live Z.ai);
+Vitest + Playwright tests. Single-process prototype - local judging is the
+guaranteed deployment path.
+================================================================================

@@ -1,0 +1,80 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+00-START-HERE
+================================================================================
+
+Hi! This folder is the complete context pack for the Merchant Saathi project so
+any teammate can start contributing without a handover call.
+
+Repo:  https://github.com/Arya-jannawar/merchant-saathi
+Team:  FinovateX - Arya Jannawar, Avani Jannawar, Siddhant Pardeshi
+Event: Paytm AI Hackathon, Pune - Track 1: Merchant Growth AI
+
+WHAT IS MERCHANT SAATHI?
+An AI business partner for a small bakery owner. It shows ONE evidence-backed
+opportunity (afternoon orders down 30%), proves the numbers behind it, drafts
+the offer and customer message with AI, and turns the owner's approval into a
+trackable SIMULATED campaign. The USP: "Proof, not a black box" - every number
+links to its source, and unprofitable offers are visibly rejected.
+
+FILES IN THIS PACK (read in order, ~25 minutes total)
+  01-PROJECT-OVERVIEW.txt     What we are building and why (5 min)
+  02-ARCHITECTURE.txt         Stack, layers, request flow (5 min)
+  03-DATA-MODEL-AND-API.txt   Tables + endpoints + error rules (5 min)
+  04-FIXTURE-SPEC.txt         Every demo number and where it lives (3 min)
+  05-SETUP-AND-COMMANDS.txt   Get it running on your machine (5 min + install)
+  06-TEAM-TASKS.txt           What is done, who does what next (3 min)
+  07-CONVENTIONS.txt          Rules that keep us out of trouble (3 min)
+  08-DEMO-AND-PITCH.txt       The 3-minute demo script + judge Q&A (3 min)
+  09-ROADMAP.txt              Optional features and the pilot plan (2 min)
+
+GET RUNNING IN 10 MINUTES (short version - file 05 has details)
+  1. Install Node.js 20+ (LTS), Git, and nothing else.
+  2. git clone https://github.com/Arya-jannawar/merchant-saathi.git
+  3. cd merchant-saathi && npm install
+  4. copy .env.example .env.local        (defaults are safe; no API key needed)
+  5. npm run db:seed
+  6. npm run fixtures:verify             (must print: All fixture checks passed)
+  7. npm run dev  ->  open http://localhost:3000/merchant
+  8. Click "Load sample data" and click through the whole flow.
+
+CURRENT STATE (honest summary)
+  - The complete hero workflow is implemented and verified end to end:
+    dashboard -> evidence -> offer workspace -> approval -> simulated outbox ->
+    simulated redemptions -> results (Rs 700 - Rs 400 = Rs 300 contribution).
+  - 68 unit tests + 1 Playwright browser flow, all passing.
+  - Lint, typecheck and production build all pass.
+  - AI runs in "fixture" mode by default (labeled, no credentials needed).
+    The live Z.ai adapter is implemented but NOT yet smoke-tested with a real
+    API key - that is task T-A3 for whoever owns credentials.
+  - Config inputs are guarded: the database path must stay inside the project
+    folder, and the live model endpoint must be a public http(s) host (no
+    localhost/private IPs/redirects). See tests/security-guards.test.ts.
+  - The README in the repo is now the deep-dive doc: screen-by-screen
+    walkthrough with real screenshots in docs/screenshots/. Start there when
+    explaining the build to someone new.
+  - This context pack also lives in the repo at docs/team/ so a fresh clone
+    carries it. The demo recording (demo-recording.webm) stays out of git -
+    share it manually.
+  - "Thin-data demo" mode added: the app live-demonstrates saying
+    "insufficient evidence" when windows are too small.
+  - Hindi customer-copy toggle added in the offer workspace (draft
+    translation - review before real use).
+  - Mobile 360 px layout verified on all main screens.
+  - Backup demo recording: demo-recording.webm (26s, 720p) - kept out of
+    git on purpose; ask in the group chat for the file.
+  - Still deliberately out of scope: CSV import, public deployment
+    (see 09-ROADMAP.txt).
+
+WORKING WITH THE TEAM
+  - Clone the repo, branch per task:  git checkout -b t3-hindi-copy
+  - Small commits, pull request into main, someone else reviews.
+  - Never commit .env.local, data/*.sqlite, or any real customer data.
+  - If you change money/consent/approval logic, add or update a test in tests/.
+
+QUESTIONS THIS PACK ANSWERS
+  "Where do the demo numbers come from?"  -> 04
+  "Why can't the AI set the price?"       -> 02, 07
+  "The approve button returned 409?"      -> 03 (stale preview is by design)
+  "What should I build next?"             -> 06, 09
+================================================================================

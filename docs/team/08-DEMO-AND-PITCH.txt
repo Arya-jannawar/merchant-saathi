@@ -1,0 +1,91 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+08-DEMO-AND-PITCH (3-minute script + judge Q&A)
+================================================================================
+
+BEFORE YOU PRESENT (2-minute preflight)
+  npm run fixtures:verify      -> "All fixture checks passed."
+  npm run build && npm start   (production server) OR npm run dev
+  Open http://localhost:3000/merchant in a FRESH browser profile.
+  Have the backup screen recording ready (file 06, T-C2).
+  Badges visible on screen: "Synthetic demo data (bakery-v1)" and
+  "AI mode: fixture (labeled, no credentials)" (or live if verified).
+
+THE 3-MINUTE SCRIPT (mapped to actual screens)
+
+  0:00-0:25  THE PROBLEM (dashboard, before loading data)
+    "Meet Anaya, who runs a bakery in Pune. Her quiet 3-to-6 p.m. window is
+    getting quieter. She doesn't need another dashboard - she needs to know
+    what to DO, whether she can afford it, and proof it adds up."
+    -> Click "Load sample data".
+
+  0:25-0:55  THE EVIDENCE (dashboard + opportunity page)
+    "Completed 3-6 p.m. orders fell from 100 to 70 in the last two full
+    Mon-Fri windows - down 30%, while average order value stayed at Rs 80.
+    So it's order COUNT, not basket size. Every number has a receipt -"
+    -> Click "Inspect evidence"; open the evidence drawer; show one
+       definition (e.g. pending/canceled excluded). Read one limitation
+       aloud: two five-day windows, not proof of cause.
+
+  0:55-1:25  THE OFFER, WITH MATH (offer workspace)
+    "The system proposes a capped bundle: two samosas and a tea at Rs 70 -
+     usual price Rs 90. Code - not the AI - computes: Rs 30 contribution,
+     42.9% margin against her 25% floor, stock for 25 bundles, cap 20 a day,
+     maximum discount exposure Rs 400."
+    -> Point at the live-check panel and the AI draft card with its
+       assumptions list.
+
+  1:25-1:55  THE REJECTION + THE APPROVAL (offer workspace)
+    "Watch the guardrail: she tries Rs 50."
+    -> Set price 50, Update draft. "20% margin - below her floor. The offer
+       cannot be approved, let alone queued." Restore Rs 70, update draft.
+    -> "She approves the EXACT version - the approval binds a hash of the
+       price, cap, audience, stock version and expiry. Change anything and it
+       invalidates."
+
+  1:55-2:20  THE SIMULATED CAMPAIGN (campaign page)
+    -> Queue simulated campaign. "40 customers with active SMS demo consent
+       enter a simulated outbox - note the button never says 'send'. Ten
+       customers are excluded - revoked or missing consent - automatically."
+
+  2:20-2:40  THE RESULTS, HONESTLY (campaign page)
+    -> "Apply all 10 events." "Rs 700 in bundle sales, minus Rs 400 of
+       ingredients and packaging, leaves Rs 300 toward her fixed costs -
+       labeled SIMULATED outcomes. Replaying an event changes nothing -"
+    -> Click "Re-apply R-003". "- idempotent. And no causal-lift claim."
+
+  2:40-3:00  THE POINT (close)
+    "Inspect, edit terms, approve - the owner stays in control, and every
+    suggestion ships with its proof. Today it's one synthetic bakery and a
+    simulated outbox; the same loop works on authorized POS exports and real
+    messaging with merchant consent. That's the pilot we want to run with
+    3-5 Pune bakery owners: can they prepare a sound offer faster, and would
+    they pay monthly for it?"
+
+LIKELY QUESTIONS + SHORT ANSWERS
+  Q: Why is this AI at all?
+  A: The model translates verified business facts into accessible explanation
+     and customer-ready copy. Arithmetic and authority stay in tested code -
+     that's deliberate: proof, not a black box.
+  Q: Where does the data come from?
+  A: A transparent synthetic fixture today; authorized merchant/POS exports
+     and platform integrations later. Payment records alone never imply SKU
+     costs, inventory or messaging consent - consent has its own register.
+  Q: How do you prove growth?
+  A: We don't - with fixtures you can't. We prove a usable action loop, correct
+     economics, and honest measurement; lift belongs to a controlled pilot.
+  Q: What happens if stock or consent changes after approval?
+  A: Execution rechecks both and refuses stale state (422) - show the audit
+     trail on the campaign page.
+  Q: Why Rs 50 fails but Rs 70 passes?
+  A: Rs 50 leaves Rs 10 after the Rs 40 variable cost = 20% margin, below her
+     25% floor. Rs 70 leaves Rs 30 = 42.9%. The floor is her policy, editable.
+  Q: Can it scale / is it production-ready?
+  A: It's a single-process prototype: SQLite + demo sessions. The next
+     engineering steps are managed Postgres, durable jobs, real auth and
+     rate limits - we don't claim they're built.
+  Q: Is the AI live?
+  A: Label on screen: fixture mode (deterministic, no credentials) unless we
+     verified a live call - then the badge says live and the fallback banner
+     explains any failure honestly.
+================================================================================

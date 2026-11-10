@@ -1,0 +1,60 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+09-ROADMAP (after the core; nothing here is promised in the demo)
+================================================================================
+
+PRIORITIZED NEXT STEPS (pick by demo value per hour)
+
+  DONE since the first delivery:
+  [x] 2. Mobile polish - 360 px verified on all main screens; outbox table
+         collapses gracefully on small screens.
+  [x] 3. Backup recording - demo-recording.webm (26 s, 720p) in this folder.
+  [x] 4. Hindi copy toggle - live in the offer workspace, with a review note.
+  [x] 5. Second dataset - "Thin-data demo" loads bakery-thin-v1 and shows the
+         insufficient-evidence state live (tested).
+  [x] 8. Deep-dive README - rebuilt around real screenshots of every stage
+         (docs/screenshots/ in the repo); config guards added for the model
+         endpoint and database path with their own test suite; the team
+         context pack now also ships in the repo (docs/team/).
+
+  REMAINING:
+
+  1. LIVE AI VERIFICATION (highest value, ~30 min with credentials)
+     Set AI_MODE=live + ZAI_API_KEY + ZAI_MODEL in .env.local, restart, run one
+     draft, record the outcome in docs/VERIFICATION.md. If it fails, the labeled
+     fallback is already honest - record that instead. Never claim live without
+     an observed successful call.
+
+  6. CSV IMPORT (half a day - ONLY if the core is rock solid)
+     POST /api/import with row caps, per-row validation, rejected-row report.
+     Must reject malformed currency/status and duplicate external ids, and mark
+     partial refunds as unsupported rather than mis-calculating.
+
+  7. HOSTED DEPLOYMENT (only if trivially easy)
+     Single Node process with a persistent disk (small VM). SQLite needs a
+     writable durable directory - ephemeral serverless storage is unsuitable.
+     If deployed, add real sign-in + rate limits first. Local judging is the
+     guaranteed path; do not burn hours here.
+
+FUTURE (TALK, DON'T BUILD)
+  - Managed PostgreSQL + durable jobs for multi-instance; repository adapter
+    makes this a contained change.
+  - Real messaging integrations only with merchant-authorized consent and
+    provider APIs; the consent register is already the right shape.
+  - Demand forecasting ML: only after a real pilot produces data worth learning
+    from. The current "opportunity" is an explainable rule on purpose.
+
+PILOT PLAN (business validation, from the pitch deck)
+  - Target: 3-5 Pune bakery owners.
+  - Question: can they prepare a sound offer faster, and would they pay
+    monthly? Subscription covers recurring sales reviews, offer preparation
+    with evidence checks, campaign reporting.
+  - Measure: time-to-prepare an offer (with vs without), pricing errors,
+    comprehension of the evidence. Small, exploratory sample - label it as such.
+  - Costs to track: model usage, onboarding, support.
+
+THE ONE RULE FOR EVERYTHING ABOVE
+  If adding a feature would make any label less honest or any test red,
+  it goes BELOW fixing the core. A small, complete, truthful loop beats a
+  big, wobbly one - in judging and in production.
+================================================================================

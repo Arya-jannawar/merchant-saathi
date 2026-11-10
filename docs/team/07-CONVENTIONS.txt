@@ -1,0 +1,70 @@
+================================================================================
+MERCHANT SAATHI - TEAM CONTEXT PACK
+07-CONVENTIONS (rules that keep us out of trouble)
+================================================================================
+
+MONEY
+  1. All amounts are INTEGER PAISE everywhere (DB, API, calculations).
+     Rs 70 = 7000. If you typed a float, stop.
+  2. Formatting only at the UI edge: formatINR(paise) in src/lib/money.ts (server)
+     and src/lib/format.ts (client). Indian digit grouping, en-IN.
+  3. The AI never computes money. computeOffer() in src/domain/offers.ts is the
+     only place offer economics exist. Do not duplicate that math.
+
+TIME
+  4. Store UTC ISO strings. Reason about business time in IST via src/lib/clock.ts
+     (fixed +05:30 offset - do NOT add a timezone library for this prototype).
+  5. Afternoon windows = UNION of five daily 15:00-18:00 IST bands.
+     Use completedAfternoonTotals(), never a continuous start/end range.
+  6. Never compare a partial current day against a complete historical day.
+
+DATA HONESTY (the USP - guard it)
+  7. Every number shown must trace to a metric id / evidence entry / computed
+     field. No hand-drawn values in charts.
+  8. Keep the labels: "Synthetic demo data", "Simulated campaign outcomes",
+     AI mode badge (fixture/live/fallback). Never say "send" - it is
+     "Queue simulated campaign".
+  9. The product may say "insufficient data". Keep that path working.
+ 10. No causal claims: orders "fell", NOT "because of weather/competition".
+     No open rates, no lift %, no invented market size.
+
+VALIDATION & ERRORS
+ 11. Every API route: Zod-parse the body (src/lib/validation.ts), throw ApiError
+     with a code from src/lib/errors.ts. Never return raw exceptions.
+ 12. Tenant identity comes from the session cookie ONLY. Never accept a
+     merchant id from the client. Every query filters by merchant_id.
+ 13. Never log or return stack traces to the client; log server-side instead.
+
+AI SAFETY (src/adapters/ai.ts)
+ 14. Evidence ids from the model are checked against EVIDENCE_IDS allowlist.
+ 15. Generated copy passes copyMonetaryTermsValid() or we fall back to the
+     reviewed template (and say so).
+ 16. Live calls: 15s timeout, max ONE retry, server-side key only. The
+     endpoint host is validated first (public http(s) only - no localhost,
+     private IPs, encoded addresses or redirects) and DATABASE_PATH is
+     validated too (project-relative only). Keep tests/security-guards.test.ts
+     green when you touch either.
+ 17. No customer identifiers or raw order rows ever go into a prompt.
+
+TESTING
+ 18. If you change money/consent/approval/idempotency logic, add or update a
+     Vitest test. Look at tests/approval.test.ts for the expectApiError pattern.
+ 19. Tests use their own tenants (freshTenant / queuedCampaign helpers) on
+     data/test.sqlite. Do not point tests at the demo DB.
+ 20. Run the full check list (file 05) before pushing.
+
+CODE STYLE
+ 21. TypeScript strict; no `any` unless truly unavoidable (and then comment why).
+ 22. Routes thin, services fat, domain pure. Match the existing naming.
+ 23. UI: Tailwind classes inline; reuse Card/Badge/Stat/Alert from
+     src/components/ui.tsx. Large touch targets, readable contrast, rupee
+     formatting everywhere.
+
+GIT
+ 24. Branch per task: t<initials>-<topic> e.g. tA-live-ai-smoke.
+ 25. Commit messages: imperative, one topic ("Enforce cap atomically in redeem").
+ 26. Never commit: .env.local, data/*.sqlite*, node_modules, screenshots with
+     secrets, or local tool artifacts (e.g. a .mimosa/ folder). .gitignore
+     already covers the common cases - keep it that way.
+ 27. PR into main; another teammate reviews; integrate every 60-90 minutes.
+================================================================================
