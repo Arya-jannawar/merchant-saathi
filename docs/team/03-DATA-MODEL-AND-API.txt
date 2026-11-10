@@ -82,6 +82,9 @@ ENDPOINTS (all session-scoped; JSON)
                 validityLabel, previewHash }
        NOTE: a draft is returned even when computed.passes=false so the UI can
        show WHY it fails (like the Rs 50 row in our slide). Approval refuses it.
+       The opportunityId must be one the evidence engine currently reports:
+       a made-up id -> 400 invalid_input; with no qualifying opportunity at
+       all (thin data) -> 422 business_rule (nothing to price yet).
   POST /api/campaigns/{id}/approve
        body { version, previewHash } -> 201 { approvalId, approvedVersion }
        | 409 stale_preview / stale_version | 422 business_rule

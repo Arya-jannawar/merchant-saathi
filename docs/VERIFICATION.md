@@ -41,14 +41,15 @@ All fixture checks passed.
 ```
 > npm test
 Test Files  7 passed (7)
-     Tests  78 passed (78)
+     Tests  80 passed (80)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
 DB-level non-negative stock), `approval.test.ts` (hash binding, unprofitable offers refused,
 stale consent/inventory/version blocks, approval of queued or superseded versions refused,
 execution after offer expiry refused, foreign campaign ids refused, cross-session draft
-isolation), `idempotency.test.ts` (duplicate execute/redeem, key reuse conflicts, cap
+isolation, draft opportunity guard: made-up opportunity ids and thin-data drafting refused),
+`idempotency.test.ts` (duplicate execute/redeem, key reuse conflicts, cap
 enforcement, stock exhaustion, event amounts contradicting the approved offer, results of
 unknown campaigns, tenant reset clears client idempotency keys, exact fixture results),
 `ai.test.ts` (copy monetary guard, evidence allowlist, malformed live responses rejected),
@@ -112,6 +113,30 @@ The mascot UI (chat drawer, guided tour spotlight, unsafe-price reaction, sound
 toggle) was additionally verified by clicking through the running production build
 in a real browser: dashboard charts render, chat answers carry the fixture numbers,
 the tour highlights each element, and the Rs 50 draft locks the approve button.
+
+A full QA pass added the following observed results (production build, real browser):
+
+- Assistant input validation: empty/1-char/501-char questions and malformed key,
+  model and endpoint payloads all return 400 invalid_input with field errors.
+- Chat: intent answers verified live for decline, offer, queue/consent and results
+  (no campaign yet); mode badge, reasoning trace and follow-up chips render; the
+  brain dialog refuses short keys and localhost endpoints with visible errors.
+- Guided tour: opens from the chat header on every screen, all steps advance,
+  finish closes cleanly.
+- Offer flow: safe draft (margin meter "above floor", cap meter "feasible"),
+  Rs 50 draft rejected with approve disabled, restore -> approve -> queue works;
+  Hindi draft shows the review note.
+- Campaign flow: 40 simulated recipients, apply all 10 events, waterfall
+  Rs 700/−Rs 400/= Rs 300, cap meter 10/20, R-003 replay idempotent, event
+  buttons check off.
+- Thin-data demo: dashboard shows the honest 12 -> 8 windows and the opportunity
+  page shows the insufficient-evidence alert; drafting via the API is refused
+  (422 business_rule) - the offer workspace can no longer price an opportunity
+  the evidence engine did not report.
+- Mobile 360 px: dashboard and chat drawer verified.
+- Sound toggle: mute/unmute persists per browser.
+- docs/screenshots/ re-captured from the current build (mascot + charts now in
+  every shot).
 
 ## 5. Browser E2E (Playwright, chromium)
 

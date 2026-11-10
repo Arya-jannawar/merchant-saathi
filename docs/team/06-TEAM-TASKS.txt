@@ -13,7 +13,8 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
       (database path, model endpoint host)
   [x] +10 assistant tests: intent routing, fact-book answers against a real
       seeded tenant, rupee guard for live replies, key settings guards
-      (78 total)
+  [x] +2 draft opportunity guard tests: made-up opportunity ids refused,
+      thin-data drafting refused (80 total)
   [x] Mithu mascot: moods, speech bubbles, guided spotlight tour per screen,
       chat drawer with fact-book answers; optional live brain via the key
       dialog (server-memory key, masked status, rupee-checked replies,
@@ -56,8 +57,8 @@ SUGGESTED OWNERSHIP (adjust among yourselves)
       T-B2  Empty/error states polish: server down, failed draft, 409 banners.
       T-B4  Optional: a "thin data" moment in the pitch (load the thin demo
             live and read the insufficient-evidence banner).
-      T-B5  Re-record docs/screenshots/ (current shots predate Mithu and the
-            charts) and re-time the demo script with the tour.
+      T-B5  DONE - docs/screenshots/ re-captured from the current build
+            (Mithu + charts now visible in every shot).
       T-B6  Mobile pass for the chat drawer at 320 px (360 px verified).
 
   OWNER C - STORY & SUBMISSION
