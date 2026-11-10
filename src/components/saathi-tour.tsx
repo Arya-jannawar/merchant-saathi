@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Mascot } from "@/components/mascot";
+import { MascotById } from "@/components/mascot";
 import { soundKit } from "@/lib/sound";
+import type { MascotId } from "@/lib/mascots-config";
 
 /**
  * Mithu's guided tour: per-route steps, a spotlight on the target element and
@@ -98,7 +99,7 @@ const TOURS: Record<string, TourStep[]> = {
   ],
 };
 
-export function SaathiTour({ onClose }: { onClose: () => void }) {
+export function SaathiTour({ onClose, mascotId = "mithu" }: { onClose: () => void; mascotId?: MascotId }) {
   const pathname = usePathname();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -159,7 +160,7 @@ export function SaathiTour({ onClose }: { onClose: () => void }) {
       <div className="absolute w-[min(88vw,340px)]" style={cardStyle}>
         <div className="ms-pop flex items-start gap-2 rounded-3xl border-2 border-navy/15 bg-white p-4 shadow-card">
           <div className="shrink-0">
-            <Mascot mood={last ? "excited" : index === 0 ? "wave" : "happy"} size={54} />
+            <MascotById id={mascotId} mood={last ? "excited" : index === 0 ? "wave" : "happy"} size={54} />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">

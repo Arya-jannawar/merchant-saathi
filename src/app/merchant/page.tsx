@@ -5,13 +5,16 @@ import { api, ApiClientError, type DemoStateDto, type ResetResponseDto } from "@
 import { formatDelta, formatINR, formatDateTime } from "@/lib/format";
 import { Alert, Badge, Card } from "@/components/ui";
 import OpportunityCard from "@/components/opportunity-card";
-import { CountUp, DonutChart, GroupedBars, MiniLine } from "@/components/charts";
+import { CountUp, DayBars, DonutChart, FunnelStrip, GroupedBars, type FunnelStep } from "@/components/charts";
 import { useSaathi } from "@/components/saathi-provider";
-import type { OpportunitiesDto } from "@/lib/client";
+import type { DemoInsightsDto, OpportunitiesDto } from "@/lib/client";
+import { soundKit } from "@/lib/sound";
 
 export default function MerchantDashboard() {
   const [state, setState] = useState<DemoStateDto | null>(null);
   const [opps, setOpps] = useState<OpportunitiesDto | null>(null);
+  const [insights, setInsights] = useState<DemoInsightsDto | null>(null);
+  const [metric, setMetric] = useState<"orders" | "sales" | "aov">("orders");
   const [oppsLoading, setOppsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +30,7 @@ export default function MerchantDashboard() {
         setOppsLoading(true);
         try {
           setOpps(await api<OpportunitiesDto>("/api/opportunities"));
+          setInsights(await api<DemoInsightsDto>("/api/demo/insights"));
         } finally {
           setOppsLoading(false);
         }
@@ -39,6 +43,7 @@ export default function MerchantDashboard() {
         }
       } else {
         setOpps(null);
+        setInsights(null);
       }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Could not reach the demo API.");
@@ -195,48 +200,101 @@ export default function MerchantDashboard() {
             </div>
           ) : null}
 
-          {/* Window comparison - one-look charts */}
-          {state.kpis ? (
+          {/* Story charts - one glance: big metric + day pattern */}
+          {state.kpis && insights ? (
             <Card data-tour="window-charts" className="ms-rise p-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                Both windows, side by side (from the same computed totals as the cards above)
-              </p>
-              <div className="mt-4 grid gap-6 md:grid-cols-3">
-                <GroupedBars
-                  ariaLabel={`Completed 3-6 p.m. orders: ${state.kpis.previous.orders} before, ${state.kpis.current.orders} now`}
-                  height={150}
-                  groups={[
-                    {
-                      label: state.kpis.previous.label,
-                      bars: [
-                        { value: state.kpis.previous.orders, label: "before", valueLabel: String(state.kpis.previous.orders), color: "#0a2e5c" },
-                        { value: state.kpis.current.orders, label: "now", valueLabel: String(state.kpis.current.orders), color: "#00b9f1" },
-                      ],
-                    },
-                  ]}
-                />
-                <GroupedBars
-                  ariaLabel={`Net afternoon sales: ${formatINR(state.kpis.previous.netSalesPaise)} before, ${formatINR(state.kpis.current.netSalesPaise)} now`}
-                  height={150}
-                  groups={[
-                    {
-                      label: state.kpis.previous.label,
-                      bars: [
-                        { value: state.kpis.previous.netSalesPaise, label: "before", valueLabel: formatINR(state.kpis.previous.netSalesPaise), color: "#0a2e5c" },
-                        { value: state.kpis.current.netSalesPaise, label: "now", valueLabel: formatINR(state.kpis.current.netSalesPaise), color: "#00b9f1" },
-                      ],
-                    },
-                  ]}
-                />
-                <div className="flex flex-col items-center justify-center">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Average order value</p>
-                  <MiniLine
-                    ariaLabel={`Average order value flat at ${formatINR(state.kpis.current.aovPaise ?? 0)}`}
-                    points={[state.kpis.previous.aovPaise ?? 0, state.kpis.current.aovPaise ?? 0]}
-                    valueLabels={[formatINR(state.kpis.previous.aovPaise ?? 0), formatINR(state.kpis.current.aovPaise ?? 0)]}
-                  />
-                  <p className="mt-1 text-[11px] text-slate-400">Flat - so the problem is order count, not basket size.</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                  The afternoon story, in one glance
+                </p>
+                <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+                  {(
+                    [
+                      ["orders", "Orders"],
+                      ["sales", "Net sales"],
+                      ["aov", "Avg order"],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setMetric(key);
+                        soundKit.play("tap");
+                      }}
+                      className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                        metric === key ? "bg-white text-brand shadow-sm" : "text-slate-500 hover:text-brand"
+                      }`}
+                      aria-pressed={metric === key}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
+              </div>
+              <div className="mt-4 grid gap-6 md:grid-cols-2">
+                <StoryChart
+                  metric={metric}
+                  kpis={state.kpis}
+                  windowLabels={{ previous: insights.windowLabels.previous, current: insights.windowLabels.current }}
+                />
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Day by day (3-6 p.m., hover for numbers)
+                  </p>
+                  <DayBars
+                    ariaLabel={"Per-day completed 3-6 p.m. orders for " + insights.windowLabels.previous + " vs " + insights.windowLabels.current}
+                    days={insights.days.previous.map((d, i) => ({
+                      dayLabel: d.dayLabel,
+                      previous: { orders: d.orders, netSalesPaise: d.netSalesPaise },
+                      current: { orders: insights.days.current[i]?.orders ?? 0, netSalesPaise: insights.days.current[i]?.netSalesPaise ?? 0 },
+                    }))}
+                  />
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
+          {/* Campaign funnel - appears once a campaign is queued */}
+          {insights?.funnel?.queued ? (
+            <Card data-tour="funnel" className="ms-pop p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                  {insights.merchantName.split("(")[0].trim()} - campaign funnel
+                </p>
+                <Badge tone="gray">Simulated campaign outcomes</Badge>
+              </div>
+              <div className="mt-4">
+                <FunnelStrip
+                  ariaLabel="Campaign funnel from customers to contribution"
+                  steps={
+                    [
+                      { label: "customers", value: insights.funnel.customers, valueLabel: String(insights.funnel.customers), tone: "navy" },
+                      { label: "with consent", value: insights.funnel.eligible, valueLabel: String(insights.funnel.eligible), tone: "accent" },
+                      { label: "simulated outbox", value: insights.funnel.queued ?? 0, valueLabel: String(insights.funnel.queued ?? 0), tone: "accent" },
+                      ...(insights.funnel.redemptions !== null
+                        ? [
+                            {
+                              label: "redemptions",
+                              value: insights.funnel.redemptions ?? 0,
+                              valueLabel: String(insights.funnel.redemptions ?? 0),
+                              tone: "good" as const,
+                            },
+                          ]
+                        : []),
+                      ...(insights.funnel.contributionPaise !== null
+                        ? [
+                            {
+                              label: "contribution",
+                              value: insights.funnel.contributionPaise ?? 0,
+                              valueLabel: formatINR(insights.funnel.contributionPaise ?? 0),
+                              tone: "good" as const,
+                            },
+                          ]
+                        : []),
+                    ] as FunnelStep[]
+                  }
+                />
               </div>
             </Card>
           ) : null}
@@ -331,5 +389,55 @@ function KpiCard({
       </p>
       <p className="mt-1 text-xs text-slate-400">{period}</p>
     </Card>
+  );
+}
+
+
+const METRIC_FORMAT: Record<string, (v: number) => string> = {
+  orders: (v) => String(Math.round(v)),
+  sales: (v) => formatINR(Math.round(v)),
+  aov: (v) => formatINR(Math.round(v)),
+};
+
+/** One metric across the two windows, with the delta called out big. */
+function StoryChart({
+  metric,
+  kpis,
+  windowLabels,
+}: {
+  metric: "orders" | "sales" | "aov";
+  kpis: NonNullable<DemoStateDto["kpis"]>;
+  windowLabels: { previous: string; current: string };
+}) {
+  const values =
+    metric === "orders"
+      ? { prev: kpis.previous.orders, curr: kpis.current.orders, delta: kpis.ordersDeltaPct }
+      : metric === "sales"
+        ? { prev: kpis.previous.netSalesPaise, curr: kpis.current.netSalesPaise, delta: kpis.salesDeltaPct }
+        : { prev: kpis.previous.aovPaise ?? 0, curr: kpis.current.aovPaise ?? 0, delta: null };
+  const format = METRIC_FORMAT[metric];
+  const title = metric === "orders" ? "Completed 3-6 p.m. orders" : metric === "sales" ? "Net afternoon sales" : "Average order value";
+  const insight =
+    metric === "aov"
+      ? "Flat average order value - the decline is in how many orders arrive, not how big they are."
+      : title + " moved " + format(values.prev) + " -> " + format(values.curr) + " (" + (values.delta === null ? "n/a" : formatDelta(values.delta)) + "). Two complete Mon-Fri windows - an observation, not a cause.";
+  return (
+    <div>
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">{title}</p>
+      <GroupedBars
+        ariaLabel={title + ": " + format(values.prev) + " in " + windowLabels.previous + ", " + format(values.curr) + " in " + windowLabels.current}
+        height={150}
+        groups={[
+          {
+            label: windowLabels.previous,
+            bars: [
+              { value: values.prev, label: "before", valueLabel: format(values.prev), color: "#0a2e5c" },
+              { value: values.curr, label: "now", valueLabel: format(values.curr), color: "#00b9f1" },
+            ],
+          },
+        ]}
+      />
+      <p className="mt-3 rounded-xl bg-brand-light px-3 py-2 text-xs font-semibold leading-relaxed text-navy">{insight}</p>
+    </div>
   );
 }

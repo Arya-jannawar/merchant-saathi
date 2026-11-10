@@ -1,21 +1,25 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Mascot, type MascotMood } from "@/components/mascot";
+import { MascotById } from "@/components/mascot";
+import { getMascot, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
 import { soundKit, type SoundName } from "@/lib/sound";
-import { api, type AssistantChatDto, type AssistantSettingsDto } from "@/lib/client";
+import { api, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
 import { SaathiTour } from "@/components/saathi-tour";
+import { MascotPicker } from "@/components/mascot-picker";
 
 /**
- * SaathiProvider mounts Mithu (mascot + speech bubble + chat) on every screen
- * and exposes a tiny API other components use to react to business events:
+ * SaathiProvider mounts the mascot cast (mascot + speech bubble + chat) on
+ * every screen and exposes a tiny API other components use to react to
+ * business events:
  *   const saathi = useSaathi();
  *   saathi.react("sad", "warn");            // mascot mood + sound effect
  *   saathi.say("Nice, offer approved!");    // speech bubble
  *   saathi.openChat("Why is ₹50 unsafe?");  // open the chat pre-filled
  *
  * The guided tour lives in saathi-tour.tsx and renders inside this provider.
+ * The mascot choice and the active business are persisted per browser.
  */
 
 export interface SaathiApi {
@@ -70,6 +74,11 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   const [soundOn, setSoundOn] = useState(soundKit.enabled);
   const [hovered, setHovered] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [mascotId, setMascotId] = useState<MascotId>(() => {
+    if (typeof window === "undefined") return "mithu";
+    return getMascot(window.localStorage.getItem("ms_mascot")).id;
+  });
+  const [pickerOpen, setPickerOpen] = useState(false);
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tipIndex = useRef(0);
@@ -102,10 +111,11 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback((name: SoundName) => soundKit.play(name), []);
 
-  const setMoodTemporarily = useCallback((next: MascotMood, backTo: MascotMood = "idle", ms = 2_800) => {
+  const setMoodTemporarily = useCallback((next: MascotMood, backTo: MascotMood = "idle", ms?: number) => {
+    const duration = ms ?? (next === "dance" || next === "hearts" || next === "curious" || next === "enthusiastic" || next === "angry" ? 3_400 : 2_800);
     setMood(next);
     if (moodTimer.current) clearTimeout(moodTimer.current);
-    moodTimer.current = setTimeout(() => setMood(backTo), ms);
+    moodTimer.current = setTimeout(() => setMood(backTo), duration);
   }, []);
 
   const say = useCallback(
@@ -213,6 +223,26 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
     <SaathiContext.Provider value={apiValue}>
       {children}
 
+      {/* active business strip */}
+      <MerchantStrip
+        onSwitched={(m, prevName) => {
+          soundKit.play("switch");
+          say(`Now viewing ${m.name}${prevName ? ` (was ${prevName})` : ""} - every number on screen is ${m.name}'s.`, {
+            mood: "curious",
+          });
+        }}
+        onAdded={(m) => {
+          soundKit.play("addBusiness");
+          say(`${m.name} joined the shelf! Their numbers are seeded and ready - take a look around.`, {
+            mood: "enthusiastic",
+          });
+        }}
+        onRemoved={(name) => {
+          soundKit.play("removeBusiness");
+          say(`${name} is gone - their rows were deleted for good.`, { mood: "sad" });
+        }}
+      />
+
       {/* floating sound toggle */}
       <button
         type="button"
@@ -240,6 +270,20 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
+      {/* mascot picker chip */}
+      <button
+        type="button"
+        onClick={() => {
+          setPickerOpen(true);
+          soundKit.play("open");
+        }}
+        className="ms-pop fixed bottom-[130px] right-6 z-40 flex h-8 w-8 items-center justify-center rounded-full border border-brand bg-white text-sm shadow-card transition hover:scale-110 sm:right-7"
+        aria-label="Choose your mascot buddy"
+        title="Pick your buddy"
+      >
+        🎭
+      </button>
+
       {/* mascot button */}
       <button
         type="button"
@@ -254,7 +298,7 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         title="Hi! I'm Mithu - click me!"
       >
         <span className="ms-mascot-dock block">
-          <Mascot mood={chatOpen ? "happy" : mood} talking={thinking} size={84} />
+          <MascotById id={mascotId} mood={chatOpen ? "happy" : mood} talking={thinking} size={84} />
         </span>
         {!chatOpen ? (
           <span className="ms-pulse absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-rose-500 text-xs font-black text-white">
@@ -267,9 +311,9 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
       {chatOpen ? (
         <div className="ms-slide-up fixed bottom-[150px] right-4 z-50 flex h-[min(560px,68vh)] w-[min(92vw,380px)] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-card sm:right-6">
           <div className="flex items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-brand-light to-accent-soft px-4 py-3">
-            <Mascot mood="happy" size={34} />
+            <MascotById id={mascotId} mood="happy" size={34} />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold leading-tight text-navy">Mithu</p>
+              <p className="text-sm font-extrabold leading-tight text-navy">{getMascot(mascotId).name}</p>
               <p className="text-[11px] font-semibold text-slate-500">
                 {brainStatus?.configured ? `Live brain · ${brainStatus.model}` : "Fact-book brain · verified numbers only"}
               </p>
@@ -285,12 +329,21 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
             </button>
             <button
               type="button"
+              onClick={() => setPickerOpen(true)}
+              className="rounded-lg px-2 py-1 text-sm transition hover:bg-white/70"
+              title="Pick your buddy (mascot)"
+              aria-label="Choose your mascot"
+            >
+              🎭
+            </button>
+            <button
+              type="button"
               onClick={() => {
                 setBrainOpen(true);
                 soundKit.play("open");
               }}
               className="rounded-lg px-2 py-1 text-sm transition hover:bg-white/70"
-              title="Give Mithu a live brain (API key)"
+              title="Give the mascot a live brain (API key)"
               aria-label="Assistant brain settings"
             >
               🧠
@@ -313,7 +366,7 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
               <div className="rounded-2xl bg-brand-light p-3 text-sm leading-relaxed text-navy">
                 <p className="font-bold">Namaste! 🧁</p>
                 <p className="mt-1">
-                  I&apos;m Mithu. Ask me anything about this demo - the decline, the offer math, approvals, the simulated
+                  I&apos;m {getMascot(mascotId).name}. Ask me anything about this demo - the decline, the offer math, approvals, the simulated
                   campaign - and I&apos;ll answer from the verified numbers only.
                 </p>
                 <button
@@ -379,7 +432,7 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
             {thinking ? (
               <div className="ms-pop flex justify-start">
                 <div className="rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3.5 py-2.5">
-                  <p className="text-[11px] font-semibold text-slate-500">Checking the verified numbers…</p>
+                  <p className="text-[11px] font-semibold text-slate-500">{getMascot(mascotId).name} is checking the verified numbers…</p>
                   <div className="mt-1 flex gap-1">
                     <span className="ms-dot ms-dot-1 h-2 w-2 rounded-full bg-accent" />
                     <span className="ms-dot ms-dot-2 h-2 w-2 rounded-full bg-accent" />
@@ -414,8 +467,8 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask Mithu…"
-                aria-label="Ask Mithu a question"
+                placeholder={`Ask ${getMascot(mascotId).name}…`}
+                aria-label={`Ask ${getMascot(mascotId).name} a question`}
                 maxLength={500}
                 className="flex-1 !py-2"
               />
@@ -440,8 +493,23 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         }}
       />
 
+      <MascotPicker
+        open={pickerOpen}
+        selectedId={mascotId}
+        onClose={() => {
+          setPickerOpen(false);
+          soundKit.play("close");
+        }}
+        onPick={(id) => {
+          setMascotId(id);
+          if (typeof window !== "undefined") window.localStorage.setItem("ms_mascot", id);
+          say(`${getMascot(id).name} is your buddy now! Hover the mood chips to hear their tunes.`, { mood: "excited" });
+        }}
+      />
+
       {tourOpen ? (
         <SaathiTour
+          mascotId={mascotId}
           onClose={() => {
             setTourOpen(false);
             setMoodTemporarily("wave", "idle", 3_000);
@@ -449,5 +517,185 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         />
       ) : null}
     </SaathiContext.Provider>
+  );
+}
+
+/**
+ * Active-business strip: switch between the session's businesses, add a new
+ * one, or remove one. Switching persists the id (client module var + header)
+ * and reloads so every screen refetches with the new scope.
+ */
+function MerchantStrip({
+  onSwitched,
+  onAdded,
+  onRemoved,
+}: {
+  onSwitched: (m: MerchantDto, prevName: string | null) => void;
+  onAdded: (m: MerchantDto) => void;
+  onRemoved: (name: string) => void;
+}) {
+  const [merchants, setMerchants] = useState<MerchantDto[]>([]);
+  const [active, setActive] = useState<string | null>(getActiveMerchantId());
+  const [open, setOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const current = merchants.find((m) => m.id === active) ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    api<{ merchants: MerchantDto[] }>("/api/merchants")
+      .then((res) => {
+        if (cancelled) return;
+        setMerchants(res.merchants);
+        const stored = getActiveMerchantId();
+        const valid = res.merchants.some((m) => m.id === stored);
+        if (!valid) {
+          setActiveMerchantId(res.merchants[0]?.id ?? null);
+          setActive(res.merchants[0]?.id ?? null);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (merchants.length === 0) return null;
+
+  async function switchTo(m: MerchantDto) {
+    if (m.id === active) {
+      setOpen(false);
+      return;
+    }
+    const prevName = current?.name ?? null;
+    setActiveMerchantId(m.id);
+    setActive(m.id);
+    setOpen(false);
+    onSwitched(m, prevName);
+    // Reload so every screen refetches with the new merchant scope.
+    setTimeout(() => window.location.reload(), 550);
+  }
+
+  async function add() {
+    setBusy(true);
+    try {
+      const created = await api<MerchantDto>("/api/merchants", {
+        method: "POST",
+        body: JSON.stringify(name.trim() ? { name: name.trim() } : {}),
+      });
+      setMerchants((m) => [...m, created]);
+      setActiveMerchantId(created.id);
+      setActive(created.id);
+      setAdding(false);
+      setName("");
+      onAdded(created);
+      setTimeout(() => window.location.reload(), 550);
+    } catch {
+      setAdding(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(m: MerchantDto) {
+    if (!window.confirm(`Remove ${m.name}? All of its demo rows are deleted for good.`)) return;
+    setBusy(true);
+    try {
+      await api(`/api/merchants/${m.id}`, { method: "DELETE" });
+      const rest = merchants.filter((x) => x.id !== m.id);
+      setMerchants(rest);
+      onRemoved(m.name);
+      if (m.id === active) {
+        setActiveMerchantId(rest[0]?.id ?? null);
+        setActive(rest[0]?.id ?? null);
+        setTimeout(() => window.location.reload(), 550);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed left-4 top-[64px] z-40" data-tour="merchant-strip">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen((v) => !v);
+            soundKit.play(open ? "close" : "open");
+          }}
+          className="ms-pop flex max-w-[260px] items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-navy shadow-card transition hover:border-brand"
+          aria-expanded={open}
+          aria-label="Switch business"
+        >
+          <span aria-hidden>🏪</span>
+          <span className="truncate">{current ? current.name : "Businesses"}</span>
+          <span aria-hidden className="text-slate-400">{open ? "▴" : "▾"}</span>
+        </button>
+        {open ? (
+          <div className="ms-pop absolute left-0 top-9 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-card">
+            <ul className="space-y-0.5">
+              {merchants.map((m) => (
+                <li key={m.id} className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => void switchTo(m)}
+                    disabled={busy}
+                    className={`flex-1 truncate rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${
+                      m.id === active ? "bg-accent-soft text-brand" : "text-slate-600 hover:bg-brand-light hover:text-brand"
+                    }`}
+                  >
+                    {m.name}
+                    <span className="ml-1.5 text-[10px] font-normal text-slate-400">{m.fixtureVersion}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void remove(m)}
+                    disabled={busy}
+                    className="rounded-lg px-1.5 py-1 text-xs text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                    aria-label={`Remove ${m.name}`}
+                    title={`Remove ${m.name}`}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {adding ? (
+              <div className="mt-2 flex gap-1.5">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") void add();
+                  }}
+                  placeholder="Business name (optional)"
+                  maxLength={60}
+                  aria-label="New business name"
+                  className="!py-1.5 text-xs"
+                  autoFocus
+                />
+                <button type="button" onClick={() => void add()} disabled={busy} className="btn-primary !px-2.5 !py-1.5 text-xs">
+                  Add
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAdding(true)}
+                disabled={busy}
+                className="mt-1 w-full rounded-xl border border-dashed border-brand/40 px-3 py-2 text-xs font-bold text-brand transition hover:bg-brand-light"
+              >
+                + Add a business
+              </button>
+            )}
+            <p className="mt-1.5 px-1 text-[10px] leading-snug text-slate-400">
+              Each business gets its own seeded numbers, offer and campaigns. Data stays in this browser session.
+            </p>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 }

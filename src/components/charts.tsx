@@ -343,3 +343,107 @@ export function MiniLine({
     </div>
   );
 }
+
+export interface DayBarDay {
+  dayLabel: string;
+  previous: { orders: number; netSalesPaise: number };
+  current: { orders: number; netSalesPaise: number };
+}
+
+/**
+ * Interactive 5-day comparison: two animated bars per weekday with a hover
+ * tooltip. Values come straight from the insights endpoint (computed from
+ * order rows) - the tooltip formats them, nothing more.
+ */
+export function DayBars({
+  days,
+  ariaLabel,
+}: {
+  days: DayBarDay[];
+  ariaLabel: string;
+}) {
+  const [shown, setShown] = useState(false);
+  const [hover, setHover] = useState<number | null>(null);
+  useEffect(() => {
+    const t = setTimeout(() => setShown(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+  const max = Math.max(...days.flatMap((d) => [d.previous.orders, d.current.orders]), 1);
+  return (
+    <div role="img" aria-label={ariaLabel} className="relative">
+      <div className="flex items-end justify-between gap-2" style={{ height: 150 }}>
+        {days.map((d, i) => (
+          <div
+            key={d.dayLabel}
+            className="flex h-full flex-1 flex-col justify-end"
+            onMouseEnter={() => setHover(i)}
+            onMouseLeave={() => setHover(null)}
+          >
+            <div className="flex h-full items-end justify-center gap-1">
+              <div
+                className="w-1/3 rounded-t-lg bg-navy transition-all"
+                style={{
+                  height: shown ? `${Math.max((d.previous.orders / max) * 100, 2)}%` : "2%",
+                  transition: `height 800ms ${EASE} ${i * 70}ms`,
+                }}
+              />
+              <div
+                className="w-1/3 rounded-t-lg bg-accent transition-all"
+                style={{
+                  height: shown ? `${Math.max((d.current.orders / max) * 100, 2)}%` : "2%",
+                  transition: `height 800ms ${EASE} ${i * 70 + 60}ms`,
+                }}
+              />
+            </div>
+            <span className="mt-1 text-center text-[10px] font-bold text-slate-500">{d.dayLabel}</span>
+          </div>
+        ))}
+      </div>
+      {hover !== null && days[hover] ? (
+        <div className="pointer-events-none absolute left-1/2 top-0 z-10 w-56 -translate-x-1/2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-semibold text-navy shadow-card">
+          <p className="mb-0.5 text-slate-500">{days[hover].dayLabel} · 3-6 p.m.</p>
+          <p>
+            <span className="text-navy">{days[hover].previous.orders}</span> →{" "}
+            <span className="text-accent">{days[hover].current.orders}</span> orders ·{" "}
+            {(days[hover].previous.netSalesPaise / 100).toLocaleString("en-IN")} →{" "}
+            {(days[hover].current.netSalesPaise / 100).toLocaleString("en-IN")} ₹
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export interface FunnelStep {
+  label: string;
+  value: number;
+  valueLabel: string;
+  tone: "navy" | "accent" | "good" | "muted";
+}
+
+/**
+ * Campaign funnel strip: customers → consented → simulated outbox →
+ * redemptions → contribution. Chips pop in sequence; every value comes from
+ * the insights DTO.
+ */
+export function FunnelStrip({ steps, ariaLabel }: { steps: FunnelStep[]; ariaLabel: string }) {
+  const tones: Record<string, string> = {
+    navy: "bg-navy text-white",
+    accent: "bg-accent text-white",
+    good: "bg-emerald-500 text-white",
+    muted: "bg-slate-100 text-slate-500",
+  };
+  return (
+    <div role="img" aria-label={ariaLabel} className="ms-stagger flex flex-wrap items-center gap-1.5">
+      {steps.map((s, i) => (
+        <div key={s.label} className="flex items-center gap-1.5">
+          {i > 0 ? <span aria-hidden className="text-slate-300">→</span> : null}
+          <div className={`rounded-2xl px-3 py-2 text-center ${tones[s.tone]}`}>
+            <p className="text-lg font-extrabold leading-none">{s.valueLabel}</p>
+            <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide opacity-90">{s.label}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
