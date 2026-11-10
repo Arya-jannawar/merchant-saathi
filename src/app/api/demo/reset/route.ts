@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getDemoSessionId } from "@/lib/session";
+import { getDemoSessionId, getRequestedMerchantId } from "@/lib/session";
 import { routeHandler, ok, parseBody } from "@/lib/http";
-import { resetDemo } from "@/services/demo";
+import { resetActiveMerchant } from "@/services/demo";
 import { resetRequestSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export const POST = routeHandler(async (request: Request) => {
   // Body is optional; an empty body resets to the standard bakery-v1 fixture.
   const raw = await request.json().catch(() => ({}));
   const body = parseBody(resetRequestSchema, raw ?? {});
-  const result = resetDemo(db, sessionId, body.fixtureVersion ?? "bakery-v1");
+  const result = resetActiveMerchant(db, sessionId, getRequestedMerchantId(request), body.fixtureVersion ?? "bakery-v1");
   return ok({ fixtureVersion: result.fixtureVersion, merchantName: result.merchantName, reset: true });
 });
 

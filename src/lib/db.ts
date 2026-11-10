@@ -21,13 +21,15 @@ export interface RunResult {
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS merchants (
   id TEXT PRIMARY KEY,
-  demo_session_id TEXT UNIQUE,
+  demo_session_id TEXT NOT NULL,
+  variant_seed INTEGER NOT NULL DEFAULT 20261106,
   display_name TEXT NOT NULL,
   timezone TEXT NOT NULL,
   currency TEXT NOT NULL,
   fixture_version TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id);
 
 CREATE TABLE IF NOT EXISTS orders (
   id TEXT PRIMARY KEY,
@@ -187,9 +189,42 @@ export function openDatabase(dbPath: string): SqliteDatabase {
   fs.mkdirSync(path.dirname(resolved), { recursive: true });
   const db = new Database(resolved);
   db.pragma("journal_mode = WAL");
+  migrateLegacyMerchantsTable(db);
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA_SQL);
   return db;
+}
+
+/**
+ * Databases created before multi-merchant support had UNIQUE(demo_session_id)
+ * and no variant_seed column. SQLite cannot drop a unique constraint in place,
+ * so if the old shape is detected the table is rebuilt (rows and children kept)
+ * inside one transaction with foreign keys suspended.
+ */
+function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'merchants'").get() as
+    | { sql: string }
+    | undefined;
+  if (!row || !row.sql.includes("UNIQUE")) return;
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE merchants_migrated (
+        id TEXT PRIMARY KEY,
+        demo_session_id TEXT NOT NULL,
+        variant_seed INTEGER NOT NULL DEFAULT 20261106,
+        display_name TEXT NOT NULL,
+        timezone TEXT NOT NULL,
+        currency TEXT NOT NULL,
+        fixture_version TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
+        SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants;
+      DROP TABLE merchants;
+      ALTER TABLE merchants_migrated RENAME TO merchants;
+    `);
+    db.exec("CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id);");
+  })();
 }
 
 /** Run `fn` inside an IMMEDIATE transaction; rolls back on throw. */

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { formatINR } from "@/lib/money";
-import { getDemoState, ensureTenant, type DemoState } from "@/services/demo";
+import { getDemoState, type DemoState } from "@/services/demo";
 import { getOpportunities } from "@/domain/metrics";
 import { computeOffer } from "@/domain/offers";
 import { getCampaignResults, type StoredOffer } from "@/services/campaigns";
@@ -79,10 +79,12 @@ export interface AssistantFacts {
   } | null;
 }
 
-export function buildAssistantFacts(db: SqliteDatabase, sessionId: string): AssistantFacts {
+export function buildAssistantFacts(db: SqliteDatabase, merchantId: string): AssistantFacts {
   const fixture = loadFixture();
-  const state = getDemoState(db, sessionId);
-  const merchantId = ensureTenant(db, sessionId);
+  const ownerRow = db.prepare("SELECT demo_session_id FROM merchants WHERE id = ?").get(merchantId) as
+    | { demo_session_id: string }
+    | undefined;
+  const state = ownerRow ? getDemoState(db, ownerRow.demo_session_id, merchantId) : null;
   const now = getNow();
   const opportunities = getOpportunities(db, merchantId, fixture, now);
   const item = opportunities.items[0] ?? null;
@@ -147,14 +149,14 @@ export function buildAssistantFacts(db: SqliteDatabase, sessionId: string): Assi
   }
 
   return {
-    merchantName: state.merchant?.name ?? "the demo bakery",
-    fixtureVersion: state.merchant?.fixtureVersion ?? fixture.fixtureVersion,
-    aiMode: state.aiMode,
-    clockInjected: state.clockInjected,
-    nowIso: state.nowIso,
-    seeded: state.seeded,
-    kpis: state.kpis ?? null,
-    audience: state.audience ?? null,
+    merchantName: state?.merchant?.name ?? "the demo bakery",
+    fixtureVersion: state?.merchant?.fixtureVersion ?? fixture.fixtureVersion,
+    aiMode: state?.aiMode ?? "fixture",
+    clockInjected: state?.clockInjected ?? true,
+    nowIso: state?.nowIso ?? now.toISOString(),
+    seeded: state?.seeded ?? true,
+    kpis: state?.kpis ?? null,
+    audience: state?.audience ?? null,
     opportunity: item
       ? {
           id: item.id,

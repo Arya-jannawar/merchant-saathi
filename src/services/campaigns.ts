@@ -388,7 +388,9 @@ export function executeCampaign(
 
   // Idempotency keys are resolved first, so a client key always replays its
   // original stored receipt - even after the campaign reached 'queued'.
-  const idempotencyKeyEarly = clientKey?.trim() ? `req:${clientKey.trim()}` : `exec:${campaignId}:${version}`;
+    // Client keys are scoped per merchant: the same client key for two different
+  // businesses never collides, and merchant-scoped cleanup stays exact.
+  const idempotencyKeyEarly = clientKey?.trim() ? `req:${merchantId}:${clientKey.trim()}` : `exec:${campaignId}:${version}`;
   const fingerprint = sha256(`${merchantId}|${campaignId}|${version}`);
   const earlyRequest = db.prepare("SELECT * FROM idempotency_requests WHERE key = ?").get(idempotencyKeyEarly) as
     | { fingerprint: string; response_json: string }

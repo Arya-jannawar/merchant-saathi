@@ -25,3 +25,16 @@ export function getDemoSessionId(): string {
   });
   return fresh;
 }
+
+const MERCHANT_HEADER = "x-merchant-id";
+
+/**
+ * Optional business selector for multi-merchant sessions. The id is NEVER
+ * trusted as authorization - resolveMerchant() only honors ids that belong to
+ * this session's own merchants; anything else resolves to not_found.
+ */
+export function getRequestedMerchantId(request: Request): string | null {
+  const raw = request.headers.get(MERCHANT_HEADER)?.trim();
+  if (!raw || raw.length > 64 || !/^mrc_[a-z0-9_]+$/i.test(raw)) return null;
+  return raw;
+}

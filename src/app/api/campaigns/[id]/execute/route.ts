@@ -1,9 +1,9 @@
 import { getDb } from "@/lib/db";
-import { getDemoSessionId } from "@/lib/session";
+import { getDemoSessionId, getRequestedMerchantId } from "@/lib/session";
 import { routeHandler, ok, parseBody } from "@/lib/http";
 import { executeCampaign } from "@/services/campaigns";
 import { loadFixture } from "@/lib/fixture";
-import { ensureTenant } from "@/services/demo";
+import { resolveTenant } from "@/services/demo";
 import { executeRequestSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const POST = routeHandler(async (request: Request, ctx: { params: { id: string } }) => {
   const db = getDb();
   const sessionId = getDemoSessionId();
-  const merchantId = ensureTenant(db, sessionId);
+  const merchantId = resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const fixture = loadFixture();
   const body = parseBody(executeRequestSchema, await request.json());
   const receipt = executeCampaign(db, merchantId, fixture, ctx.params.id, body.version, body.idempotencyKey);

@@ -2,6 +2,24 @@
 
 /** Typed fetch helpers for browser components. Errors surface the server envelope. */
 
+/**
+ * Multi-business support: every request carries the active business id; the
+ * server only honors ids owned by this session. Persisted per browser.
+ */
+let activeMerchantId: string | null =
+  typeof window === "undefined" ? null : window.localStorage.getItem("ms_active_merchant");
+
+export function setActiveMerchantId(id: string | null): void {
+  activeMerchantId = id;
+  if (typeof window === "undefined") return;
+  if (id) window.localStorage.setItem("ms_active_merchant", id);
+  else window.localStorage.removeItem("ms_active_merchant");
+}
+
+export function getActiveMerchantId(): string | null {
+  return activeMerchantId;
+}
+
 export interface ApiErrorBody {
   error: {
     code: string;
@@ -25,9 +43,11 @@ export class ApiClientError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (activeMerchantId) headers["x-merchant-id"] = activeMerchantId;
   const res = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
+    headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
     cache: "no-store",
   });
   const body = (await res.json().catch(() => null)) as unknown;
@@ -43,6 +63,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export interface DemoStateDto {
   seeded: boolean;
   sessionId: string;
+  merchants: MerchantDto[];
+  activeMerchantId: string | null;
   merchant?: { name: string; fixtureVersion: string; timezone: string; currency: string };
   nowIso: string;
   clockInjected: boolean;
@@ -55,6 +77,35 @@ export interface DemoStateDto {
   };
   audience?: { eligible: number; excluded: number; channel: string };
   hint?: string;
+}
+
+export interface MerchantDto {
+  id: string;
+  name: string;
+  fixtureVersion: string;
+  isDefault: boolean;
+}
+
+export interface InsightsDayDto {
+  dayLabel: string;
+  orders: number;
+  netSalesPaise: number;
+}
+
+export interface DemoInsightsDto {
+  merchantId: string;
+  merchantName: string;
+  nowIso: string;
+  windowLabels: { previous: string; current: string };
+  days: { previous: InsightsDayDto[]; current: InsightsDayDto[] };
+  funnel: {
+    customers: number;
+    eligible: number;
+    queued: number | null;
+    redemptions: number | null;
+    contributionPaise: number | null;
+    simulated: true;
+  } | null;
 }
 
 export interface EvidenceEntryDto {

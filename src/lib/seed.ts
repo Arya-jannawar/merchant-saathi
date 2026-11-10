@@ -4,6 +4,7 @@ import { withTransaction } from "./db";
 import { loadFixture, type Fixture } from "./fixture";
 import { getNow, istToUtcIso, lastCompleteAfternoonWindow, previousAfternoonWindow, istParts } from "./clock";
 import { completedAfternoonTotals } from "../domain/metrics";
+import { ApiError } from "./errors";
 
 /**
  * Deterministic seeder. Given the same fixture it always produces the same
@@ -71,6 +72,32 @@ function composeOrderTargets(
   return picks;
 }
 
+export const DEFAULT_VARIANT_SEED = 20261106;
+const MAX_HERO_DROP_PREV = 15;
+const MIN_HERO_DROP_CURR = 25;
+const MAX_HERO_DROP_CURR_EXTRA = 10;
+
+/** Display-name pool for added businesses; picked deterministically per variant seed. */
+const VARIANT_NAMES = [
+  "Ravi's Chai Tapri",
+  "Meera's Mithai Corner",
+  "Arjun's Cafe 24",
+  "Zoya's Bake Studio",
+  "Kabir's Toast & Co",
+  "Sana's Samosa House",
+];
+
+/** Stable merchant id for a session + variant seed (the default seed keeps the legacy id). */
+export function merchantIdFor(demoSessionId: string, variantSeed: number): string {
+  const prefix = demoSessionId.replace(/-/g, "").slice(0, 20);
+  return variantSeed === DEFAULT_VARIANT_SEED ? `mrc_${prefix}` : `mrc_${prefix}_s${variantSeed}`;
+}
+
+export function merchantNameFor(variantSeed: number, fixture: Fixture): string {
+  if (variantSeed === DEFAULT_VARIANT_SEED) return fixture.merchant.displayName;
+  return VARIANT_NAMES[Math.abs(variantSeed) % VARIANT_NAMES.length];
+}
+
 /** Exact per-order totals for the two hero windows (sum must match fixture). */
 function heroWindowTotals(fixture: Fixture, window: "previous" | "current"): number[] {
   // Distribution-driven fixtures (e.g. the thin-data demo) are fully explicit.
@@ -125,7 +152,11 @@ function morningInstant(mondayIsoDate: string, dayOffset: number, rand: () => nu
 }
 
 /** Plan every order row (deterministically) before inserting. */
-function planOrders(fixture: Fixture, rand: () => number): PlannedOrder[] {
+function planOrders(
+  fixture: Fixture,
+  rand: () => number,
+  heroDrop?: { previous: number; current: number }
+): PlannedOrder[] {
   const orders: PlannedOrder[] = [];
   let seq = 100001;
 
@@ -153,9 +184,17 @@ function planOrders(fixture: Fixture, rand: () => number): PlannedOrder[] {
     pushDaySpread(monday, totals);
   }
 
-  // Hero windows - exact fixture totals.
-  pushDaySpread(fixture.windows.previous.mondayIsoDate, heroWindowTotals(fixture, "previous"));
-  pushDaySpread(fixture.windows.current.mondayIsoDate, heroWindowTotals(fixture, "current"));
+  // Hero windows - exact fixture totals (trimmed deterministically for variant businesses).
+  const prevTotals = heroWindowTotals(fixture, "previous");
+  const currTotals = heroWindowTotals(fixture, "current");
+  pushDaySpread(
+    fixture.windows.previous.mondayIsoDate,
+    heroDrop ? prevTotals.slice(0, prevTotals.length - heroDrop.previous) : prevTotals
+  );
+  pushDaySpread(
+    fixture.windows.current.mondayIsoDate,
+    heroDrop ? currTotals.slice(0, currTotals.length - heroDrop.current) : currTotals
+  );
 
   // Morning trade for both hero weeks (context: shows the decline is afternoon-specific).
   for (const monday of [fixture.windows.previous.mondayIsoDate, fixture.windows.current.mondayIsoDate]) {
@@ -192,24 +231,53 @@ function planOrders(fixture: Fixture, rand: () => number): PlannedOrder[] {
   return orders;
 }
 
-export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
-  const now = getNow();
-  const merchantId = `mrc_${demoSessionId.replace(/-/g, "").slice(0, 20)}`;
-  const createdAt = now.toISOString();
-  const rand = mulberry32(20261106);
+export interface SeedMerchantOptions {
+  /** Deterministic personality of this business: its data trim + name pick. */
+  variantSeed?: number;
+  /** Overrides the variant-pool display name (user-typed business name). */
+  displayName?: string;
+  fixture?: Fixture;
+}
 
-  const existing = db.prepare("SELECT id FROM merchants WHERE demo_session_id = ?").get(demoSessionId) as
+/**
+ * Create (or return the existing id of) one merchant belonging to a session.
+ * A session can own several merchants; each gets its own deterministic data
+ * derived from its variant seed, so numbers differ per business while staying
+ * fully reproducible and internally reconciled (line items always sum exactly).
+ */
+export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: SeedMerchantOptions = {}): string {
+  const now = getNow();
+  const fixture = opts.fixture ?? loadFixture();
+  const variantSeed = opts.variantSeed ?? DEFAULT_VARIANT_SEED;
+  const merchantId = merchantIdFor(demoSessionId, variantSeed);
+  const createdAt = now.toISOString();
+  const rand = mulberry32(variantSeed);
+
+  const existing = db.prepare("SELECT id FROM merchants WHERE id = ?").get(merchantId) as
     | { id: string }
     | undefined;
   if (existing) return existing.id;
 
+  // Variant hero-window trim: fewer orders in both windows with the current one
+  // dropping harder, so every added business still shows a (varied) decline.
+  const dropRand = mulberry32(variantSeed ^ 0x9e3779b9);
+  const heroDrop =
+    variantSeed === DEFAULT_VARIANT_SEED
+      ? undefined
+      : {
+          previous: Math.floor(dropRand() * MAX_HERO_DROP_PREV),
+          current: MIN_HERO_DROP_CURR + Math.floor(dropRand() * MAX_HERO_DROP_CURR_EXTRA),
+        };
+  const displayName = opts.displayName?.trim() || merchantNameFor(variantSeed, fixture);
+
   withTransaction(db, () => {
     db.prepare(
-      "INSERT INTO merchants (id, demo_session_id, display_name, timezone, currency, fixture_version, created_at) VALUES (?,?,?,?,?,?,?)"
+      "INSERT INTO merchants (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at) VALUES (?,?,?,?,?,?,?,?)"
     ).run(
       merchantId,
       demoSessionId,
-      fixture.merchant.displayName,
+      variantSeed,
+      displayName,
       fixture.merchant.timezone,
       fixture.merchant.currency,
       fixture.fixtureVersion,
@@ -269,7 +337,7 @@ export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: F
     const itemStmt = db.prepare(
       "INSERT INTO order_items (order_id, sku_id, quantity, unit_price_paise, unit_discount_paise) VALUES (?,?,?,?,0)"
     );
-    const planned = planOrders(fixture, rand);
+    const planned = planOrders(fixture, rand, heroDrop);
     const skuPrices = fixture.skus.map((s) => ({ skuId: s.id, pricePaise: s.pricePaise }));
     for (const o of planned) {
       const orderId = `${merchantId}_${o.externalId}`;
@@ -381,24 +449,101 @@ export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: F
   return merchantId;
 }
 
-export function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
-  const existing = db.prepare("SELECT id FROM merchants WHERE demo_session_id = ?").get(demoSessionId) as
-    | { id: string }
+export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
+  return seedMerchant(db, demoSessionId, { fixture });
+}
+
+/** Delete the idempotency receipts that belong to a merchant's campaigns. */
+function clearMerchantIdempotency(db: SqliteDatabase, merchantId: string): void {
+  // Merchant-scoped client keys (req:<merchantId>:<key>) - exact prefix match.
+  db.prepare("DELETE FROM idempotency_requests WHERE key LIKE 'req:' || ? || ':%'").run(merchantId);
+  // Server receipts (exec:<campaignId>:<version>) and any pre-fix rows: match
+  // on the stored campaign id...
+  db.prepare(
+    "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IN (SELECT id FROM campaigns WHERE merchant_id = ?)"
+  ).run(merchantId);
+  // ...and sweep orphans whose campaign no longer exists anywhere (they could
+  // never be replayed, only conflict forever).
+  db.prepare(
+    "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IS NOT NULL AND json_extract(response_json, '$.campaignId') NOT IN (SELECT id FROM campaigns)"
+  ).run();
+}
+
+function requireOwnedMerchant(db: SqliteDatabase, demoSessionId: string, merchantId: string): { variantSeed: number } {
+  const row = db
+    .prepare("SELECT demo_session_id, variant_seed FROM merchants WHERE id = ?")
+    .get(merchantId) as { demo_session_id: string; variant_seed: number } | undefined;
+  // not_found (not 403) so we never leak another session's merchant existence.
+  if (!row || row.demo_session_id !== demoSessionId) {
+    throw new ApiError("not_found", "Merchant not found for this session.");
+  }
+  return { variantSeed: row.variant_seed };
+}
+
+/** Reset one owned merchant in place: same id, same variant personality, fresh rows. */
+export function resetMerchantById(
+  db: SqliteDatabase,
+  demoSessionId: string,
+  merchantId: string,
+  fixture: Fixture = loadFixture()
+): { merchantId: string; displayName: string } {
+  const owned = requireOwnedMerchant(db, demoSessionId, merchantId);
+  const nameRow = db.prepare("SELECT display_name, fixture_version FROM merchants WHERE id = ?").get(merchantId) as
+    | { display_name: string; fixture_version: string }
     | undefined;
+  let displayName = nameRow?.display_name ?? merchantNameFor(owned.variantSeed, fixture);
+  // A generated name follows the fixture it came from - if the merchant was
+  // never user-renamed, a reset to a different fixture also refreshes the name
+  // (so "(thin-data demo)" does not survive a reset to standard data).
+  if (nameRow) {
+    // Generated names are recognizable across ALL shipped fixtures (the stored
+    // fixture_version may already have moved on in an earlier reset).
+    const generatedNames = new Set<string>();
+    for (const version of ["bakery-v1", "bakery-thin-v1"] as const) {
+      generatedNames.add(merchantNameFor(owned.variantSeed, loadFixture(version)));
+      if (owned.variantSeed === DEFAULT_VARIANT_SEED) {
+        generatedNames.add(loadFixture(version).merchant.displayName);
+      }
+    }
+    if (generatedNames.has(nameRow.display_name)) {
+      displayName = merchantNameFor(owned.variantSeed, fixture);
+    }
+  }
+  withTransaction(db, () => {
+    clearMerchantIdempotency(db, merchantId);
+    db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
+    db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId); // cascades to child rows
+  });
+  seedMerchant(db, demoSessionId, { variantSeed: owned.variantSeed, displayName, fixture });
+  return { merchantId, displayName };
+}
+
+/** Remove an owned merchant entirely (cascades to all of its rows). */
+export function deleteMerchantById(db: SqliteDatabase, demoSessionId: string, merchantId: string): void {
+  requireOwnedMerchant(db, demoSessionId, merchantId);
+  withTransaction(db, () => {
+    clearMerchantIdempotency(db, merchantId);
+    db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
+    db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId);
+  });
+}
+
+export function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
+  const existing = db
+    .prepare("SELECT id FROM merchants WHERE demo_session_id = ? AND variant_seed = ?")
+    .get(demoSessionId, DEFAULT_VARIANT_SEED) as { id: string } | undefined;
   withTransaction(db, () => {
     if (existing) {
       // Clear every idempotency receipt that references one of this tenant's
       // campaigns - both server-generated ("exec:<id>:<v>") and client-supplied
       // ("req:<key>") keys. Stale client keys would otherwise replay/conflict
       // against a future campaign after a reset.
-      db.prepare(
-        "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IN (SELECT id FROM campaigns WHERE merchant_id = ?)"
-      ).run(existing.id);
+      clearMerchantIdempotency(db, existing.id);
       db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(existing.id);
       db.prepare("DELETE FROM merchants WHERE id = ?").run(existing.id); // cascades to all child rows
     }
   });
-  return seedTenant(db, demoSessionId, fixture);
+  return seedMerchant(db, demoSessionId, { fixture });
 }
 
 /** For CLI seeding of the default local database. */

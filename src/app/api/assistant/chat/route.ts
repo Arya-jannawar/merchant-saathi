@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { getDb } from "@/lib/db";
-import { getDemoSessionId } from "@/lib/session";
+import { getDemoSessionId, getRequestedMerchantId } from "@/lib/session";
 import { routeHandler, ok, parseBody } from "@/lib/http";
+import { resolveTenant } from "@/services/demo";
 import { buildAssistantFacts, answerFromFactBook, buildAssistantPrompts, parseAssistantAnswer, callAssistantModel } from "@/lib/saathi-brain";
 import { getAssistantKeyConfig } from "@/lib/assistant-settings";
 import { getAiMode } from "@/adapters/ai";
@@ -24,7 +25,8 @@ export const POST = routeHandler(async (request: Request) => {
   const { question } = parseBody(ChatBodySchema, await request.json().catch(() => null));
   const db = getDb();
   const sessionId = getDemoSessionId();
-  const facts = buildAssistantFacts(db, sessionId);
+  const merchantId = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const facts = buildAssistantFacts(db, merchantId);
 
   const keyConfig = getAssistantKeyConfig();
   if (keyConfig) {
