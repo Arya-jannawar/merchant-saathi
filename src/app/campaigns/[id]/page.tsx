@@ -115,7 +115,36 @@ export default function CampaignPage() {
   }
 
   if (!results) {
-    return notice ? <Alert tone={notice.tone} title={notice.text} /> : <p className="py-16 text-center text-sm text-slate-500">Loading campaign...</p>;
+    if (notice) {
+      return (
+        <div className="mx-auto max-w-lg py-10">
+          <Card className="p-6 text-center">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Campaign activity</p>
+            <h1 className="mt-1 text-lg font-extrabold text-navy">
+              {notice.tone === "error" && /not found/i.test(notice.text)
+                ? "Campaign not found in this session"
+                : "Could not load the campaign"}
+            </h1>
+            <div className="mt-3">
+              <Alert tone={notice.tone} title={notice.text} />
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              Campaigns are scoped to this browser session. The campaign may belong to another session, or the demo
+              data was reset. Queuing a campaign again from the offer workspace creates a fresh, trackable activity page.
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              <button type="button" onClick={() => void load()} className="btn-secondary">
+                Retry
+              </button>
+              <a href="/merchant" className="btn-primary">
+                Back to dashboard
+              </a>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+    return <p className="py-16 text-center text-sm text-slate-500">Loading campaign...</p>;
   }
 
   const r = results.redemptions;

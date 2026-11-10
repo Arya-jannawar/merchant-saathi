@@ -58,7 +58,19 @@ export default function MerchantDashboard() {
   if (!state) {
     return (
       <div className="py-16 text-center text-sm text-slate-500">
-        {error ? <Alert tone="error" title={error} /> : "Loading demo state..."}
+        {error ? (
+          <div className="mx-auto max-w-md space-y-4">
+            <Alert tone="error" title={error} />
+            <p className="text-xs text-slate-400">
+              Check that the dev server is still running, then retry. Nothing was changed.
+            </p>
+            <button type="button" onClick={() => void load()} className="btn-secondary mx-auto !px-5">
+              Retry
+            </button>
+          </div>
+        ) : (
+          "Loading demo state..."
+        )}
       </div>
     );
   }
