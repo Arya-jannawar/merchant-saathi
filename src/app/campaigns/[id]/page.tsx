@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { api, ApiClientError, type CampaignResultsDto, type RedeemResponseDto } from "@/lib/client";
 import { formatDateTime, formatINR } from "@/lib/format";
 import { Alert, Badge, Card, Stat } from "@/components/ui";
+import { CountUp, Meter, WaterfallChart } from "@/components/charts";
+import { useSaathi } from "@/components/saathi-provider";
 
 export default function CampaignPage() {
   const params = useParams<{ id: string }>();
@@ -13,6 +15,7 @@ export default function CampaignPage() {
   const [results, setResults] = useState<CampaignResultsDto | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ tone: "info" | "warn" | "error"; text: string } | null>(null);
+  const saathi = useSaathi();
 
   const load = useCallback(async () => {
     if (!campaignId) return;
@@ -20,8 +23,9 @@ export default function CampaignPage() {
       setResults(await api<CampaignResultsDto>(`/api/campaigns/${campaignId}/results`));
     } catch (err) {
       setNotice({ tone: "error", text: err instanceof ApiClientError ? err.message : "Could not load campaign." });
+      saathi.react("sad", "error");
     }
-  }, [campaignId]);
+  }, [campaignId, saathi]);
 
   useEffect(() => {
     void load();
@@ -38,8 +42,10 @@ export default function CampaignPage() {
       });
       if (res.redemption.duplicate) {
         setNotice({ tone: "warn", text: `Event ${eventId} was already recorded - replaying it changed nothing (idempotent).` });
+        saathi.say(`See that? ${eventId} replayed and changed nothing. Idempotency, verified live. 🛡️`, { mood: "happy", sound: "reply" });
       } else {
         setNotice({ tone: "info", text: `Recorded ${eventId}: ${res.redemption.quantity} bundle(s) at ${formatINR(res.redemption.amountPaise)} (simulated).` });
+        saathi.react("happy", "tap");
       }
       await load();
     } catch (err) {
@@ -47,6 +53,7 @@ export default function CampaignPage() {
         tone: "error",
         text: err instanceof ApiClientError ? `${err.message} (${err.code})` : "Redemption failed.",
       });
+      saathi.react("sad", "error");
     } finally {
       setBusy(false);
     }
@@ -77,6 +84,12 @@ export default function CampaignPage() {
         : `Applied ${applied} new simulated redemption event(s).`,
     });
     setBusy(false);
+    if (!lastError && applied > 0) {
+      saathi.say("All events applied - check the waterfall below: bundle sales minus ingredients & packaging, all simulated and labeled. The loop is complete! 🎉", {
+        mood: "excited",
+        sound: "celebrate",
+      });
+    }
     await load();
   }
 
@@ -184,7 +197,7 @@ export default function CampaignPage() {
       </Card>
 
       {/* Simulated outbox */}
-      <Card className="p-5">
+      <Card data-tour="outbox" className="ms-rise p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-bold text-navy">Simulated outbox</h2>
           <Badge tone="gray">{results.outbox.queued} recipients - simulated, never sent</Badge>
@@ -220,12 +233,22 @@ export default function CampaignPage() {
 
       {/* Redemption simulator + results */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="p-5">
+        <Card data-tour="events" className="ms-rise p-5">
           <h2 className="text-base font-bold text-navy">Apply simulated redemption events</h2>
           <p className="mt-1 text-xs leading-relaxed text-slate-500">
             Fixed fixture events for the next weekday afternoon (3-6 p.m.). Repeat events are idempotent; the cap is
             enforced atomically.
           </p>
+          <div className="mt-3">
+            <Meter
+              ariaLabel={`${r.redemptions} of a maximum ${r.cap} redemptions used`}
+              label="Cap utilization"
+              valueLabel={`${r.redemptions} / ${r.cap}`}
+              value={r.redemptions}
+              max={Math.max(r.cap, 1)}
+              tone={r.redemptions >= r.cap ? "warn" : "good"}
+            />
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="button" onClick={redeemAll} disabled={busy} data-testid="apply-all" className="btn-primary">
               {busy ? "Applying..." : "Apply all 10 events"}
@@ -255,25 +278,56 @@ export default function CampaignPage() {
           </div>
         </Card>
 
-        <Card className="border-brand bg-brand-light p-5">
+        <Card data-tour="money" className="ms-pop border-brand bg-brand-light p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-navy">Results</h2>
             <Badge tone="navy">Simulated campaign outcomes</Badge>
           </div>
           <div className="mt-4 grid grid-cols-3 items-end gap-2 text-center">
             <div>
-              <p className="text-3xl font-extrabold text-navy">{formatINR(r.revenuePaise)}</p>
+              <p className="text-3xl font-extrabold text-navy">
+                <CountUp value={r.revenuePaise} format={(v) => formatINR(Math.round(v))} />
+              </p>
               <p className="mt-1 text-xs text-slate-600">Bundle sales</p>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-navy">-{formatINR(r.variableCostPaise)}</p>
+              <p className="text-3xl font-extrabold text-navy">
+                -<CountUp value={r.variableCostPaise} format={(v) => formatINR(Math.round(v))} />
+              </p>
               <p className="mt-1 text-xs text-slate-600">Ingredients &amp; packaging</p>
             </div>
             <div>
-              <p className="text-3xl font-extrabold text-accent">{formatINR(r.contributionPaise)}</p>
+              <p className="text-3xl font-extrabold text-accent">
+                <CountUp value={r.contributionPaise} format={(v) => formatINR(Math.round(v))} />
+              </p>
               <p className="mt-1 text-xs text-slate-600">Contribution toward fixed costs</p>
             </div>
           </div>
+          {r.revenuePaise > 0 ? (
+            <div className="mt-4 rounded-2xl bg-white/70 p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Where the money went</p>
+              <WaterfallChart
+                ariaLabel={`Bundle sales ${formatINR(r.revenuePaise)}, variable cost ${formatINR(r.variableCostPaise)}, contribution ${formatINR(r.contributionPaise)}`}
+                steps={[
+                  { label: "Bundle sales", fromRupees: 0, toRupees: r.revenuePaise / 100, valueLabel: formatINR(r.revenuePaise), tone: "brand" },
+                  {
+                    label: "Ingredients & packaging",
+                    fromRupees: r.revenuePaise / 100,
+                    toRupees: (r.revenuePaise - r.variableCostPaise) / 100,
+                    valueLabel: `-${formatINR(r.variableCostPaise)}`,
+                    tone: "bad",
+                  },
+                  {
+                    label: "= Contribution",
+                    fromRupees: 0,
+                    toRupees: r.contributionPaise / 100,
+                    valueLabel: formatINR(r.contributionPaise),
+                    tone: "good",
+                  },
+                ]}
+              />
+            </div>
+          ) : null}
           <div className="mt-4 divide-y divide-slate-200/60">
             <Stat label="Unique redemptions">{`${r.redemptions} of cap ${r.cap}`}</Stat>
             <Stat label="Discount given">{formatINR(r.discountPaise)}</Stat>

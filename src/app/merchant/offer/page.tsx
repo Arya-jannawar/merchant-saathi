@@ -11,6 +11,8 @@ import {
 import { formatDateTime, formatINR, formatPct } from "@/lib/format";
 import { Alert, Badge, Card, Stat } from "@/components/ui";
 import EvidenceDrawer from "@/components/evidence-drawer";
+import { Meter } from "@/components/charts";
+import { useSaathi } from "@/components/saathi-provider";
 
 const OPPORTUNITY_ID = "afternoon-decline-v1";
 
@@ -27,6 +29,7 @@ export default function OfferWorkspacePage() {
 
   const [busy, setBusy] = useState<"" | "draft" | "approve" | "execute">("");
   const [error, setError] = useState<string | null>(null);
+  const saathi = useSaathi();
 
   const pricePaise = parseRupees(priceInput);
   const cap = Number.parseInt(capInput, 10);
@@ -66,8 +69,20 @@ export default function OfferWorkspacePage() {
       setDraft(result);
       setApproved(null);
       setExecuted(null);
+      if (result.computed.passes) {
+        saathi.say(`${formatINR(result.computed.pricePaise)} clears the ${result.computed.floorPct}% floor with ${formatPct(result.computed.marginPct)} margin. Good instinct!`, {
+          mood: "happy",
+          sound: "success",
+        });
+      } else {
+        saathi.say(
+          `Stop! ${formatINR(result.computed.pricePaise)} fails the margin check - the approve button stays locked, by design. The red banner has the details.`,
+          { mood: "sad", sound: "warn" }
+        );
+      }
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : "Draft failed.");
+      saathi.react("sad", "error");
     } finally {
       setBusy("");
     }
@@ -83,8 +98,17 @@ export default function OfferWorkspacePage() {
         body: JSON.stringify({ version: draft.version, previewHash: draft.previewHash }),
       });
       setApproved(result);
+      saathi.say(`Approved and hash-bound! v${result.approvedVersion} is locked - any change now invalidates it.`, {
+        mood: "excited",
+        sound: "success",
+      });
     } catch (err) {
-      setError(err instanceof ApiClientError ? `${err.message} (${err.code})` : "Approval failed.");
+      const msg = err instanceof ApiClientError ? `${err.message} (${err.code})` : "Approval failed.";
+      setError(msg);
+      saathi.say(`The approve was refused: ${msg}. Usually it is a stale preview - press "Update draft" first.`, {
+        mood: "sad",
+        sound: "warn",
+      });
     } finally {
       setBusy("");
     }
@@ -100,8 +124,14 @@ export default function OfferWorkspacePage() {
         body: JSON.stringify({ version: draft.version }),
       });
       setExecuted(result);
+      saathi.say(`${result.count} consented demo customers are in the simulated outbox. Nothing real was sent!`, {
+        mood: "excited",
+        sound: "celebrate",
+      });
     } catch (err) {
-      setError(err instanceof ApiClientError ? `${err.message} (${err.code})` : "Queueing failed.");
+      const msg = err instanceof ApiClientError ? `${err.message} (${err.code})` : "Queueing failed.";
+      setError(msg);
+      saathi.say(`Queueing was refused: ${msg}. The control loop did its job.`, { mood: "sad", sound: "warn" });
     } finally {
       setBusy("");
     }
@@ -115,11 +145,11 @@ export default function OfferWorkspacePage() {
         <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
           Every suggestion ships with the numbers behind it. Change a term and the check updates before anything is
           queued. Try an unsafe price (e.g.{" "}
-          <button type="button" data-testid="try-50" className="font-semibold text-brand underline" onClick={() => setPriceInput("50")}>
+          <button type="button" data-testid="try-50" className="font-semibold text-brand underline" onClick={() => { setPriceInput("50"); saathi.say("₹50? Bold. Now press 'Update draft' and watch the floor check refuse it. 😱", { mood: "thinking" }); }}>
             ₹50
           </button>
           , then back to{" "}
-          <button type="button" data-testid="try-70" className="font-semibold text-brand underline" onClick={() => setPriceInput("70")}>
+          <button type="button" data-testid="try-70" className="font-semibold text-brand underline" onClick={() => { setPriceInput("70"); saathi.say("Back to ₹70 - the safe zone. Draft it and watch the math turn green.", { mood: "happy" }); }}>
             ₹70
           </button>
           ) to see the margin floor reject it.
@@ -130,7 +160,7 @@ export default function OfferWorkspacePage() {
 
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Inputs + live check */}
-        <Card className="p-5 lg:col-span-2">
+        <Card data-tour="terms" className="p-5 lg:col-span-2">
           <h2 className="text-base font-bold text-navy">Terms</h2>
           <div className="mt-4 space-y-4">
             <label className="block">
@@ -181,9 +211,35 @@ export default function OfferWorkspacePage() {
           </div>
 
           {draft ? (
-            <div className="mt-5 border-t border-slate-100 pt-4">
+            <div data-tour="economics" className="ms-pop mt-5 border-t border-slate-100 pt-4">
               <h3 className="text-sm font-bold text-navy">Live check - v{draft.version}</h3>
-              <div className="mt-1 divide-y divide-slate-100">
+              {draft.computed.marginPct !== null ? (
+                <div className="mt-3">
+                  <Meter
+                    ariaLabel={`Contribution margin ${formatPct(draft.computed.marginPct)} against a ${draft.computed.floorPct}% floor`}
+                    label={`Margin ${formatPct(draft.computed.marginPct)}`}
+                    valueLabel={draft.computed.passes ? "above floor" : "below floor!"}
+                    value={draft.computed.marginPct}
+                    max={Math.max(draft.computed.marginPct * 1.25, draft.computed.floorPct * 1.6, 30)}
+                    markerPct={(draft.computed.floorPct / Math.max(draft.computed.marginPct * 1.25, draft.computed.floorPct * 1.6, 30)) * 100}
+                    markerLabel={`25% margin floor`}
+                    tone={draft.computed.passes ? "good" : "bad"}
+                  />
+                </div>
+              ) : null}
+              {draft.computed.bundleCostPaise !== null ? (
+                <div className="mt-3">
+                  <Meter
+                    ariaLabel={`Cap ${draft.computed.requestedCap} against stock capacity ${draft.computed.capacity} bundles`}
+                    label={`Cap ${draft.computed.requestedCap}/day vs stock capacity ${draft.computed.capacity}`}
+                    valueLabel={draft.computed.capWithinCapacity ? "feasible" : "over capacity!"}
+                    value={draft.computed.requestedCap}
+                    max={Math.max(draft.computed.capacity, draft.computed.requestedCap, 1)}
+                    tone={draft.computed.capWithinCapacity ? "brand" : "bad"}
+                  />
+                </div>
+              ) : null}
+              <div className="mt-3 divide-y divide-slate-100">
                 <Stat label="Usual combined price">{formatINR(draft.offer.normalPricePaise)}</Stat>
                 <Stat label="Variable cost / bundle">{draft.computed.bundleCostPaise !== null ? formatINR(draft.computed.bundleCostPaise) : "cannot calculate"}</Stat>
                 <Stat label="Contribution / bundle">
@@ -288,7 +344,7 @@ export default function OfferWorkspacePage() {
               </Card>
 
               {/* Approval preview */}
-              <Card className="p-5">
+              <Card data-tour="actions" className="p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-base font-bold text-navy">Approval preview - exact version</h2>
                   <Badge tone={approved ? "green" : "gray"}>
