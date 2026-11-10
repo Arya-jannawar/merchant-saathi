@@ -387,8 +387,12 @@ export function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: 
     | undefined;
   withTransaction(db, () => {
     if (existing) {
+      // Clear every idempotency receipt that references one of this tenant's
+      // campaigns - both server-generated ("exec:<id>:<v>") and client-supplied
+      // ("req:<key>") keys. Stale client keys would otherwise replay/conflict
+      // against a future campaign after a reset.
       db.prepare(
-        "DELETE FROM idempotency_requests WHERE key IN (SELECT 'exec:' || id || ':' || version FROM campaigns WHERE merchant_id = ?)"
+        "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IN (SELECT id FROM campaigns WHERE merchant_id = ?)"
       ).run(existing.id);
       db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(existing.id);
       db.prepare("DELETE FROM merchants WHERE id = ?").run(existing.id); // cascades to all child rows
