@@ -58,8 +58,30 @@ describe("validateModelEndpoint", () => {
     expect(() => validateModelEndpoint("http://[fe80::1]/v1")).toThrow();
   });
 
+  it("refuses IPv6 zone ids", () => {
+    expect(() => validateModelEndpoint("http://[::1%25eth0]/v1")).toThrow();
+    expect(() => validateModelEndpoint("http://[fe80::1%25eth0]/v1")).toThrow();
+  });
+
   it("applies IPv4 rules to IPv4-mapped IPv6 addresses", () => {
     expect(() => validateModelEndpoint("http://[::ffff:127.0.0.1]/v1")).toThrow();
     expect(() => validateModelEndpoint("http://[::ffff:192.168.0.5]/v1")).toThrow();
+  });
+
+  it("refuses numeric address encodings that resolvers map to internal IPs", () => {
+    expect(() => validateModelEndpoint("http://2130706433/v1")).toThrow(); // decimal 127.0.0.1
+    expect(() => validateModelEndpoint("http://0177.0.0.1/v1")).toThrow(); // octal loopback
+    expect(() => validateModelEndpoint("http://0x7f000001/v1")).toThrow(); // hex loopback
+    expect(() => validateModelEndpoint("http://2852039166/v1")).toThrow(); // decimal private
+  });
+
+  it("refuses single-label intranet names and malformed hosts", () => {
+    expect(() => validateModelEndpoint("http://intranet/v1")).toThrow();
+    expect(() => validateModelEndpoint("http://api_z.ai/v1")).toThrow(); // underscore
+    expect(() => validateModelEndpoint("http:///v1")).toThrow();
+  });
+
+  it("still accepts real public API domains", () => {
+    expect(validateModelEndpoint("https://open.bigmodel.cn/api/paas/v4").hostname).toBe("open.bigmodel.cn");
   });
 });

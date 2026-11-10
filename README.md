@@ -65,7 +65,7 @@ The AI adapter drafts the headline, explanation and customer message from the ve
 - **Evidence allowlist**: every evidence id it cites must exist in the computed set - invented ids are rejected.
 - **Monetary guard**: generated copy may only contain the computed price token and must mention the cap; any other money figure falls back to a template.
 - **No write access**: the adapter returns prose only. It cannot touch the database, prices, caps, dates or consent.
-- **Endpoint guard**: before any live request, the configured base URL is validated - http(s) only, and loopback/private/link-local/reserved hosts are refused, so a misconfigured `ZAI_BASE_URL` cannot make the server call into the local network. The database path gets the same treatment: project-relative paths only, no `..` escapes, no URL schemes.
+- **Endpoint guard**: before any live request, the configured base URL is validated - http(s) only, and loopback/private/link-local/reserved hosts are refused (including numeric encodings like `2130706433` or `0177.0.0.1` and IPv6 zone ids), so a misconfigured `ZAI_BASE_URL` cannot make the server call into the local network. The request itself refuses redirects, so a redirect can never move the call onto an unvalidated host. The database path gets the same treatment: project-relative paths only, no `..` escapes, no URL schemes.
 
 `AI_MODE=fixture` (default) produces the same deterministic draft with no credentials and a visible *Honest fallback - no model call was made* note. `AI_MODE=live` calls the Z.ai chat-completions endpoint with a 15 s timeout and one bounded retry; any failure falls back to the labeled fixture draft with the reason shown.
 
@@ -242,7 +242,7 @@ docs/screenshots/          # UI captures used in this README
 Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
 
 - `npm run fixtures:verify` - all checks PASS
-- `npm test` - 64 unit tests passing (including the config-guard suites for database paths and the model endpoint)
+- `npm test` - 68 unit tests passing (including the config-guard suites for database paths and the model endpoint)
 - `npm run lint` / `npm run typecheck` - clean
 - `npm run build` - production build succeeds
 - `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)

@@ -41,7 +41,7 @@ All fixture checks passed.
 ```
 > npm test
 Test Files  6 passed (6)
-     Tests  64 passed (64)
+     Tests  68 passed (68)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
@@ -55,7 +55,9 @@ unknown campaigns, tenant reset clears client idempotency keys, exact fixture re
 `security-guards.test.ts` (database paths: project-relative only, no URL schemes, no
 `..` escapes, no control characters; model endpoint: http(s) only, public hosts only,
 IPv4/IPv6 loopback/private/link-local/reserved literals and localhost-style names refused,
-IPv4 rules applied to IPv4-mapped addresses).
+IPv6 zone ids refused, numeric address encodings (decimal/octal/hex) refused, single-label
+intranet names refused, IPv4 rules applied to IPv4-mapped addresses; the live fetch is
+issued with redirect:"error" so a redirect cannot move the request onto an unvalidated host).
 
 The suite is stable across repeated runs on a persistent `data/test.sqlite` (verified by
 running `npm test` three times consecutively).

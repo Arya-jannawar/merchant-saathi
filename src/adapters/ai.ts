@@ -59,8 +59,11 @@ export function getAiMode(): AiMode {
 /**
  * Validates the model endpoint before any request leaves the server: http(s)
  * only, and public hosts only. Loopback, private, link-local and other
- * reserved IP ranges, plus localhost-style names, are refused so a misconfigured
- * ZAI_BASE_URL cannot make the server call into the local network.
+ * reserved IP ranges are refused, as are localhost-style names, zone ids,
+ * single-label intranet names, and numeric IP encodings (decimal/octal/hex
+ * like 2130706433 or 0x7f000001) that resolvers would map back to internal
+ * addresses. The fetch that uses the result sets redirect:"error" so a
+ * redirect cannot move the request onto an unvalidated host.
  */
 export function validateModelEndpoint(baseUrl: string): URL {
   let url: URL;
@@ -85,19 +88,29 @@ export function validateModelEndpoint(baseUrl: string): URL {
   ) {
     throw new Error(`ZAI_BASE_URL host is not allowed: ${host}`);
   }
-  const literal = ipLiteralFamily(host);
-  if (literal === "v4") {
-    if (!isPublicIpv4(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
-  } else if (literal === "v6") {
+  if (host.includes("%")) {
+    // IPv6 zone ids ("fe80::1%eth0") are link-local by nature; refuse the form.
+    throw new Error(`ZAI_BASE_URL host is not allowed: ${host}`);
+  }
+  if (host.includes(":")) {
     if (!isPublicIpv6(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+    return url;
+  }
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) {
+    // Dotted-quad IPv4 literal: validate the address itself.
+    if (!isPublicIpv4(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+    return url;
+  }
+  // Anything else must be a plausible domain name: letters/digits/hyphens,
+  // at least one dot, no all-numeric label runs (blocks decimal, octal like
+  // 0177.0.0.1, and 0x-prefixed hex forms via the character set).
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(host)) {
+    throw new Error(`ZAI_BASE_URL host is not a valid public domain: ${host}`);
+  }
+  if (/^\d+(?:\.\d+)*$/.test(host)) {
+    throw new Error(`ZAI_BASE_URL host must not be a numeric address encoding: ${host}`);
   }
   return url;
-}
-
-function ipLiteralFamily(host: string): "v4" | "v6" | null {
-  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "v4";
-  if (host.includes(":")) return "v6";
-  return null;
 }
 
 function isPublicIpv4(ip: string): boolean {
@@ -271,6 +284,9 @@ async function callLiveModel(ctx: AiDraftContext, allowedEvidenceIds: string[]):
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+        // A model API endpoint has no business redirecting; following one could
+        // move the request (and the bearer token) onto an unvalidated host.
+        redirect: "error",
       });
       if (res.status === 429 || res.status >= 500) {
         lastError = new Error(`Model endpoint returned ${res.status}`);
