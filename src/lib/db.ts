@@ -160,8 +160,30 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 `;
 
+/**
+ * Validates a configured database path before it touches the filesystem:
+ * no control characters, no URL schemes, and the resolved location must stay
+ * inside the project working directory (no ../ escapes). All shipped configs
+ * (app server, seed CLI, fixture verifier, test runner) use project-relative
+ * paths, so this changes no legitimate behaviour.
+ */
+export function resolveDatabasePath(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) throw new Error("Database path is empty.");
+  if (/[\0\r\n]/.test(trimmed)) throw new Error("Database path contains control characters.");
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+    throw new Error(`Database path must be a filesystem path, not a URL: ${trimmed}`);
+  }
+  const root = process.cwd();
+  const resolved = path.resolve(root, trimmed);
+  if (resolved === root || !resolved.startsWith(root + path.sep)) {
+    throw new Error(`Database path must stay inside the project directory (got ${resolved}).`);
+  }
+  return resolved;
+}
+
 export function openDatabase(dbPath: string): SqliteDatabase {
-  const resolved = path.isAbsolute(dbPath) ? dbPath : path.resolve(process.cwd(), dbPath);
+  const resolved = resolveDatabasePath(dbPath);
   fs.mkdirSync(path.dirname(resolved), { recursive: true });
   const db = new Database(resolved);
   db.pragma("journal_mode = WAL");
@@ -172,19 +194,9 @@ export function openDatabase(dbPath: string): SqliteDatabase {
 
 /** Run `fn` inside an IMMEDIATE transaction; rolls back on throw. */
 export function withTransaction<T>(db: SqliteDatabase, fn: () => T): T {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const out = fn();
-    db.exec("COMMIT");
-    return out;
-  } catch (err) {
-    try {
-      db.exec("ROLLBACK");
-    } catch {
-      // original error takes precedence
-    }
-    throw err;
-  }
+  // db.transaction().immediate() is better-sqlite3's native wrapper for
+  // BEGIN IMMEDIATE ... COMMIT / ROLLBACK with identical semantics.
+  return db.transaction(fn).immediate();
 }
 
 type GlobalWithDb = typeof globalThis & { __merchantSaathiDb?: SqliteDatabase };

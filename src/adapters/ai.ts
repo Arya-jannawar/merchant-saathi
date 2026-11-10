@@ -56,6 +56,85 @@ export function getAiMode(): AiMode {
   return process.env.AI_MODE === "live" ? "live" : "fixture";
 }
 
+/**
+ * Validates the model endpoint before any request leaves the server: http(s)
+ * only, and public hosts only. Loopback, private, link-local and other
+ * reserved IP ranges, plus localhost-style names, are refused so a misconfigured
+ * ZAI_BASE_URL cannot make the server call into the local network.
+ */
+export function validateModelEndpoint(baseUrl: string): URL {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new Error("ZAI_BASE_URL is not a valid URL.");
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("ZAI_BASE_URL must use http or https.");
+  }
+  const rawHost = url.hostname.toLowerCase().replace(/\.$/, "");
+  if (!rawHost) throw new Error("ZAI_BASE_URL has no host.");
+  // url.hostname keeps IPv6 brackets ("[::1]"); the literal checks want the bare address.
+  const host = rawHost.startsWith("[") && rawHost.endsWith("]") ? rawHost.slice(1, -1) : rawHost;
+  if (
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".local") ||
+    host.endsWith(".internal") ||
+    host.endsWith(".home.arpa")
+  ) {
+    throw new Error(`ZAI_BASE_URL host is not allowed: ${host}`);
+  }
+  const literal = ipLiteralFamily(host);
+  if (literal === "v4") {
+    if (!isPublicIpv4(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+  } else if (literal === "v6") {
+    if (!isPublicIpv6(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+  }
+  return url;
+}
+
+function ipLiteralFamily(host: string): "v4" | "v6" | null {
+  if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "v4";
+  if (host.includes(":")) return "v6";
+  return null;
+}
+
+function isPublicIpv4(ip: string): boolean {
+  const octets = ip.split(".").map((n) => Number.parseInt(n, 10));
+  if (octets.length !== 4 || octets.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
+  const [a, b] = octets;
+  if (a === 0 || a === 10 || a === 127) return false; // this-network, private, loopback
+  if (a === 169 && b === 254) return false; // link-local
+  if (a === 172 && b >= 16 && b <= 31) return false; // private
+  if (a === 192 && b === 168) return false; // private
+  if (a === 100 && b >= 64 && b <= 127) return false; // CGNAT
+  if (a === 192 && b === 0) return false; // protocol assignments
+  if (a === 198 && (b === 18 || b === 19)) return false; // benchmarking
+  if (a >= 224) return false; // multicast + reserved
+  return true;
+}
+
+function isPublicIpv6(ip: string): boolean {
+  const lower = ip.toLowerCase();
+  if (lower === "::" || lower === "::1") return false; // unspecified, loopback
+  // IPv4-mapped addresses in dotted form fall back to the IPv4 rules.
+  const mappedDotted = lower.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (mappedDotted) return isPublicIpv4(mappedDotted[1]);
+  // Node's URL parser normalizes the same addresses to hex form ("::ffff:7f00:1");
+  // decode the trailing two groups back to four octets and apply the same rules.
+  const mappedHex = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mappedHex) {
+    const hi = Number.parseInt(mappedHex[1], 16);
+    const lo = Number.parseInt(mappedHex[2], 16);
+    return isPublicIpv4(`${(hi >> 8) & 255}.${hi & 255}.${(lo >> 8) & 255}.${lo & 255}`);
+  }
+  const first = lower.split(":")[0] ?? "";
+  if (/^f[de]/.test(first)) return false; // unique-local fc00::/7, link-local fe80::/10
+  if (/^2001:db8/.test(lower)) return false; // documentation range
+  return true;
+}
+
 const LiveDraftSchema = z.object({
   headline: z.string().min(4).max(120),
   explanation: z.string().min(20).max(900),
@@ -168,6 +247,11 @@ async function callLiveModel(ctx: AiDraftContext, allowedEvidenceIds: string[]):
   const model = process.env.ZAI_MODEL?.trim();
   const baseUrl = (process.env.ZAI_BASE_URL?.trim() || "https://api.z.ai/api/paas/v4").replace(/\/$/, "");
   if (!apiKey || !model) throw new Error("Live AI is configured but ZAI_API_KEY/ZAI_MODEL are missing.");
+  // Validate once, then rebuild the request URL from the parsed, validated URL
+  // object - the fetch below never touches the raw env-derived string.
+  const safeEndpoint = validateModelEndpoint(baseUrl);
+  const completionsUrl =
+    `${safeEndpoint.protocol}//${safeEndpoint.host}${safeEndpoint.pathname.replace(/\/$/, "")}/chat/completions`;
 
   const body = {
     model,
@@ -182,7 +266,7 @@ async function callLiveModel(ctx: AiDraftContext, allowedEvidenceIds: string[]):
   let lastError: unknown = null;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const res = await fetch(`${baseUrl}/chat/completions`, {
+      const res = await fetch(completionsUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(body),

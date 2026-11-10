@@ -3,33 +3,148 @@
 **An AI business partner for a bakery's quiet afternoons.**
 Paytm AI Hackathon Pune - Track 1: Merchant Growth AI. Team FinovateX (Arya Jannawar, Avani Jannawar, Siddhant Pardeshi).
 
-Merchant Saathi shows a small merchant one evidence-backed opportunity, proves the numbers behind it, and turns the
-owner's decision into a trackable, **simulated** campaign - inspect, edit terms, approve. Proof, not a black box.
+A dashboard alone tells a small merchant that orders are down. It does not tell them **what to do about it**, whether the fix is **affordable**, what to **say to customers**, or whether it **worked**. Merchant Saathi closes that loop: it shows one evidence-backed opportunity, proves every number behind it, refuses offers that would lose money, and turns the owner's approval into a trackable, **simulated** campaign.
+
+**The USP: proof, not a black box.** Every number on screen links to its metric definition, window and source. The AI drafts explanations and customer copy but can never set prices, caps, dates or eligibility. Unprofitable offers are visibly rejected before anything can be queued.
 
 > All data, people, and customers in this demo are synthetic. Campaigns are simulated. No real messages are ever sent.
 > This is not an official Paytm product and claims no endorsement.
 
 ---
 
-## What it does (the hero workflow)
+## At a glance
 
-1. **Load sample data** - one transparent synthetic bakery dataset (`bakery-v1`) with an injected demo clock.
-2. **See the opportunity** - completed 3-6 p.m. orders fell 100 -> 70 (-30%) between 26-30 Oct and 2-6 Nov 2026; AOV flat at Rs 80. Every number links to a metric definition, window, and source (the "evidence receipt"). Load the **Thin-data demo** (12 vs 8 orders) to watch the app refuse to recommend and say "insufficient evidence" instead.
-3. **Build an offer** - two samosas + one tea at Rs 70 (usual Rs 90). Server code computes contribution (Rs 30), margin (42.9% vs a 25% floor), stock capacity (25 bundles), cap (20/day) and max discount exposure (Rs 400). Try Rs 50: the check fails at 20% margin and the offer cannot be approved. Customer copy can be toggled to Hindi (draft translation - review before real use).
-4. **AI draft, bounded** - the model (fixture or live Z.ai) drafts the explanation and customer copy from verified facts only. It cannot change prices, caps, dates, or eligibility; generated copy is validated against computed terms.
-5. **Approve the exact version** - the approval binds a payload hash. Any change to price, stock, consent or terms invalidates it (409).
-6. **Queue the simulated campaign** - 40 consented demo customers enter a simulated outbox (idempotent, transactional). The button never says "send".
-7. **Apply simulated redemptions** - 10 fixture events; replays are idempotent; the cap is enforced atomically. Results: Rs 700 - Rs 400 = **Rs 300 contribution** toward fixed costs, labeled *Simulated campaign outcomes*.
+![Merchant Saathi dashboard](docs/screenshots/01-dashboard.png)
+
+**The one-minute version of the build:**
+
+1. A synthetic Pune bakery (`bakery-v1`) seeds 616 orders, a 50-customer demo CRM and a consent register. A demo clock is pinned to Fri 6 Nov 2026, 7:00 p.m. IST so the two compared windows are always complete.
+2. The dashboard surfaces one opportunity: completed 3-6 p.m. orders fell **100 → 70 (-30%)**, net sales **₹8,000 → ₹5,600**, AOV flat at **₹80** - so the problem is order count, not basket size.
+3. The owner builds a bundle offer (two samosas + one tea at ₹70). Server code computes margin, stock capacity and discount exposure in integer paise. A ₹50 price fails the 25% margin floor and **cannot be approved**.
+4. The AI (fixture mode by default, live Z.ai optional) drafts the explanation and customer message **from the verified numbers only** - English or Hindi.
+5. The owner approves the exact version (bound by a payload hash). 40 consented customers enter a **simulated** outbox inside one transaction. Ten fixture redemption events apply idempotently: **₹700 − ₹400 = ₹300 contribution**, every screen labeled *Simulated campaign outcomes*.
+
+---
+
+## The workflow, screen by screen
+
+### 1. Evidence, not vibes - the opportunity page
+
+The dashboard shows the KPI deltas; the opportunity page explains the decline in plain language and opens the **evidence drawer**: six numbered checks, each with its metric id (`afternoon-order-delta-v1`, `bundle-margin-v1`, ...), the exact value, its definition, the window it covers and the source table it came from. Under it, an explicit *"What this evidence does NOT say"* panel states that two five-day windows support a testable suggestion but do not prove cause, and that variable costs cover ingredients and packaging only.
+
+![Opportunity page with evidence drawer](docs/screenshots/02-opportunity-evidence.png)
+
+Why this matters: the app would rather say "we don't know why" than invent a reason. The AI's system prompt carries the same rule - it may not invent causes, lift, or a Paytm endorsement.
+
+### 2. Design the offer with live math
+
+The offer workspace recomputes on every change, **in server code, before anything is queued**:
+
+| Term | Value | How it is derived |
+| --- | --- | --- |
+| Bundle | 2 samosas + 1 tea | Fixed in the fixture; stock and costs read live from the inventory table |
+| Usual combined price | ₹90 | 2 × ₹35 + ₹20 |
+| Variable cost / bundle | ₹40 | 2 × ₹15 + ₹10 (from inventory; `NULL` cost = "cannot calculate", never zero) |
+| Contribution / margin | ₹30 / 42.9% | price − cost, then ÷ price; compared against the 25% policy floor |
+| Stock capacity | 25 bundles | min over components of floor(stock ÷ quantity per bundle) |
+| Max discount exposure | ₹400 | (₹90 − ₹70) × cap 20 |
+
+![Offer workspace with draft, live check and approval preview](docs/screenshots/04-offer-draft-approved-math.png)
+
+### 3. Unprofitable offers are refused, visibly
+
+Set the price to ₹50 and the margin drops to 20.0% - below the 25% floor. The check turns red, **Approve is disabled**, and the refusal message explains the arithmetic ("₹10 left after ₹40 variable cost"). Nothing downstream (approval, queue, redemption) can accept this offer, because the same `computeOffer()` runs again server-side at approval time.
+
+![Unsafe price rejected](docs/screenshots/05-unsafe-price-rejected.png)
+
+### 4. AI drafts the words, never the numbers
+
+The AI adapter drafts the headline, explanation and customer message from the verified metrics and offer math. It is **bounded on five levels**:
+
+- **Schema**: the live response must parse into a Zod-validated shape (headline/explanation/assumptions/copy).
+- **Evidence allowlist**: every evidence id it cites must exist in the computed set - invented ids are rejected.
+- **Monetary guard**: generated copy may only contain the computed price token and must mention the cap; any other money figure falls back to a template.
+- **No write access**: the adapter returns prose only. It cannot touch the database, prices, caps, dates or consent.
+- **Endpoint guard**: before any live request, the configured base URL is validated - http(s) only, and loopback/private/link-local/reserved hosts are refused, so a misconfigured `ZAI_BASE_URL` cannot make the server call into the local network. The database path gets the same treatment: project-relative paths only, no `..` escapes, no URL schemes.
+
+`AI_MODE=fixture` (default) produces the same deterministic draft with no credentials and a visible *Honest fallback - no model call was made* note. `AI_MODE=live` calls the Z.ai chat-completions endpoint with a 15 s timeout and one bounded retry; any failure falls back to the labeled fixture draft with the reason shown.
+
+Customer copy can be generated in English or Hindi. The Hindi version ships with an honest warning: *draft translation - have a Hindi speaker review the financial wording before any real use*.
+
+![Hindi customer copy toggle](docs/screenshots/03-offer-hindi-copy.png)
+
+### 5. Approve the exact version (hash-bound)
+
+**Approve** binds a SHA-256 preview hash of (id, version, price, cap, audience hash, inventory version, expiry). Any change to any of those facts afterwards invalidates the approval - approve returns `409 stale_preview`. Execution rechecks everything again server-side: latest version only, hash matches, not expired, inventory version unchanged, audience consent hash unchanged. This is the control loop that makes "the AI suggested it" never mean "the AI did it".
+
+### 6. Queue a simulated campaign (transactional, idempotent)
+
+The button says **Queue simulated campaign** - never "send". 40 consented customers (revoked/missing consents excluded automatically) enter a simulated outbox inside a `BEGIN IMMEDIATE` transaction, one row per recipient with a per-recipient idempotency key. A repeated execute returns the original receipt (`duplicate: true`) instead of double-queuing; a reused client key with different input gets `409`.
+
+![Campaign activity - approved terms and simulated outbox](docs/screenshots/06-campaign-activity.png)
+
+### 7. Simulated redemptions with atomic cap enforcement
+
+Ten fixture events (R-001…R-010) can be applied one by one or all at once. Replaying an event changes nothing (the UI even offers a **Re-apply R-003** button to demo this live), the 20/day cap is enforced by a count inside the transaction, amounts must equal approved price × quantity, and component stock is re-checked cumulatively. Results: **₹700 sales − ₹400 variable cost = ₹300 contribution**, labeled *Simulated campaign outcomes*, with a full audit trail underneath.
+
+![Simulated results with idempotent replay](docs/screenshots/07-simulated-results.png)
+
+### 8. Saying "insufficient evidence" is a feature
+
+The **Thin-data demo** loads a second fixture (`bakery-thin-v1`: 12 vs 8 afternoon orders). Eligibility requires both windows complete with ≥ 20 completed afternoon orders and ≥ 10% decline, so the app refuses to recommend and explains exactly why - the honest behaviour a real product needs when a merchant's history is thin.
+
+![Thin-data: insufficient evidence](docs/screenshots/08-thin-data-insufficient-evidence.png)
+
+---
+
+## What is real vs simulated
+
+| | Computed in code (real logic) | Labeled as simulated |
+| --- | --- | --- |
+| **Real** | sales metrics, offer economics, capacity, consent filtering, approval binding, idempotency, cap enforcement, results arithmetic | |
+| **Simulated** | | bakery dataset (`bakery-v1`), customer list + consents, message delivery (outbox, never sends), redemptions (10 fixture events), the demo clock (pinned Fri 6 Nov 2026 7:00 p.m. IST) |
+| **AI** | drafts explanation + copy only, from verified facts | fixture (default) or live Z.ai; failures fall back visibly |
 
 ## Tech stack
 
 | Layer      | Choice                                                        |
 | ---------- | ------------------------------------------------------------- |
-| Framework  | Next.js 14 (App Router) + TypeScript + Tailwind CSS           |
+| Framework  | Next.js 14 (App Router) + TypeScript strict + Tailwind CSS           |
 | Data       | SQLite via better-sqlite3 (Node server runtime only)          |
 | Validation | Zod (all API payloads + AI responses)                         |
 | AI         | Z.ai chat-completions adapter (`AI_MODE=live`) + labeled fixture fallback |
-| Tests      | Vitest (money/approval/idempotency invariants) + Playwright (hero path) |
+| Tests      | Vitest (55 unit tests) + Playwright (hero path e2e) + fixture reconciliation gate |
+
+### Architecture in one picture
+
+```
+Browser (client components, fetch)
+   |
+   v
+API route handlers (src/app/api/**)   <-- thin: session + Zod parse + service call
+   |
+   v
+Services (src/services/)              <-- transactional campaign lifecycle
+   |         |
+   |         +--> Domain (src/domain/)  <-- pure logic: metrics, offers, consent
+   |
+   +--> Adapters (src/adapters/ai.ts)   <-- bounded: fixture | live Z.ai | labeled fallback
+   |
+   v
+SQLite (src/lib/db.ts, schema auto-created)
+```
+
+Layer rules that keep the guarantees intact:
+
+- Route handlers stay thin - no business decisions in routes.
+- Domain functions are pure-ish (they take the db handle; no React, no HTTP).
+- The AI adapter can never write to the database; it returns prose, validated and allowlisted.
+- Money is **integer paise everywhere** (₹70 = 7000); formatting happens only at the UI edge (`src/lib/money.ts`).
+- Afternoon windows are the **union of five daily 15:00-18:00 IST bands**, not a continuous Mon-Fri range - a continuous range would wrongly count morning orders. Timezone math is a fixed UTC+5:30 offset (no DST, no external tz library), in `src/lib/clock.ts`.
+
+### Sessions and tenants
+
+Each browser gets an httpOnly `ms_demo_sid` cookie mapped to one synthetic tenant row. Every business row carries `merchant_id` and every query filters by it; tenant identity never comes from a request body. "Load sample data" / "Reset demo" deletes and reseeds only that session's tenant, so multiple judges can demo simultaneously without resetting each other. A client-supplied campaign id that belongs to another tenant returns a clean `404`.
 
 ## Quick start
 
@@ -62,22 +177,10 @@ For live AI: set `AI_MODE=live`, `ZAI_API_KEY`, `ZAI_MODEL` (standard Z.ai appli
 | `npm run db:seed`      | Seed the default database                                  |
 | `npm run fixtures:verify` | Verify all fixture invariants; non-zero exit on mismatch |
 
-## Project layout
+Full check before any demo or PR:
 
-```
-src/
-  app/                     # pages + API route handlers (thin)
-    api/...                # demo/state, demo/reset, opportunities, campaigns/draft|approve|execute|results, demo redeem
-    merchant/              # dashboard, opportunity, offer workspace
-    campaigns/[id]/        # activity, simulated outbox, redemptions, results
-  components/              # opportunity-card, evidence-drawer, ui primitives
-  domain/                  # metrics, offers, consent (pure business logic)
-  services/                # campaigns lifecycle, demo state (transactional core)
-  adapters/ai.ts           # bounded AI adapter: fixture | live Z.ai | fallback
-  lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http
-  fixtures/bakery-v1.json  # single source of truth for every demo number
-scripts/                   # seed CLI + fixture verifier
-tests/                     # vitest suites + playwright e2e
+```bash
+npm run fixtures:verify && npm test && npm run lint && npm run typecheck && npm run build
 ```
 
 ## API contract (all session-scoped)
@@ -95,10 +198,10 @@ tests/                     # vitest suites + playwright e2e
 
 Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with meaningful status codes (400/401/403/404/409/422/429/503). Tenant identity comes from the server session cookie - never from a caller-supplied merchant ID.
 
-## Money invariants (tested)
+## Money & lifecycle invariants (tested)
 
 - All money is **integer paise**. No floats touch stored amounts.
-- Contribution = price - variable cost; margin = contribution / price; floor 25%.
+- Contribution = price − variable cost; margin = contribution / price; floor 25%.
 - Missing SKU cost => "cannot calculate", never zero-cost.
 - Capacity = min(floor(stock / per-bundle quantity)); a cap above capacity is refused, not silently lowered.
 - Line items sum exactly to order totals (verified by `fixtures:verify` and tests).
@@ -115,12 +218,31 @@ Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with 
 - Results are labeled **Simulated campaign outcomes**; contribution is not claimed as proven incremental profit.
 - Variable costs cover ingredients and packaging only - not rent, labour, tax or spoilage.
 
+## Project layout
+
+```
+src/
+  app/                     # pages + API route handlers (thin)
+    api/...                # demo/state, demo/reset, opportunities, campaigns/draft|approve|execute|results, demo redeem
+    merchant/              # dashboard, opportunity, offer workspace
+    campaigns/[id]/        # activity, simulated outbox, redemptions, results
+  components/              # opportunity-card, evidence-drawer, ui primitives
+  domain/                  # metrics, offers, consent (pure business logic)
+  services/                # campaigns lifecycle, demo state (transactional core)
+  adapters/ai.ts           # bounded AI adapter: fixture | live Z.ai | fallback
+  lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http
+  fixtures/bakery-v1.json  # single source of truth for every demo number
+scripts/                   # seed CLI + fixture verifier
+tests/                     # vitest suites + playwright e2e
+docs/screenshots/          # UI captures used in this README
+```
+
 ## Verified locally
 
 Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
 
 - `npm run fixtures:verify` - all checks PASS
-- `npm test` - 55 unit tests passing
+- `npm test` - 64 unit tests passing (including the config-guard suites for database paths and the model endpoint)
 - `npm run lint` / `npm run typecheck` - clean
 - `npm run build` - production build succeeds
 - `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)
@@ -134,14 +256,6 @@ ephemeral serverless storage). For multi-instance production you would move the 
 PostgreSQL, add durable jobs, real authentication and rate limits, and per-tenant fixture isolation. That design is
 future work, not something this build claims.
 
-## Troubleshooting: "Cannot find module './NNN.js'" (dev server)
-
-If the dev server shows `Server Error: Cannot find module './276.js'` (or a similar chunk number) after you ran
-`npm run build`, the production build clobbered the dev server's `.next` cache — both share that folder and cannot run
-at the same time. Fix: stop the dev server (`Ctrl+C`), delete `.next`, and start `npm run dev` again. Rule of thumb:
-**never run `npm run build` while `npm run dev` is running** (use `npm run fixtures:verify` + `npm test` for quick
-checks instead — they do not touch `.next`).
-
 ## Demo script (3 minutes)
 
 1. 0:00-0:25 - the bakery's quiet afternoons; synthetic data label.
@@ -151,3 +265,11 @@ checks instead — they do not touch `.next`).
 5. 1:55-2:20 - queue the simulated campaign; excluded contacts; activity trail.
 6. 2:20-2:40 - apply redemptions; Rs 300 contribution; no causal-lift claim.
 7. 2:40-3:00 - real integration path and next pilot (3-5 Pune bakery owners).
+
+## Troubleshooting: "Cannot find module './NNN.js'" (dev server)
+
+If the dev server shows `Server Error: Cannot find module './276.js'` (or a similar chunk number) after you ran
+`npm run build`, the production build clobbered the dev server's `.next` cache — both share that folder and cannot run
+at the same time. Fix: stop the dev server (`Ctrl+C`), delete `.next`, and start `npm run dev` again. Rule of thumb:
+**never run `npm run build` while `npm run dev` is running** (use `npm run fixtures:verify` + `npm test` for quick
+checks instead — they do not touch `.next`).
