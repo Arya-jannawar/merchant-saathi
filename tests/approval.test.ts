@@ -250,3 +250,47 @@ describe("approval lifecycle", () => {
     expect(draftA2.version).toBe(draftA.version + 1);
   });
 });
+
+describe("draft opportunity guard", () => {
+  async function expectCode(fn: () => unknown, code: string): Promise<void> {
+    let threw = false;
+    try {
+      await fn();
+    } catch (err) {
+      threw = true;
+      expect(err).toBeInstanceOf(ApiError);
+      expect((err as ApiError).code).toBe(code);
+    }
+    if (!threw) throw new Error(`Expected ApiError ${code}`);
+  }
+
+  it("refuses a made-up opportunity id", async () => {
+    const db = openTestDb();
+    await expectCode(
+      () =>
+        draftCampaign(db, merchantId, fixture, {
+          opportunityId: "made-up-opportunity",
+          pricePaise: 7000,
+          cap: 20,
+          locale: "en",
+        }),
+      "invalid_input"
+    );
+  });
+
+  it("refuses drafting when the thin fixture offers no opportunity", async () => {
+    const db = openTestDb();
+    const thin = loadFixture("bakery-thin-v1");
+    const thinMerchant = resetTenant(db, "test-thin-draft", thin);
+    await expectCode(
+      () =>
+        draftCampaign(db, thinMerchant, thin, {
+          opportunityId: "afternoon-decline-v1",
+          pricePaise: 7000,
+          cap: 20,
+          locale: "en",
+        }),
+      "business_rule"
+    );
+  });
+});

@@ -151,6 +151,22 @@ export interface DraftResult {
 
 export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixture: Fixture, input: DraftInput): Promise<DraftResult> {
   const now = getNow();
+  // Evidence is read once and doubles as the reference check: the offer must
+  // price an opportunity the evidence engine currently offers. A made-up id is
+  // a bad reference; no qualifying opportunity at all (thin data) means there
+  // is nothing to price yet.
+  const ops = getOpportunities(db, merchantId, fixture, now);
+  if (ops.items.length === 0) {
+    throw new ApiError(
+      "business_rule",
+      ops.lowDataReason ?? "Insufficient evidence for the current windows - there is no opportunity to draft an offer for."
+    );
+  }
+  if (!ops.items.some((item) => item.id === input.opportunityId)) {
+    throw new ApiError("invalid_input", "Unknown opportunity id for the current evidence.", {
+      fieldErrors: { opportunityId: "Must be an opportunity the evidence engine currently reports." },
+    });
+  }
   const computed = computeOffer(db, merchantId, fixture, input.pricePaise, input.cap);
   const audience = getAudience(db, merchantId, fixture.customers.channel);
   const invVersion = currentInventoryVersion(db, merchantId);
@@ -169,8 +185,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
     maxDiscountExposurePaise: computed.maxDiscountExposurePaise,
   };
 
-  // Evidence + verified metric summaries for the AI (no customer identifiers, no raw rows).
-  const ops = getOpportunities(db, merchantId, fixture, now);
+  // Verified metric summaries for the AI (no customer identifiers, no raw rows).
   const evidence = ops.items[0]?.evidence ?? [];
   const metricSummaries = evidence.map((e) => ({ id: e.id, label: e.label, valueLabel: e.valueLabel }));
   const observation =
