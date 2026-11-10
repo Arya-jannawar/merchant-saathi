@@ -1,6 +1,6 @@
 # Verification record
 
-Environment: Windows 11, Node v24.11.1, npm 11.6.2, better-sqlite3 12.x (prebuilt), Next.js 14.2.x.
+Environment: Windows 11, Node v24.15.0, npm 11.12.1, better-sqlite3 12.x (prebuilt), Next.js 14.2.x.
 All commands run from the project root. Observed output summarized below (from the actual delivery run).
 
 ## 1. Fixture reconciliation
@@ -41,14 +41,20 @@ All fixture checks passed.
 ```
 > npm test
 Test Files  5 passed (5)
-     Tests  44 passed (44)
+     Tests  55 passed (55)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
 DB-level non-negative stock), `approval.test.ts` (hash binding, unprofitable offers refused,
-stale consent/inventory/version blocks), `idempotency.test.ts` (duplicate execute/redeem,
-key reuse conflicts, cap enforcement, exact fixture results), `ai.test.ts` (copy monetary
-guard, evidence allowlist, malformed live responses rejected).
+stale consent/inventory/version blocks, approval of queued or superseded versions refused,
+execution after offer expiry refused, foreign campaign ids refused, cross-session draft
+isolation), `idempotency.test.ts` (duplicate execute/redeem, key reuse conflicts, cap
+enforcement, stock exhaustion, event amounts contradicting the approved offer, results of
+unknown campaigns, tenant reset clears client idempotency keys, exact fixture results),
+`ai.test.ts` (copy monetary guard, evidence allowlist, malformed live responses rejected).
+
+The suite is stable across repeated runs on a persistent `data/test.sqlite` (verified by
+running `npm test` three times consecutively).
 
 ## 3. Lint / typecheck / build
 
@@ -73,6 +79,8 @@ POST /redeem R-001..R-010     201 (10 unique)
 POST /redeem R-003 (repeat)   201 redemption.duplicate=true (no double count)
 GET  /api/campaigns/{id}/results  200 redemptions 10, revenue 70000, cost 40000,
                                   contribution 30000, discount 20000, outbox 40
+POST /api/campaigns/draft with another session's campaign id   404 not_found
+POST /api/campaigns/draft with a malformed campaign id          400 invalid_input
 ```
 
 ## 5. Browser E2E (Playwright, chromium)

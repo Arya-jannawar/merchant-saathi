@@ -104,6 +104,9 @@ Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with 
 - Line items sum exactly to order totals (verified by `fixtures:verify` and tests).
 - Approval binds a hash of price+cap+audience+inventory version+expiry; execution rechecks all of them.
 - Duplicate execute / duplicate redemption events have no double effect; cap 20 enforced atomically.
+- Executing after the offer's validity window passes is refused (`expired`); redemptions stop when component stock runs out; events whose amount contradicts the approved price are rejected.
+- A client-supplied campaign id must already belong to the session's tenant - foreign or unknown ids get a clean 404, never an internal error.
+- Resetting a session clears its stored idempotency receipts, so client keys cannot replay or conflict after a reset.
 
 ## Honest labels
 
@@ -117,7 +120,7 @@ Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with 
 Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
 
 - `npm run fixtures:verify` - all checks PASS
-- `npm test` - 30 unit tests passing
+- `npm test` - 55 unit tests passing
 - `npm run lint` / `npm run typecheck` - clean
 - `npm run build` - production build succeeds
 - `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)
