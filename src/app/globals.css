@@ -27,3 +27,176 @@ textarea {
 .btn-danger-soft {
   @apply rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50;
 }
+
+/* ------------------------------------------------------------------ */
+/* Motion system (ms-*)                                                */
+/* All mascot + UI motion lives here so prefers-reduced-motion can     */
+/* switch it off in one place.                                         */
+/* ------------------------------------------------------------------ */
+
+@keyframes ms-breathe {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-3px) scale(1.02, 0.97); }
+}
+
+@keyframes ms-blink {
+  0%, 91%, 100% { transform: scaleY(1); }
+  94%, 97% { transform: scaleY(0.08); }
+}
+
+@keyframes ms-wobble {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes ms-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(-2px) scale(0.94, 1.08); }
+  42% { transform: translateY(-18px) scale(1.06, 0.92); }
+  62% { transform: translateY(0) scale(0.96, 1.05); }
+  80% { transform: translateY(-5px) scale(1, 1); }
+}
+
+@keyframes ms-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-3px) rotate(-4deg); }
+  75% { transform: translateX(3px) rotate(4deg); }
+}
+
+@keyframes ms-wave-arm {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(22deg); }
+}
+
+@keyframes ms-talk {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.45); }
+}
+
+@keyframes ms-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ms-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes ms-wiggle-key {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-7deg); }
+  75% { transform: rotate(7deg); }
+}
+
+@keyframes ms-pop-key {
+  0% { transform: scale(0.6) translateY(8px); opacity: 0; }
+  60% { transform: scale(1.06) translateY(0); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes ms-slide-up-key {
+  from { transform: translateY(24px) scale(0.96); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes ms-fade-key {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ms-pulse-key {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.45); }
+  50% { transform: scale(1.12); box-shadow: 0 0 0 7px rgba(244, 63, 94, 0); }
+}
+
+@keyframes ms-dot-key {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.55; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+@keyframes ms-spotlight-key {
+  0%, 100% { outline-offset: 2px; }
+  50% { outline-offset: 7px; }
+}
+
+@keyframes ms-rise-key {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* mascot ----------------------------------------------------------- */
+
+.ms-mascot { transform-origin: 50% 100%; }
+.ms-mascot__body { transform-origin: 60px 118px; }
+.ms-mascot__eye { transform-box: fill-box; transform-origin: center; animation: ms-blink 4.6s infinite; }
+.ms-mascot__eye:nth-of-type(2) { animation-delay: 0.12s; }
+.ms-mascot__arm-right { transform-box: view-box; transform-origin: 96px 72px; }
+
+.ms-mascot--idle .ms-mascot__body { animation: ms-breathe 3.2s ease-in-out infinite; }
+.ms-mascot--happy .ms-mascot__body { animation: ms-wobble 1.7s ease-in-out infinite; }
+.ms-mascot--excited .ms-mascot__body { animation: ms-jump 1s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
+.ms-mascot--excited .ms-mascot__cherry { transform-box: view-box; transform-origin: 60px 22px; animation: ms-spin 1.3s linear infinite; }
+.ms-mascot--thinking .ms-mascot__body { animation: ms-breathe 2.6s ease-in-out infinite; }
+.ms-mascot--thinking .ms-mascot__eyes { transform: translate(-2px, -3px); }
+.ms-mascot--sad .ms-mascot__body { animation: ms-shake 1.9s ease-in-out infinite; }
+.ms-mascot--sad .ms-mascot__eyes { transform: translateY(2px); }
+.ms-mascot--wave .ms-mascot__body { animation: ms-breathe 3s ease-in-out infinite; }
+.ms-mascot--wave .ms-mascot__arm-right { animation: ms-wave-arm 0.75s ease-in-out infinite; }
+.ms-mascot--talking .ms-mascot__mouth { transform-box: fill-box; transform-origin: center; animation: ms-talk 0.55s ease-in-out infinite; }
+
+.ms-mascot-dock { animation: ms-float 3.4s ease-in-out infinite; filter: drop-shadow(0 10px 16px rgba(10, 46, 92, 0.22)); }
+.ms-wiggle { animation: ms-wiggle-key 0.5s ease-in-out; }
+
+/* ui ---------------------------------------------------------------- */
+
+.ms-pop { animation: ms-pop-key 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-slide-up { animation: ms-slide-up-key 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-fade { animation: ms-fade-key 0.3s ease both; }
+.ms-rise { animation: ms-rise-key 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.ms-pulse { animation: ms-pulse-key 1.8s ease-in-out infinite; }
+
+.ms-dot { animation: ms-dot-key 1.1s ease-in-out infinite; }
+.ms-dot-2 { animation-delay: 0.15s; }
+.ms-dot-3 { animation-delay: 0.3s; }
+
+.ms-spotlight {
+  box-shadow: 0 0 0 9999px rgba(7, 35, 74, 0.55);
+  outline: 3px dashed #00b9f1;
+  animation: ms-spotlight-key 1.2s ease-in-out infinite;
+}
+
+.ms-stagger > * { animation: ms-rise-key 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.ms-stagger > *:nth-child(2) { animation-delay: 0.14s; }
+.ms-stagger > *:nth-child(3) { animation-delay: 0.23s; }
+.ms-stagger > *:nth-child(4) { animation-delay: 0.32s; }
+
+/* the confetti burst used on celebrate moments */
+@keyframes ms-confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(90px) rotate(540deg); opacity: 0; }
+}
+.ms-confetti span {
+  position: absolute;
+  top: 0;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  animation: ms-confetti-fall 1.15s cubic-bezier(0.3, 0.6, 0.7, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ms-mascot *,
+  .ms-mascot,
+  .ms-mascot-dock,
+  .ms-pulse,
+  .ms-dot,
+  .ms-spotlight,
+  .ms-stagger > *,
+  .ms-confetti span {
+    animation: none !important;
+    transition: none !important;
+  }
+}
