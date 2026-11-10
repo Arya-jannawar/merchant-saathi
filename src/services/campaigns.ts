@@ -203,7 +203,20 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
   const copy: StoredCopy = input.copyOverride ?? ai.draft.copy;
   const evidenceIds = ai.draft.evidenceIds.filter((id) => (EVIDENCE_IDS as readonly string[]).includes(id));
 
-  const campaignId = input.campaignId ?? `cmp_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  // A client-supplied campaign id must already belong to THIS tenant. Inserting
+  // a foreign id would collide with the other tenant's (id, version) primary key
+  // and surface as an internal error; not_found also avoids leaking that the id
+  // exists elsewhere.
+  let campaignId: string;
+  if (input.campaignId) {
+    const known = db
+      .prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND id = ? LIMIT 1")
+      .get(merchantId, input.campaignId);
+    if (!known) throw new ApiError("not_found", "Campaign id does not exist for this session.");
+    campaignId = input.campaignId;
+  } else {
+    campaignId = `cmp_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+  }
   const version = latestVersion(db, merchantId, campaignId) + 1;
 
   const previewHash = sha256(
