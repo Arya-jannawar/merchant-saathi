@@ -87,6 +87,34 @@ describe("execution idempotency", () => {
     expectCode(() => executeCampaign(db, merchant, fixture, b.campaignId, b.version, "shared-key"), "conflict");
   });
 
+  it("clears client idempotency receipts when the tenant is reset", async () => {
+    const db = openTestDb();
+    const merchant = resetTenant(db, "test-idem-reset");
+    const draft = await draftCampaign(db, merchant, fixture, {
+      opportunityId: "afternoon-decline-v1",
+      pricePaise: 7000,
+      cap: 20,
+      locale: "en",
+    });
+    approveCampaign(db, merchant, fixture, draft.campaignId, draft.version, draft.previewHash);
+    executeCampaign(db, merchant, fixture, draft.campaignId, draft.version, "resettable-key");
+
+    // A reset must drop the stored receipt, so the same client key can be used
+    // again for a fresh campaign instead of replaying/conflicting.
+    const merchant2 = resetTenant(db, "test-idem-reset");
+    expect(merchant2).toBe(merchant);
+    const draft2 = await draftCampaign(db, merchant, fixture, {
+      opportunityId: "afternoon-decline-v1",
+      pricePaise: 7000,
+      cap: 20,
+      locale: "en",
+    });
+    approveCampaign(db, merchant, fixture, draft2.campaignId, draft2.version, draft2.previewHash);
+    const receipt = executeCampaign(db, merchant, fixture, draft2.campaignId, draft2.version, "resettable-key");
+    expect(receipt.duplicate).toBe(false);
+    expect(receipt.campaignId).toBe(draft2.campaignId);
+  });
+
   it("keeps outbox rows unique per recipient per version", async () => {
     const { db, draft } = await queuedCampaign("test-idem-unique");
     const dupes = db
@@ -147,5 +175,41 @@ describe("redemption idempotency and cap", () => {
       locale: "en",
     });
     expectCode(() => redeemEvent(db, merchant, fixture, draft.campaignId, "R-001"), "business_rule");
+  });
+
+  it("stops recording redemptions when component stock runs out", async () => {
+    const { db, merchant, draft } = await queuedCampaign("test-redem-stock");
+    // Each bundle uses 2 samosas; 3 in stock covers exactly one redemption.
+    db.prepare("UPDATE inventory SET quantity = 3 WHERE merchant_id = ? AND sku_id = 'SKU-SAMOSA'").run(merchant);
+    redeemEvent(db, merchant, fixture, draft.campaignId, "R-001");
+    expectCode(() => redeemEvent(db, merchant, fixture, draft.campaignId, "R-002"), "business_rule");
+    const n = (db.prepare("SELECT COUNT(*) AS n FROM redemptions WHERE campaign_id = ?").get(draft.campaignId) as { n: number }).n;
+    expect(n).toBe(1);
+  });
+
+  it("rejects events whose amount contradicts the approved offer terms", async () => {
+    const { db, merchant, draft } = await queuedCampaign("test-redem-tamper");
+    // Tamper with the stored offer price: the fixture event amount (Rs 70) no
+    // longer matches, and the redemption must be refused.
+    const row = db
+      .prepare("SELECT offer_json FROM campaigns WHERE merchant_id = ? AND id = ? AND version = ?")
+      .get(merchant, draft.campaignId, draft.version) as { offer_json: string };
+    const offer = JSON.parse(row.offer_json) as { pricePaise: number };
+    offer.pricePaise = 7200;
+    db.prepare("UPDATE campaigns SET offer_json = ? WHERE merchant_id = ? AND id = ? AND version = ?").run(
+      JSON.stringify(offer),
+      merchant,
+      draft.campaignId,
+      draft.version
+    );
+    expectCode(() => redeemEvent(db, merchant, fixture, draft.campaignId, "R-001"), "business_rule");
+    const n = (db.prepare("SELECT COUNT(*) AS n FROM redemptions WHERE campaign_id = ?").get(draft.campaignId) as { n: number }).n;
+    expect(n).toBe(0);
+  });
+
+  it("returns not_found for results of a campaign this session does not own", async () => {
+    const db = openTestDb();
+    const merchant = resetTenant(db, "test-results-unknown");
+    expectCode(() => getCampaignResults(db, merchant, fixture, "cmp_doesnotexist00"), "not_found");
   });
 });
