@@ -11,6 +11,18 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
       duplicate execute/redeem, key-reuse conflicts, AI guardrails,
       thin-fixture insufficient-evidence behavior, config guards
       (database path, model endpoint host)
+  [x] +10 assistant tests: intent routing, fact-book answers against a real
+      seeded tenant, rupee guard for live replies, key settings guards
+      (78 total)
+  [x] Mithu mascot: moods, speech bubbles, guided spotlight tour per screen,
+      chat drawer with fact-book answers; optional live brain via the key
+      dialog (server-memory key, masked status, rupee-checked replies,
+      honest fallback note)
+  [x] Charts on every screen (hand-rolled SVG/CSS, no new deps): window bars,
+      flat-AOV line, consent donut, margin/cap meters, cap utilization,
+      money waterfall for the Rs 300 results story
+  [x] Synthesized UI sounds (Web Audio, no assets) + mute toggle;
+      prefers-reduced-motion disables all animation
   [x] Playwright browser flow (the full hero path)
   [x] Lint + typecheck + production build clean
   [x] API smoke-tested against the production server (exact fixture numbers)
@@ -44,6 +56,9 @@ SUGGESTED OWNERSHIP (adjust among yourselves)
       T-B2  Empty/error states polish: server down, failed draft, 409 banners.
       T-B4  Optional: a "thin data" moment in the pitch (load the thin demo
             live and read the insufficient-evidence banner).
+      T-B5  Re-record docs/screenshots/ (current shots predate Mithu and the
+            charts) and re-time the demo script with the tour.
+      T-B6  Mobile pass for the chat drawer at 320 px (360 px verified).
 
   OWNER C - STORY & SUBMISSION
     Owns: slides, demo script, README, submission package

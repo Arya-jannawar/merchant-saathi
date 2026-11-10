@@ -50,9 +50,26 @@ KEY FILES (start reading here)
   src/domain/consent.ts    Eligible audience + audience hash (sha256 of sorted ids)
   src/services/campaigns.ts  draft -> approve -> execute -> redeem -> results
   src/adapters/ai.ts       Fixture/live AI, 15s timeout, 1 retry, Zod + allowlist
+  src/lib/saathi-brain.ts  Mithu's brain: facts pack (same domain functions as
+                           the screens), intent-matched fact-book answers, live
+                           model prompts + response validation (rupee guard)
+  src/lib/assistant-settings.ts  Per-process, in-memory store for the chat
+                           brain's API key (never on disk, masked to the client)
+  src/components/mascot.tsx           Mithu (SVG, mood-driven, CSS-animated)
+  src/components/saathi-provider.tsx  Mascot dock, speech bubble, chat drawer,
+                           sound toggle, tour entry point; exposes useSaathi()
+                           so pages can trigger reactions (say/react/openChat)
+  src/components/saathi-tour.tsx      Guided tour: per-route steps target
+                           [data-tour] attributes and spotlight them
+  src/components/saathi-brain-modal.tsx  API key dialog for the live brain
+  src/components/charts.tsx           Hand-rolled SVG/CSS charts (GroupedBars,
+                           Meter, DonutChart, WaterfallChart, MiniLine, CountUp)
+  src/lib/sound.ts         Synthesized UI sound kit (Web Audio, no assets)
+  src/app/globals.css      All ms-* keyframes (mascot moods, pop/slide, spotlight);
+                           prefers-reduced-motion disables the whole system
   src/app/merchant/*       Dashboard, opportunity, offer workspace pages
   src/app/campaigns/[id]/  Activity / simulated outbox / results page
-  src/app/api/**           8 route handlers
+  src/app/api/**           10 route handlers (incl. /api/assistant/*)
   scripts/verify-fixtures.ts  Reconciles every fixture number; CI-style gate
 
 SESSIONS AND TENANTS (important!)
@@ -103,4 +120,29 @@ DATABASE PATH (src/lib/db.ts)
   CLI, fixture verifier and tests all use project-relative paths, so this
   changes nothing legitimate. Transactions use better-sqlite3's
   db.transaction().immediate() (BEGIN IMMEDIATE + rollback on throw).
+
+MASCOT + CHAT ASSISTANT (src/lib/saathi-brain.ts, src/components/saathi-*)
+  Mithu answers business questions in two modes, both strictly grounded:
+  - Fact book (default, no credentials): buildAssistantFacts() reads the
+    session's tenant with the SAME domain functions the screens use
+    (getDemoState, getOpportunities, computeOffer, getCampaignResults), then
+    matchIntent() routes the question (decline / offer / approve / queue /
+    results / consent / honesty / tour / thin) to a deterministic answer.
+  - Live brain (optional): the user pastes an API key + model in the chat's
+    brain dialog; POST /api/assistant/settings keeps it in server memory
+    (globalThis - survives hot reload, cleared on restart, never written to
+    disk, never sent back to the browser unmasked). Chat then calls a
+    Z.ai-compatible chat/completions endpoint with the facts pack + question.
+    The reply must parse as strict JSON; every rupee amount in it is checked
+    against allowedRupeeAmounts() (the computed facts) - any invented amount,
+    malformed JSON or endpoint failure falls back to the fact book with an
+    honest note. Endpoint host validation and redirect:"error" are reused
+    from the draft adapter (validateModelEndpoint).
+  - The assistant NEVER writes to the database and never computes money;
+    it only turns computed facts into prose. Chat reads are session-scoped
+    via the same cookie as every other route.
+  UI side: SaathiProvider mounts the mascot dock + chat drawer + tour on every
+  screen. Pages call useSaathi() to trigger reactions (say/react/openChat).
+  Guided tour steps target [data-tour] attributes; the spotlight uses a
+  box-shadow overlay, and all motion is disabled under prefers-reduced-motion.
 ================================================================================

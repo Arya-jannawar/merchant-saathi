@@ -34,6 +34,23 @@ cap enforcement, the audit trail, the architecture, and the honest labels - endi
 
 ---
 
+## Mithu, the guide (mascot + chat)
+
+A cupcake named **Mithu** floats on every screen and runs the tour for you:
+
+- **Guided tour** - "Show me around" in the chat walks through each screen with a spotlight on the exact element (per-route steps, skip/next, progress dots, honors reduced-motion).
+- **Chat that only knows real numbers** - ask *why orders fell*, *is ₹70 safe*, *what approving does*, or *what the campaign earned*. Without any key, a deterministic "fact book" answers from the session's computed facts (same domain functions as the screens). Each answer shows a *How I reasoned* trace.
+- **Optional live brain** - paste a provider API key + model id in the brain (🧠) dialog and answers become generative with deeper reasoning. A rupee guard re-checks every amount in the model's reply against the computed facts; any invented number, malformed reply or endpoint failure falls back to the labeled fact book instead.
+- **The key stays server-side** - process memory only, never on disk, never sent back to the browser (masked status only), validated against the same public-host rules as the live draft adapter. A server restart clears it.
+- **Reactions** - Mithu celebrates approvals, panics at unsafe prices, and explains refusals; pages trigger her through a tiny `useSaathi()` API.
+
+## Charts & sound (zero new dependencies)
+
+- Every screen shows the numbers as pictures: window-comparison bars and a flat-AOV line on the dashboard, a consent donut, live **margin-vs-floor and cap-vs-capacity meters** in the offer workspace, cap utilization and a **money waterfall (₹700 − ₹400 = ₹300)** on the campaign page. Hand-rolled SVG/CSS in `src/components/charts.tsx`; values come straight from the same computed DTOs as the text - no hand-drawn chart data.
+- UI and mascot sounds are synthesized at runtime with the Web Audio API (`src/lib/sound.ts`) - no audio assets in the repo; the 🔊 toggle sits bottom-left and the preference is remembered per browser.
+
+---
+
 ## The workflow, screen by screen
 
 ### 1. Evidence, not vibes - the opportunity page
@@ -203,6 +220,8 @@ npm run fixtures:verify && npm test && npm run lint && npm run typecheck && npm 
 | `/api/campaigns/{id}/execute`      | POST   | Transactional simulated queue; idempotent; rechecks stock/consent/expiry |
 | `/api/demo/campaigns/{id}/redeem`  | POST   | Fixed fixture event ids only; replays idempotent; cap enforced         |
 | `/api/campaigns/{id}/results`      | GET    | Activity + simulated outcomes + audit trail                            |
+| `/api/assistant/chat`              | POST   | Mithu's answers: fact book (default) or rupee-checked live model reply |
+| `/api/assistant/settings`          | GET/POST/DELETE | Chat brain key: stored in server memory, masked status, public-host validation |
 
 Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with meaningful status codes (400/401/403/404/409/422/429/503). Tenant identity comes from the server session cookie - never from a caller-supplied merchant ID.
 
@@ -231,17 +250,19 @@ Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with 
 ```
 src/
   app/                     # pages + API route handlers (thin)
-    api/...                # demo/state, demo/reset, opportunities, campaigns/draft|approve|execute|results, demo redeem
+    api/...                # demo/state, demo/reset, opportunities, campaigns/draft|approve|execute|results, demo redeem, assistant/chat, assistant/settings
     merchant/              # dashboard, opportunity, offer workspace
     campaigns/[id]/        # activity, simulated outbox, redemptions, results
-  components/              # opportunity-card, evidence-drawer, ui primitives
+  components/              # opportunity-card, evidence-drawer, ui primitives,
+                           # mascot + saathi provider/chat/tour/brain-modal, charts
   domain/                  # metrics, offers, consent (pure business logic)
   services/                # campaigns lifecycle, demo state (transactional core)
   adapters/ai.ts           # bounded AI adapter: fixture | live Z.ai | fallback
-  lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http
+  lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http,
+                           # saathi-brain (fact book + live prompts + rupee guard), assistant-settings, sound
   fixtures/bakery-v1.json  # single source of truth for every demo number
 scripts/                   # seed CLI + fixture verifier
-tests/                     # vitest suites + playwright e2e
+tests/                     # vitest suites (incl. assistant.test.ts) + playwright e2e
 docs/screenshots/          # UI captures used in this README
 ```
 
@@ -250,7 +271,7 @@ docs/screenshots/          # UI captures used in this README
 Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
 
 - `npm run fixtures:verify` - all checks PASS
-- `npm test` - 68 unit tests passing (including the config-guard suites for database paths and the model endpoint)
+- `npm test` - 78 unit tests passing (including the config-guard suites for database paths and the model endpoint, and the assistant suites for the fact book, the rupee guard and the key settings)
 - `npm run lint` / `npm run typecheck` - clean
 - `npm run build` - production build succeeds
 - `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)

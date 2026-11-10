@@ -40,8 +40,8 @@ All fixture checks passed.
 
 ```
 > npm test
-Test Files  6 passed (6)
-     Tests  68 passed (68)
+Test Files  7 passed (7)
+     Tests  78 passed (78)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
@@ -57,7 +57,12 @@ unknown campaigns, tenant reset clears client idempotency keys, exact fixture re
 IPv4/IPv6 loopback/private/link-local/reserved literals and localhost-style names refused,
 IPv6 zone ids refused, numeric address encodings (decimal/octal/hex) refused, single-label
 intranet names refused, IPv4 rules applied to IPv4-mapped addresses; the live fetch is
-issued with redirect:"error" so a redirect cannot move the request onto an unvalidated host).
+issued with redirect:"error" so a redirect cannot move the request onto an unvalidated host),
+`assistant.test.ts` (chat intent routing; fact-book answers built from the seeded tenant's
+computed numbers: decline 100 -> 70, margin 42.9% vs the 25% floor, the Rs 50 rejection,
+the Rs 700/Rs 400/Rs 300 results story after the ten simulated events; rupee-token guard
+for live model answers rejects invented amounts; assistant key settings: kept in server
+memory, never returned unmasked, private/localhost endpoints and bad key shapes refused).
 
 The suite is stable across repeated runs on a persistent `data/test.sqlite` (verified by
 running `npm test` three times consecutively).
@@ -67,7 +72,7 @@ running `npm test` three times consecutively).
 ```
 > npm run lint        -> No ESLint warnings or errors
 > npm run typecheck   -> (clean)
-> npm run build       -> compiled successfully; 14 routes; first load JS ~92 kB
+> npm run build       -> compiled successfully; 16 routes; first load JS ~104 kB
 ```
 
 ## 4. API smoke flow (production server, fixture AI mode)
@@ -89,6 +94,25 @@ POST /api/campaigns/draft with another session's campaign id   404 not_found
 POST /api/campaigns/draft with a malformed campaign id          400 invalid_input
 ```
 
+## 4b. Assistant smoke flow (same session)
+
+```
+POST /api/assistant/chat "Why are afternoon orders down?"
+     200 mode=fixture intent=decline; answer carries 100 -> 70 (-30.0%),
+     Rs 8,000 -> Rs 5,600, flat AOV Rs 80, no causal claim.
+POST /api/assistant/chat "is the 70 offer safe?"
+     200 mode=fixture intent=offer; margin 42.9%, floor 25%, exposure Rs 400,
+     Rs 50 rejection mentioned.
+POST /api/assistant/settings (valid key + model)   201 {configured: true, maskedKey: "....7890"}
+POST /api/assistant/settings (localhost endpoint)  400 invalid_input (public http(s) hosts only)
+DELETE /api/assistant/settings                     200 {configured: false}
+```
+
+The mascot UI (chat drawer, guided tour spotlight, unsafe-price reaction, sound
+toggle) was additionally verified by clicking through the running production build
+in a real browser: dashboard charts render, chat answers carry the fixture numbers,
+the tour highlights each element, and the Rs 50 draft locks the approve button.
+
 ## 5. Browser E2E (Playwright, chromium)
 
 ```
@@ -104,7 +128,12 @@ ok 1 tests\e2e\merchant-flow.spec.ts (hero path)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run
   (no API key available). Fixture mode is the default and is visibly labeled. To verify live:
-  set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL` in `.env.local` and restart.
+  set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL` in `.env.local` and restart. The same
+  applies to the chat assistant's "live brain": the settings dialog, endpoint validation,
+  fallback labeling and the rupee guard are tested, but an actual model round-trip needs
+  a real key - until then the fact book answers everything.
+- Sounds are synthesized in the browser (Web Audio); there are no audio assets to verify.
+  The mute toggle persists per browser.
 - Concurrency is guarded by `BEGIN IMMEDIATE` transactions; a multi-process load test was not run.
 - Single-process prototype: SQLite requires a writable durable directory; no real auth
   (demo session cookie only), no rate limiting, no real messaging.

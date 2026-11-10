@@ -35,7 +35,7 @@ VALIDATION & ERRORS
      merchant id from the client. Every query filters by merchant_id.
  13. Never log or return stack traces to the client; log server-side instead.
 
-AI SAFETY (src/adapters/ai.ts)
+AI SAFETY (src/adapters/ai.ts, src/lib/saathi-brain.ts)
  14. Evidence ids from the model are checked against EVIDENCE_IDS allowlist.
  15. Generated copy passes copyMonetaryTermsValid() or we fall back to the
      reviewed template (and say so).
@@ -45,26 +45,47 @@ AI SAFETY (src/adapters/ai.ts)
      validated too (project-relative only). Keep tests/security-guards.test.ts
      green when you touch either.
  17. No customer identifiers or raw order rows ever go into a prompt.
+ 18. The chat assistant plays by the same rules: answers only from
+     buildAssistantFacts() (the same domain functions as the screens); live
+     replies pass the rupee-token guard (assistantMonetaryTermsValid) or fall
+     back to the fact book with a labeled note. The key from the brain dialog
+     lives in server memory only (assistant-settings.ts) - never on disk,
+     never in the DB, never returned unmasked.
+
+UI, MOTION & SOUND
+ 19. Every chart value comes from a computed DTO (GroupedBars/Meter/Donut/
+     Waterfall take numbers from the API responses - no hand-drawn values,
+     no chart libraries needed; src/components/charts.tsx).
+ 20. Animation lives in globals.css as ms-* keyframes, honors
+     prefers-reduced-motion, and never animates layout-critical properties
+     of the hero flow. Mascot moods: idle/happy/exited... see mascot.tsx.
+ 21. Sounds are synthesized (src/lib/sound.ts). Keep peaks low; never block
+     an interaction on audio; the mute toggle must always work.
+ 22. Mascot speech is prose, not data: it must NOT echo exact asserted
+     strings (the e2e uses strict locators like /below the 25% floor/i -
+     duplicating them in a bubble breaks strict mode). Reference the banner
+     instead of quoting it.
+ 23. New tour steps need a [data-tour="..."] attribute on a stable element.
 
 TESTING
- 18. If you change money/consent/approval/idempotency logic, add or update a
+ 24. If you change money/consent/approval/idempotency logic, add or update a
      Vitest test. Look at tests/approval.test.ts for the expectApiError pattern.
- 19. Tests use their own tenants (freshTenant / queuedCampaign helpers) on
+ 25. Tests use their own tenants (freshTenant / queuedCampaign helpers) on
      data/test.sqlite. Do not point tests at the demo DB.
- 20. Run the full check list (file 05) before pushing.
+ 26. Run the full check list (file 05) before pushing.
 
 CODE STYLE
- 21. TypeScript strict; no `any` unless truly unavoidable (and then comment why).
- 22. Routes thin, services fat, domain pure. Match the existing naming.
- 23. UI: Tailwind classes inline; reuse Card/Badge/Stat/Alert from
+ 27. TypeScript strict; no `any` unless truly unavoidable (and then comment why).
+ 28. Routes thin, services fat, domain pure. Match the existing naming.
+ 29. UI: Tailwind classes inline; reuse Card/Badge/Stat/Alert from
      src/components/ui.tsx. Large touch targets, readable contrast, rupee
      formatting everywhere.
 
 GIT
- 24. Branch per task: t<initials>-<topic> e.g. tA-live-ai-smoke.
- 25. Commit messages: imperative, one topic ("Enforce cap atomically in redeem").
- 26. Never commit: .env.local, data/*.sqlite*, node_modules, screenshots with
+ 30. Branch per task: t<initials>-<topic> e.g. tA-live-ai-smoke.
+ 31. Commit messages: imperative, one topic ("Enforce cap atomically in redeem").
+ 32. Never commit: .env.local, data/*.sqlite*, node_modules, screenshots with
      secrets, or local tool artifacts (e.g. a .mimosa/ folder). .gitignore
      already covers the common cases - keep it that way.
- 27. PR into main; another teammate reviews; integrate every 60-90 minutes.
+ 33. PR into main; another teammate reviews; integrate every 60-90 minutes.
 ================================================================================

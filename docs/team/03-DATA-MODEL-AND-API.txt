@@ -96,6 +96,22 @@ ENDPOINTS (all session-scoped; JSON)
        -> { campaign{...}, outbox{queued, sample[]}, redemptions{...},
             availableEvents[], auditTrail[], caveats[] }
 
+POST /api/assistant/chat       body { question (2-500 chars) }
+     -> 200 { answer, reasoning[], followUps[], mode: live|fixture|fallback,
+              note?, intent? }
+     Grounded: answers are built from the session's computed facts (fact book)
+     or, with a live brain key set, from a model reply that passed strict JSON
+     validation + the rupee-token guard (every amount must exist in the
+     computed facts; violations fall back to the fact book with note).
+
+GET/POST/DELETE /api/assistant/settings
+     GET    -> { configured, maskedKey, model, baseUrl, setAtIso } - masked only
+     POST   -> { apiKey, model, baseUrl? } stored in server MEMORY for the
+               process (never disk, never DB); endpoint must pass the same
+               public-host validation as the live draft adapter
+     DELETE -> clears the in-memory key
+     No UI string ever contains the raw key.
+
 ERROR ENVELOPE (every failure looks like this)
   { "error": { "code": "stale_preview", "message": "...",
                "fieldErrors"?: {...}, "retryable"?: bool } }
