@@ -167,6 +167,35 @@ A second QA round added these observed results (production build):
 - Resetting a business to a different fixture refreshes its generated name
   ("(thin-data demo)" does not survive a reset to standard data).
 
+A third QA (bug-hunt) round found and fixed two deeper issues - both caught by
+the gates and now covered by the fixes:
+
+1. DATA LOSS in the legacy merchants migration (found because
+   `npm run fixtures:verify` suddenly failed 37 checks): better-sqlite3 leaves
+   foreign_keys ON by default, so the migration's `DROP TABLE merchants` ran an
+   implicit DELETE that cascaded away every pre-existing merchant's orders,
+   customers and consents. Fixed by suspending FKs around the table rebuild,
+   plus an integrity pass at open time that prunes childless merchant husks
+   (a seeded merchant always has orders in the same transaction) so affected
+   sessions self-heal on their next visit. The reconciliation gate is green
+   again and the fix is permanent for fresh databases.
+2. Strict-locator regression in the e2e: the new story-chart heading duplicated
+   the KPI label exactly ("Completed 3-6 p.m. orders"). Renamed with a
+   "- both windows" suffix - same lesson as the mascot-bubble rule (convention
+   22): any new on-screen string must not equal an asserted one.
+
+Hardening added in the same round (verified live against the production build):
+
+- Merchant cap now returns 422 business_rule (was an unhandled 500), and the
+  add-business form surfaces the error instead of failing silently.
+- Stale business selectors self-heal: a 404 caused by a removed active
+  business clears the stored id and retries against the session default
+  (verified by planting a dead id in localStorage and reloading).
+- Chat send is guarded against double-submission (ref-based, covers rapid
+  Enter/Send before state settles).
+- Business switcher repositioned above the sound toggle on mobile (was
+  overlapping the status strip at 360 px).
+
 ## Known limitations (honest list)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run

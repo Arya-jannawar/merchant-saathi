@@ -39,6 +39,10 @@ GET RUNNING IN 10 MINUTES (short version - file 05 has details)
   8. Click "Load sample data" and click through the whole flow.
 
 CURRENT STATE (honest summary)
+  - Third QA round (bug-hunt) fixed a data-loss bug in the legacy-DB migration
+    (FK-enforced DROP cascaded child rows; now suspended + husk-pruning
+    self-heal) and hardened the UI: 422 on the business cap with visible
+    errors, self-healing stale business selectors, double-send guard on chat.
   - The complete hero workflow is implemented and verified end to end:
     dashboard -> evidence -> offer workspace -> approval -> simulated outbox ->
     simulated redemptions -> results (Rs 700 - Rs 400 = Rs 300 contribution).

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError, type ZodTypeAny, type output } from "zod";
 import { ApiError } from "./errors";
-import { MerchantNotFoundError } from "@/services/demo";
+import { MerchantLimitError, MerchantNotFoundError } from "@/services/demo";
 
 /** Wrap a route handler: converts ApiError/ZodError/unexpected into the error envelope. */
 export function routeHandler<Args extends unknown[]>(
@@ -16,6 +16,10 @@ export function routeHandler<Args extends unknown[]>(
       }
       if (err instanceof MerchantNotFoundError) {
         const apiErr = new ApiError("not_found", err.message);
+        return NextResponse.json(apiErr.toEnvelope(), { status: apiErr.status });
+      }
+      if (err instanceof MerchantLimitError) {
+        const apiErr = new ApiError("business_rule", err.message);
         return NextResponse.json(apiErr.toEnvelope(), { status: apiErr.status });
       }
       if (err instanceof ZodError) {

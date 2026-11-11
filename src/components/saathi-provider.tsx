@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { MascotById } from "@/components/mascot";
 import { getMascot, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
 import { soundKit, type SoundName } from "@/lib/sound";
-import { api, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
+import { api, ApiClientError, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
 import { SaathiTour } from "@/components/saathi-tour";
 import { MascotPicker } from "@/components/mascot-picker";
@@ -162,10 +162,12 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
     void loadBrainStatus();
   }, [loadBrainStatus]);
 
+  const sendingRef = useRef(false);
   const sendMessage = useCallback(
     async (raw: string) => {
       const question = raw.trim();
-      if (!question || thinking) return;
+      if (!question || sendingRef.current) return;
+      sendingRef.current = true;
       setInput("");
       setMessages((m) => [...m, { id: nextId++, role: "user", text: question }]);
       setThinking(true);
@@ -206,9 +208,10 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         soundKit.play("error");
       } finally {
         setThinking(false);
+        sendingRef.current = false;
       }
     },
-    [thinking, setMoodTemporarily]
+    [setMoodTemporarily]
   );
 
   // The API surface is intentionally mood-free and built from stable callbacks:
@@ -540,6 +543,7 @@ function MerchantStrip({
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const current = merchants.find((m) => m.id === active) ?? null;
 
   useEffect(() => {
@@ -591,8 +595,9 @@ function MerchantStrip({
       setName("");
       onAdded(created);
       setTimeout(() => window.location.reload(), 550);
-    } catch {
-      setAdding(false);
+    } catch (err) {
+      setAddError(err instanceof ApiClientError ? err.message : "Could not add the business.");
+      setAdding(true);
     } finally {
       setBusy(false);
     }
@@ -617,7 +622,7 @@ function MerchantStrip({
   }
 
   return (
-    <div className="fixed left-4 top-[64px] z-40" data-tour="merchant-strip">
+    <div className="fixed bottom-[104px] left-4 z-40" data-tour="merchant-strip">
       <div className="relative">
         <button
           type="button"
@@ -663,27 +668,33 @@ function MerchantStrip({
               ))}
             </ul>
             {adding ? (
-              <div className="mt-2 flex gap-1.5">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void add();
-                  }}
-                  placeholder="Business name (optional)"
-                  maxLength={60}
-                  aria-label="New business name"
-                  className="!py-1.5 text-xs"
-                  autoFocus
-                />
-                <button type="button" onClick={() => void add()} disabled={busy} className="btn-primary !px-2.5 !py-1.5 text-xs">
-                  Add
-                </button>
+              <div className="mt-2 space-y-1.5">
+                <div className="flex gap-1.5">
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void add();
+                    }}
+                    placeholder="Business name (optional)"
+                    maxLength={60}
+                    aria-label="New business name"
+                    className="!py-1.5 text-xs"
+                    autoFocus
+                  />
+                  <button type="button" onClick={() => void add()} disabled={busy} className="btn-primary !px-2.5 !py-1.5 text-xs">
+                    Add
+                  </button>
+                </div>
+                {addError ? <p className="px-1 text-[10px] font-semibold text-rose-600">{addError}</p> : null}
               </div>
             ) : (
               <button
                 type="button"
-                onClick={() => setAdding(true)}
+                onClick={() => {
+                  setAddError(null);
+                  setAdding(true);
+                }}
                 disabled={busy}
                 className="mt-1 w-full rounded-xl border border-dashed border-brand/40 px-3 py-2 text-xs font-bold text-brand transition hover:bg-brand-light"
               >

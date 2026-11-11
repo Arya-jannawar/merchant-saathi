@@ -69,6 +69,15 @@ UI, MOTION & SOUND
      duplicating them in a bubble breaks strict mode). Reference the banner
      instead of quoting it.
  23. New tour steps need a [data-tour="..."] attribute on a stable element.
+ 24. Schema migrations must suspend foreign keys around any DROP/RENAME
+     (better-sqlite3 runs with FKs ON; a parent-table drop under FK
+     enforcement CASCADE-deletes every child row). openDatabase also prunes
+     childless merchant husks so broken migrations self-heal.
+ 25. New UI strings must not duplicate text the e2e asserts (strict locators).
+     Check tests/e2e/merchant-flow.spec.ts before naming headings/labels.
+ 26. Client requests self-heal a stale business selector (one 404 retry
+     without the header). Do not "fix" the 404 away server-side: foreign ids
+     must still be refused.
 
 TESTING
  24. If you change money/consent/approval/idempotency logic, add or update a

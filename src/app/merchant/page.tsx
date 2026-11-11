@@ -416,7 +416,14 @@ function StoryChart({
         ? { prev: kpis.previous.netSalesPaise, curr: kpis.current.netSalesPaise, delta: kpis.salesDeltaPct }
         : { prev: kpis.previous.aovPaise ?? 0, curr: kpis.current.aovPaise ?? 0, delta: null };
   const format = METRIC_FORMAT[metric];
-  const title = metric === "orders" ? "Completed 3-6 p.m. orders" : metric === "sales" ? "Net afternoon sales" : "Average order value";
+  // Suffix keeps this heading distinct from the KPI card labels (the e2e uses
+  // strict text locators - two identical strings break the flow).
+  const title =
+    metric === "orders"
+      ? "Completed 3-6 p.m. orders - both windows"
+      : metric === "sales"
+        ? "Net afternoon sales - both windows"
+        : "Average order value - both windows";
   const insight =
     metric === "aov"
       ? "Flat average order value - the decline is in how many orders arrive, not how big they are."

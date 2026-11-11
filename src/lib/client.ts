@@ -43,6 +43,24 @@ export class ApiClientError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    return await rawApi<T>(path, init);
+  } catch (err) {
+    // Self-heal a stale business selector (e.g. the active business was removed
+    // in another tab): drop it and retry once against the session's default.
+    if (
+      err instanceof ApiClientError &&
+      err.code === "not_found" &&
+      activeMerchantId !== null
+    ) {
+      setActiveMerchantId(null);
+      return rawApi<T>(path, init);
+    }
+    throw err;
+  }
+}
+
+async function rawApi<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (activeMerchantId) headers["x-merchant-id"] = activeMerchantId;
   const res = await fetch(path, {

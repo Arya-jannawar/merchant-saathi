@@ -192,20 +192,25 @@ export function openDatabase(dbPath: string): SqliteDatabase {
   migrateLegacyMerchantsTable(db);
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA_SQL);
+  pruneChildlessMerchants(db);
   return db;
 }
 
 /**
  * Databases created before multi-merchant support had UNIQUE(demo_session_id)
  * and no variant_seed column. SQLite cannot drop a unique constraint in place,
- * so if the old shape is detected the table is rebuilt (rows and children kept)
- * inside one transaction with foreign keys suspended.
+ * so if the old shape is detected the table is rebuilt (rows and children kept).
+ *
+ * better-sqlite3 leaves foreign_keys ON by default; a plain `DROP TABLE
+ * merchants` under FK enforcement performs an implicit DELETE that CASCADES to
+ * every child row. The rebuild therefore runs with foreign keys suspended.
  */
 function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
   const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'merchants'").get() as
     | { sql: string }
     | undefined;
   if (!row || !row.sql.includes("UNIQUE")) return;
+  db.pragma("foreign_keys = OFF");
   db.transaction(() => {
     db.exec(`
       CREATE TABLE merchants_migrated (
@@ -225,6 +230,20 @@ function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
     `);
     db.exec("CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id);");
   })();
+  db.pragma("foreign_keys = ON");
+}
+
+/**
+ * A merchant row without any order rows is a husk - seedMerchant always fills
+ * orders in the same transaction, so an empty one can only come from an older
+ * broken migration (or manual tampering). Dropping it lets the owning session
+ * reseed cleanly on its next visit instead of serving empty screens labeled as
+ * seeded data.
+ */
+function pruneChildlessMerchants(db: SqliteDatabase): void {
+  db.prepare(
+    "DELETE FROM merchants WHERE NOT EXISTS (SELECT 1 FROM orders WHERE orders.merchant_id = merchants.id)"
+  ).run();
 }
 
 /** Run `fn` inside an IMMEDIATE transaction; rolls back on throw. */
