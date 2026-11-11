@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 210" width="900" height="210" role="img" aria-label="Six mascot buddies each performing a signature animation">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a2e5c"/>
+      <stop offset="1" stop-color="#07234a"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="210" rx="18" fill="url(#bg2)"/>
+  <text x="450" y="34" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">Pick your buddy - six saathis, four signature moves each</text>
+  <text x="450" y="54" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="11.5" fill="#8fd8ff">every move has its own synthesized tune · voice = waveform + transposition + tempo + flourish</text>
+
+  <!-- MITHU: happy sparkle bounce -->
+  <g class="cell">
+    <g class="happy">
+      <path d="M96 88 q6-14 2-18" stroke="#166534" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <circle cx="95" cy="94" r="7" fill="#ef4444"/>
+      <path d="M77 114 Q74 98 91 96 Q94 86 105 89 Q117 85 121 96 Q129 102 125 112 Q121 118 101 118 Q83 118 77 114 Z" fill="#fff1e6"/>
+      <path d="M79 120 L83 140 Q99 146 115 140 L119 120 Z" fill="#00b9f1"/>
+      <circle cx="91" cy="106" r="3.4" fill="#0f172a"/><circle cx="107" cy="106" r="3.4" fill="#0f172a"/>
+      <path d="M94 113 q7 6 14 0" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round" transform="translate(-5 0)"/>
+      <path class="sp sp1" d="M132 96 l2.2 5 5 2.2 -5 2.2 -2.2 5 -2.2 -5 -5 -2.2 5 -2.2 Z" fill="#fbbf24"/>
+      <path class="sp sp2" d="M62 92 l1.8 4 4 1.8 -4 1.8 -1.8 4 -1.8 -4 -4 -1.8 4 -1.8 Z" fill="#f472b6"/>
+    </g>
+    <text x="100" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Mithu</text>
+    <text x="100" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">cupcake · sparkle</text>
+  </g>
+
+  <!-- CHOTU: angry shake with steam -->
+  <g class="cell">
+    <g class="angry">
+      <path d="M250 88 Q268 102 274 128 Q276 140 266 144 L234 144 Q224 140 226 128 Q232 102 250 88 Z" fill="#f4a950"/>
+      <path d="M250 88 Q256 98 258 110" stroke="#d9822b" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <circle cx="243" cy="120" r="3.4" fill="#0f172a"/><circle cx="257" cy="120" r="3.4" fill="#0f172a"/>
+      <path d="M236 112 L248 115" stroke="#7c2d12" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M264 112 L252 115" stroke="#7c2d12" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M244 130 L250 126 L256 130" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path class="st st1" d="M238 84 q4-7 -2-11" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path class="st st2" d="M262 84 q-4-7 2-11" stroke="#ef4444" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <text x="250" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Chotu</text>
+    <text x="250" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">samosa · raspy pop</text>
+  </g>
+
+  <!-- DHOOM: steam + hop -->
+  <g class="cell">
+    <g class="hopS">
+      <path d="M404 96 L409 140 Q420 145 431 140 L436 96 Z" fill="#fef3c7" opacity="0.55"/>
+      <path d="M404 96 L409 140 Q420 145 431 140 L436 96 Z" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+      <path d="M407 112 L410.5 136 Q420 140 429.5 136 L433 112 Z" fill="#d9a05b"/>
+      <circle cx="414" cy="122" r="3.2" fill="#0f172a"/><circle cx="426" cy="122" r="3.2" fill="#0f172a"/>
+      <path d="M414 129 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path class="st2a" d="M412 88 q6-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path class="st2b" d="M426 90 q-6-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
+    </g>
+    <text x="420" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Dhoom</text>
+    <text x="420" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">chai · steam whoosh</text>
+  </g>
+
+  <!-- SHONA: coin flip + shine -->
+  <g class="cell">
+    <g class="flip">
+      <circle cx="570" cy="116" r="26" fill="#fbbf24" stroke="#d97706" stroke-width="4"/>
+      <circle cx="570" cy="116" r="18" fill="none" stroke="#fde68a" stroke-width="2"/>
+      <text x="570" y="123" text-anchor="middle" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#92400e">&#8377;</text>
+      <circle cx="563" cy="107" r="3.1" fill="#0f172a"/><circle cx="577" cy="107" r="3.1" fill="#0f172a"/>
+      <path d="M564 114 q7 5 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    </g>
+    <text x="570" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Shona</text>
+    <text x="570" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">coin · shimmer ping</text>
+  </g>
+
+  <!-- LADDU: big jump -->
+  <g class="cell">
+    <g class="jump">
+      <circle cx="700" cy="118" r="26" fill="#f59e0b"/>
+      <circle cx="691" cy="104" r="4.4" fill="#fbbf24"/><circle cx="709" cy="106" r="4.4" fill="#fbbf24"/><circle cx="700" cy="132" r="4.4" fill="#fbbf24"/><circle cx="685" cy="124" r="3.8" fill="#fbbf24"/><circle cx="716" cy="124" r="3.8" fill="#fbbf24"/>
+      <circle cx="693" cy="112" r="3.2" fill="#0f172a"/><circle cx="707" cy="112" r="3.2" fill="#0f172a"/>
+      <path d="M693 120 q8 6 15 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M700 88 q11-8 20-3 q-7 9 -20 6" fill="#16a34a"/>
+    </g>
+    <text x="700" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Laddu</text>
+    <text x="700" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">laddu · bouncy triangle</text>
+  </g>
+
+  <!-- JALEBI: swirl wobble -->
+  <g class="cell">
+    <g class="wob">
+      <g fill="none" stroke="#f97316" stroke-width="8" stroke-linecap="round">
+        <circle cx="820" cy="116" r="23" stroke-dasharray="100 48" stroke-dashoffset="-14"/>
+        <circle cx="820" cy="116" r="12" stroke-dasharray="52 24" stroke-dashoffset="6"/>
+      </g>
+      <circle cx="814" cy="109" r="3.2" fill="#0f172a"/><circle cx="826" cy="109" r="3.2" fill="#0f172a"/>
+      <path d="M814 117 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path class="sp3" d="M846 92 l2 4.4 4.4 2 -4.4 2 -2 4.4 -2 -4.4 -4.4 -2 4.4 -2 Z" fill="#fbbf24"/>
+    </g>
+    <text x="820" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Jalebi</text>
+    <text x="820" y="184" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10" fill="#8fd8ff">jalebi · vibrato swirl</text>
+  </g>
+
+  <style>
+    .cell { transform-box: fill-box; }
+    .happy { transform-box: fill-box; transform-origin: center bottom; animation: bounce 1.7s cubic-bezier(0.36,0.07,0.19,0.97) infinite; }
+    .sp { transform-box: fill-box; transform-origin: center; animation: rise 1.6s ease-out infinite; }
+    .sp2 { animation-delay: 0.7s; }
+    @keyframes rise { 0% { transform: translateY(8px) scale(0.4); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-26px) scale(1.1); opacity: 0; } }
+    @keyframes bounce { 0%, 55%, 100% { transform: translateY(0) scale(1,1); } 18% { transform: translateY(-16px) scale(0.95,1.06); } 36% { transform: translateY(0) scale(1.05,0.93); } 46% { transform: translateY(-5px) scale(1,1); } }
+    .angry { transform-box: fill-box; transform-origin: center bottom; animation: rage 1s ease-in-out infinite; }
+    .st { animation: puff 1s ease-out infinite; }
+    .st2 { animation-delay: 0.5s; }
+    @keyframes puff { 0% { transform: translateY(4px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-16px); opacity: 0; } }
+    @keyframes rage { 0%, 100% { transform: translateX(0) rotate(0); } 20% { transform: translateX(-4px) rotate(-4deg); } 45% { transform: translateX(4px) rotate(4deg); } 70% { transform: translateX(-3px) rotate(-2deg); } }
+    .hopS { transform-box: fill-box; transform-origin: center bottom; animation: bop 1.8s ease-in-out infinite; }
+    .st2a { animation: steamy 1.8s ease-out infinite; }
+    .st2b { animation: steamy 1.8s 0.9s ease-out infinite; }
+    @keyframes steamy { 0% { transform: translateY(6px); opacity: 0; } 40% { opacity: 0.9; } 100% { transform: translateY(-18px); opacity: 0; } }
+    @keyframes bop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+    .flip { transform-box: fill-box; transform-origin: center bottom; animation: flip 2.6s ease-in-out infinite; }
+    @keyframes flip { 0%, 12% { transform: scaleX(1); } 30% { transform: scaleX(0.18) translateY(-12px); } 50% { transform: scaleX(1) translateY(0); } 70% { transform: scaleX(0.18) translateY(-8px); } 100% { transform: scaleX(1) translateY(0); } }
+    .jump { transform-box: fill-box; transform-origin: center bottom; animation: bigjump 1.5s cubic-bezier(0.36,0.07,0.19,0.97) infinite; }
+    @keyframes bigjump { 0% { transform: translateY(0) scale(1,1); } 10% { transform: translateY(-2px) scale(0.9,1.12); } 38% { transform: translateY(-30px) scale(1.06,0.92); } 62% { transform: translateY(0) scale(0.94,1.08); } 78% { transform: translateY(-7px) scale(1,1); } 100% { transform: translateY(0) scale(1,1); } }
+    .wob { transform-box: fill-box; transform-origin: center bottom; animation: wobble 2s ease-in-out infinite; }
+    .sp3 { animation: rise 1.8s ease-out infinite; }
+    @keyframes wobble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg) translateY(-4px); } }
+  </style>
+</svg>

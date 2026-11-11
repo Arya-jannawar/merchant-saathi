@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="Animated money story: 700 rupees bundle sales minus 400 rupees cost equals 300 rupees contribution">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a2e5c"/>
+      <stop offset="1" stop-color="#07234a"/>
+    </linearGradient>
+    <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#33c7f4"/>
+      <stop offset="1" stop-color="#00b9f1"/>
+    </linearGradient>
+    <linearGradient id="good" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="220" rx="18" fill="url(#bg4)"/>
+  <text x="450" y="34" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">The money story, told in one loop</text>
+
+  <line x1="80" y1="180" x2="820" y2="180" stroke="#1d4e86" stroke-width="2"/>
+
+  <!-- revenue bar -->
+  <g>
+    <rect class="barR" x="150" width="120" y="180" height="0" fill="url(#rev)"/>
+    <text class="lblR" x="210" y="70" text-anchor="middle" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#ffffff">&#8377;700</text>
+    <text x="210" y="196" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11.5" font-weight="700" fill="#8fd8ff">Bundle sales</text>
+  </g>
+  <!-- cost bar -->
+  <g>
+    <rect class="barC" x="400" width="120" y="180" height="0" fill="#f43f5e"/>
+    <text class="lblC" x="460" y="118" text-anchor="middle" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#fda4af">-&#8377;400</text>
+    <text x="460" y="196" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11.5" font-weight="700" fill="#8fd8ff">Ingredients &amp; packaging</text>
+  </g>
+  <!-- contribution bar -->
+  <g>
+    <rect class="barG" x="650" width="120" y="180" height="0" fill="url(#good)"/>
+    <text class="lblG" x="710" y="136" text-anchor="middle" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#6ee7b7">= &#8377;300</text>
+    <text x="710" y="196" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11.5" font-weight="700" fill="#8fd8ff">Contribution</text>
+  </g>
+
+  <text x="450" y="86" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" fill="#fde68a" class="tagline">"Contribution toward fixed costs" - never claimed as proven profit</text>
+
+  <style>
+    /* scale: 700 rupees = 140px, so 400 = 80px, 300 = 60px */
+    .barR { transform-box: fill-box; transform-origin: center bottom; animation: growR 6s ease-out infinite; }
+    .lblR { animation: showR 6s ease-out infinite; }
+    @keyframes growR { 0% { transform: scaleY(0); } 8% { transform: scaleY(0); } 22% { transform: scaleY(1); } 82% { transform: scaleY(1); } 94%, 100% { transform: scaleY(0); } }
+    @keyframes showR { 0%, 10% { opacity: 0; } 22%, 82% { opacity: 1; } 94%, 100% { opacity: 0; } }
+    .barC { transform-box: fill-box; transform-origin: center bottom; animation: growC 6s ease-out infinite; }
+    .lblC { animation: showC 6s ease-out infinite; }
+    @keyframes growC { 0%, 20% { transform: scaleY(0); } 32% { transform: scaleY(1); } 82% { transform: scaleY(1); } 94%, 100% { transform: scaleY(0); } }
+    @keyframes showC { 0%, 22% { opacity: 0; } 34%, 82% { opacity: 1; } 94%, 100% { opacity: 0; } }
+    .barG { transform-box: fill-box; transform-origin: center bottom; animation: growG 6s ease-out infinite; }
+    .lblG { animation: showG 6s ease-out infinite; }
+    @keyframes growG { 0%, 34% { transform: scaleY(0); } 46% { transform: scaleY(1); } 82% { transform: scaleY(1); } 94%, 100% { transform: scaleY(0); } }
+    @keyframes showG { 0%, 36% { opacity: 0; } 48%, 84% { opacity: 1; } 94%, 100% { opacity: 0; } }
+    .tagline { animation: soft 3s ease-in-out infinite; }
+    @keyframes soft { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+  </style>
+</svg>

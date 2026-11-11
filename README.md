@@ -1,319 +1,284 @@
-# Merchant Saathi
+<p align="center">
+  <img src="docs/animations/hero-banner.svg" width="100%" alt="Merchant Saathi - evidence-backed AI growth partner for small merchants"/>
+</p>
 
-**An AI business partner for a bakery's quiet afternoons.**
-Paytm AI Hackathon Pune - Track 1: Merchant Growth AI. Team FinovateX (Arya Jannawar, Avani Jannawar, Siddhant Pardeshi).
+<p align="center">
+  <img src="https://img.shields.io/badge/hackathon-Paytm%20AI%20Pune%20%C2%B7%20Track%201-00b9f1?style=for-the-badge" alt="Paytm AI Hackathon Track 1"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/Next.js%2014-TypeScript%20strict-000000?style=for-the-badge&logo=next.js" alt="Next.js 14 TypeScript"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/tests-88%20passing-10b981?style=for-the-badge&logo=vitest" alt="88 tests passing"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20Z.ai-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
+  &nbsp;
+  <img src="https://img.shields.io/badge/deps-zero%20chart%2Fanimation%20libraries-8b5cf6?style=for-the-badge" alt="zero chart or animation dependencies"/>
+</p>
 
-A dashboard alone tells a small merchant that orders are down. It does not tell them **what to do about it**, whether the fix is **affordable**, what to **say to customers**, or whether it **worked**. Merchant Saathi closes that loop: it shows one evidence-backed opportunity, proves every number behind it, refuses offers that would lose money, and turns the owner's approval into a trackable, **simulated** campaign.
+<h1 align="center">Merchant Saathi 🧁</h1>
 
-**The USP: proof, not a black box.** Every number on screen links to its metric definition, window and source. The AI drafts explanations and customer copy but can never set prices, caps, dates or eligibility. Unprofitable offers are visibly rejected before anything can be queued.
+<p align="center"><b>An AI business partner for a bakery's quiet afternoons.</b><br/>
+A dashboard tells a merchant that orders are down. It never tells them <b>what to do about it</b>, whether the fix is <b>affordable</b>, what to <b>say to customers</b>, or whether it <b>worked</b>. Merchant Saathi closes that entire loop - and proves every single number on the way.</p>
 
-> All data, people, and customers in this demo are synthetic. Campaigns are simulated. No real messages are ever sent.
-> This is not an official Paytm product and claims no endorsement.
+<p align="center">
+  <img src="docs/animations/mascot-moods.svg" width="100%" alt="Six mascot buddies with signature animations"/>
+</p>
 
-## Watch the walkthrough (8 minutes, narrated)
-
-A complete narrated product tour lives in
-[`docs/media/merchant-saathi-walkthrough.mp4`](docs/media/merchant-saathi-walkthrough.mp4):
-the problem and the evidence receipts, the offer math, the Rs 50 guardrail rejection, the bounded
-AI draft (English and Hindi), hash-bound approval, the simulated outbox, idempotent redemptions and
-cap enforcement, the audit trail, the architecture, and the honest labels - ending with the credits.
+<p align="center">
+  <a href="#-the-problem-in-real-numbers">The Problem</a> •
+  <a href="#-the-solution-one-honest-loop">The Solution</a> •
+  <a href="#-feature-deep-dive">Features</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-whats-real-vs-simulated">Honesty Ledger</a> •
+  <a href="#-api-reference">API</a> •
+  <a href="#-run-it-in-10-minutes">Run It</a> •
+  <a href="#-testing--verification">Tests</a> •
+  <a href="#-roadmap">Roadmap</a> •
+  <a href="#-team-finovatex">Team</a>
+</p>
 
 ---
 
-## At a glance
+## 🎯 The problem, in real numbers
 
-![Merchant Saathi dashboard](docs/screenshots/01-dashboard.png)
+Our hero user is a Pune bakery owner. Between the two most recent complete Mon–Fri windows, completed **3–6 p.m. orders fell from 100 to 70 (−30%)** and net sales from **₹8,000 to ₹5,600**. Average order value stayed flat at **₹80** — so the problem is **order count, not basket size**.
 
-**The one-minute version of the build:**
+A dashboard alone just shows the decline. The owner is still stuck with five unanswered questions:
 
-1. A synthetic Pune bakery (`bakery-v1`) seeds 616 orders, a 50-customer demo CRM and a consent register. A demo clock is pinned to Fri 6 Nov 2026, 7:00 p.m. IST so the two compared windows are always complete.
-2. The dashboard surfaces one opportunity: completed 3-6 p.m. orders fell **100 → 70 (-30%)**, net sales **₹8,000 → ₹5,600**, AOV flat at **₹80** - so the problem is order count, not basket size.
-3. The owner builds a bundle offer (two samosas + one tea at ₹70). Server code computes margin, stock capacity and discount exposure in integer paise. A ₹50 price fails the 25% margin floor and **cannot be approved**.
-4. The AI (fixture mode by default, live Z.ai optional) drafts the explanation and customer message **from the verified numbers only** - English or Hindi.
-5. The owner approves the exact version (bound by a payload hash). 40 consented customers enter a **simulated** outbox inside one transaction. Ten fixture redemption events apply idempotently: **₹700 − ₹400 = ₹300 contribution**, every screen labeled *Simulated campaign outcomes*.
+| # | Question a real owner asks | What most tools do | What Merchant Saathi does |
+|---|---|---|---|
+| 1 | *What exactly changed, and since when?* | Dumps charts | One opportunity with **evidence receipts** — every number links to a metric id, definition, window and source |
+| 2 | *What should I do about it?* | Generic tips | One concrete, capped offer: **two samosas + one tea at ₹70** (usual ₹90) |
+| 3 | *Can I afford it?* | Hopes you do the math | **Code, not AI**, computes margin (42.9% vs a 25% floor), stock capacity (25 bundles) and maximum discount exposure (₹400) — an unsafe ₹50 is **visibly rejected** |
+| 4 | *What do I tell customers?* | Leaves copywriting to you | The AI drafts the explanation + customer message **from the verified numbers only**, English or Hindi |
+| 5 | *Did it work?* | Silence | Owner approval → **simulated** outbox → 10 redemption events → **₹700 − ₹400 = ₹300 contribution**, every screen labeled |
 
----
+> ⚠️ **What we refuse to do:** no causal claims (we say orders *fell*, never *because of weather*), no invented lift percentages, no real messages, no fake "AI magic". The product can also say **"insufficient evidence"** and refuses to guess — that refusal is a feature, not a limitation.
 
-## Pick your buddy - a cast of six mascots
+## 💡 The solution - one honest loop
 
-A mascot floats on every screen and runs the tour for you. **Mithu** the cupcake is joined by five friends, each with four signature animations and a unique voice for every move (hover the mood chips in the picker to hear them):
+<p align="center">
+  <img src="docs/animations/flow-loop.svg" width="100%" alt="The owner control loop animation"/>
+</p>
+
+Every stage of the loop is engineered so the **owner stays in control** and the **AI stays in its lane**:
+
+1. **Inspect** — the dashboard tells the story at a glance (interactive metric switcher, per-day bars with hover tooltips, campaign funnel strip). The opportunity page opens the **evidence drawer**: six numbered checks, each with its metric id (`afternoon-order-delta-v1`, `bundle-margin-v1`, …), exact value, definition, period and source table.
+2. **Price** — edit price and cap in the offer workspace; margin, capacity and exposure **recompute instantly in pure functions**. Try ₹50: the meter drops below the floor line and the approve button locks.
+3. **Approve** — the approval binds the **exact preview** with a SHA-256 payload hash. Any later change to price, stock or consent invalidates it — a stale execute is refused with `409 stale_preview`.
+4. **Queue (simulated)** — 40 consented demo customers enter a simulated outbox inside one `BEGIN IMMEDIATE` transaction, with per-recipient idempotency keys. Nothing is ever really sent.
+5. **Measure** — apply 10 simulated redemption events; replays are idempotent; the cap is enforced atomically; the waterfall shows exactly where the money went.
+
+<p align="center">
+  <img src="docs/animations/guardrail-flash.svg" width="100%" alt="Unsafe offer rejection animation"/>
+</p>
+
+## 🚀 Feature deep dive
+
+### 📊 1. The one-glance dashboard
+<p align="center"><img src="docs/screenshots/01-dashboard.png" width="100%" alt="Dashboard with infographic charts"/></p>
+
+Count-up KPI cards, an interactive **metric switcher** (Orders / Net sales / Avg order) that rewrites the story line, **day-by-day 3–6 p.m. bars with hover tooltips** (both windows, per weekday — straight from `/api/demo/insights`, computed from order rows), and a **campaign funnel strip** that fills in as you act: customers → consented → simulated outbox → redemptions → ₹300 contribution. Zero chart libraries — every pixel is hand-rolled SVG/CSS fed by server-computed DTOs.
+
+### 🔍 2. Evidence receipts (the USP)
+<p align="center"><img src="docs/screenshots/02-opportunity-evidence.png" width="100%" alt="Evidence drawer"/></p>
+
+Six evidence checks, each traceable: label, id, exact value, plain-language definition, the window it covers, and the source table it came from. Below it, an explicit *"What this evidence does NOT say"* panel — small sample, no proof of cause, variable costs exclude rent/labour/tax.
+
+### 🧮 3. The offer workspace with live guardrails
+<p align="center"><img src="docs/screenshots/04-offer-draft-approved-math.png" width="100%" alt="Offer math approved"/></p>
+
+Live **margin-vs-floor meter** and **cap-vs-capacity meter**. Type ₹50 and watch it break:
+
+<p align="center"><img src="docs/screenshots/05-unsafe-price-rejected.png" width="100%" alt="Unsafe price rejected"/></p>
+
+Approve stays disabled, nothing can be queued, and the mascot visibly panics. The AI drafts explanation + customer copy (English/Hindi) **from the computed numbers only** — its output is schema-validated, its rupee amounts are cross-checked against the computed facts, and any violation falls back to a labeled template. Monetary terms in copy can never contradict the math.
+
+<p align="center"><img src="docs/screenshots/03-offer-hindi-copy.png" width="100%" alt="Hindi customer copy"/></p>
+
+### 🔐 4. Hash-bound approval → simulated outbox
+<p align="center"><img src="docs/screenshots/06-campaign-activity.png" width="100%" alt="Campaign activity"/></p>
+
+Approving binds version + price + cap + audience hash + inventory version. Execution re-checks **all of it** — stale inventory, stale consent, expired validity and reused idempotency keys all fail loudly with typed error codes. The outbox is honest: `simulated_queued`, non-deliverable demo addresses, never sent.
+
+### 💰 5. Results with a money waterfall
+<p align="center"><img src="docs/screenshots/07-simulated-results.png" width="100%" alt="Simulated results waterfall"/></p>
+
+₹700 bundle sales − ₹400 ingredients & packaging = **₹300 contribution toward fixed costs**. Replay R-003 and the app proves idempotency live: *"replaying it changed nothing."* A downloadable `.txt` summary carries the caveats with the numbers.
+
+### 🪞 6. The honesty ledger — "insufficient evidence" on demand
+<p align="center"><img src="docs/screenshots/08-thin-data-insufficient-evidence.png" width="100%" alt="Thin data insufficient evidence"/></p>
+
+One click loads the **thin-data demo**: tiny windows, and the app flatly refuses to recommend — *"Both compared windows need at least 20 completed afternoon orders each (found 12 and 8)."* Drafting via the API is refused too (`422 business_rule`). A product that can say "I don't know" is more trustworthy than one that always answers.
+
+### 🎭 7. Six mascots, 24 signature animations, 24 unique voices
+<p align="center"><img src="docs/screenshots/09-mascot-picker.png" width="100%" alt="Mascot picker"/></p>
 
 | Buddy | Is | Signature moves |
 | --- | --- | --- |
-| **Mithu** | cupcake | happy, dance, hearts, curious |
-| **Chotu** | samosa | angry, enthusiastic, dance, curious |
-| **Dhoom** | chai glass | enthusiastic, happy, dance, curious |
-| **Shona** | rupee coin | dance, happy, enthusiastic, hearts |
-| **Laddu** | laddu | dance, happy, angry, enthusiastic |
-| **Jalebi** | jalebi | curious, dance, hearts, angry |
+| **Mithu** | cupcake | happy · dance · hearts · curious |
+| **Chotu** | samosa | angry · enthusiastic · dance · curious |
+| **Dhoom** | chai glass | enthusiastic · happy · dance · curious |
+| **Shona** | rupee coin | dance · happy · enthusiastic · hearts |
+| **Laddu** | laddu | dance · happy · angry · enthusiastic |
+| **Jalebi** | jalebi | curious · dance · hearts · angry |
 
-Pick via the 🎭 button (floating by the mascot or in the chat header). The choice persists per browser; the chat, tour and reactions all use your buddy.
+Every mascot × mood pair has its **own synthesized tune** — the same melody is a sweet sparkle on Mithu and a raspy shout on Chotu (voice = waveform + transposition + tempo + flourish: sparkle, pop, steam, coin, bounce, swirl). The buddy guides the whole product: speech bubbles, a **spotlight guided tour** on every screen, and live reactions — celebrates approvals, panics at unsafe prices, explains 409s.
 
-- **Guided tour** - "Show me around" in the chat walks through each screen with a spotlight on the exact element (per-route steps, skip/next, progress dots, honors reduced-motion).
-- **Chat that only knows real numbers** - ask *why orders fell*, *is ₹70 safe*, *what approving does*, or *what the campaign earned*. Without any key, a deterministic "fact book" answers from the session's computed facts (same domain functions as the screens). Each answer shows a *How I reasoned* trace.
-- **Optional live brain** - paste a provider API key + model id in the brain (🧠) dialog and answers become generative with deeper reasoning. A rupee guard re-checks every amount in the model's reply against the computed facts; any invented number, malformed reply or endpoint failure falls back to the labeled fact book instead.
-- **The key stays server-side** - process memory only, never on disk, never sent back to the browser (masked status only), validated against the same public-host rules as the live draft adapter. A server restart clears it.
-- **Reactions** - your buddy celebrates approvals, panics at unsafe prices, and explains refusals; pages trigger reactions through a tiny `useSaathi()` API. Every mascot x mood pair has its own synthesized jingle (waveform + transposition + tempo + flourish), and the UI kit runs through a compressor for a glued mix.
+### 💬 8. Mithu's chat — grounded answers, optional live brain
+Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"* — the built-in **fact book** answers from the session's verified numbers with a *How I reasoned* trace. Paste a provider API key + model in the 🧠 dialog and answers become generative with deeper reasoning — still guarded: any rupee amount the model invents that isn't in the computed facts makes the reply fall back to the fact book with a labeled note. The key lives in **server memory only** (never disk, masked to the browser, public-host validated).
 
-## Multiple businesses
+### 🏪 9. Multiple businesses, zero tedium
+The 🏪 strip adds, switches and removes businesses in one click — each with its own deterministic synthetic numbers, consent register, offers and campaigns (up to 6 per session). Requests carry the active business id and the server honors **only ids owned by your session**. Stale selectors self-heal; the same client idempotency key never collides across businesses.
 
-Add and switch between businesses from the 🏪 strip (top-left): **+ Add a business** seeds a new one in one click - its own deterministic synthetic numbers, customers, consent register, offers and campaigns. Every request carries the active business id and the server only honors ids owned by your session, so tenants stay isolated. Same client idempotency keys are scoped per business, resetting a business refreshes its rows in place, and deleting one removes its data for good. Up to 6 businesses per demo session.
+## 🏗 Architecture
 
-## Charts & sound (zero new dependencies)
+<p align="center"><img src="docs/animations/money-waterfall.svg" width="100%" alt="Money story animation"/></p>
 
-- Every screen shows the numbers as pictures: the dashboard is a one-glance infographic (interactive metric switcher across the two windows, per-day 3-6 p.m. bars with hover tooltips, campaign funnel strip), plus a consent donut, live **margin-vs-floor and cap-vs-capacity meters** in the offer workspace, cap utilization and a **money waterfall (₹700 − ₹400 = ₹300)** on the campaign page. Hand-rolled SVG/CSS in `src/components/charts.tsx`; values come straight from server-computed DTOs (`/api/demo/insights`) - no hand-drawn chart data.
-- UI and mascot sounds are synthesized at runtime with the Web Audio API (`src/lib/sound.ts`) - no audio assets in the repo; the 🔊 toggle sits bottom-left and the preference is remembered per browser.
+```mermaid
+flowchart TD
+    B[Browser - client components] -->|fetch| R[API route handlers - thin: session + zod + service]
+    R --> S[Services - transactional campaign lifecycle]
+    S --> D[Domain - PURE logic: metrics, offers, consent]
+    S --> A[AI adapter - fixture or live Z.ai, bounded, validated]
+    S --> DB[(SQLite - better-sqlite3, session-scoped tenants)]
+```
 
----
+**Why it holds up under pressure:**
 
-## The workflow, screen by screen
+- **Money is integer paise everywhere.** ₹70 = `7000`. Formatting happens only at the UI edge. The AI never performs arithmetic — `computeOffer()` is the only place offer economics exist.
+- **Sessions isolate tenants.** Each browser gets an httpOnly session cookie mapping to its own merchants; multi-business requests carry a selector that is honored **only** when the row belongs to that session. Foreign ids resolve to `404` without leaking existence.
+- **The AI adapter is bounded.** 15s timeout, one retry, Zod-validated response, evidence-id allowlist, rupee-term guard, and it can only ever return prose — money, stock, consent and execution state are unreachable from the model.
+- **Config is guarded.** The database path must stay inside the project folder; the model endpoint must be a public http(s) host — loopback/private IPs, encoded addresses and redirects are refused (see `tests/security-guards.test.ts`).
+- **Zero chart/animation dependencies.** All visuals are hand-rolled SVG/CSS and honor `prefers-reduced-motion`; all sound is synthesized Web Audio with a compressor on the master bus — no audio files, nothing downloaded.
 
-### 1. Evidence, not vibes - the opportunity page
+<details>
+<summary><b>📂 Project layout (click to expand)</b></summary>
 
-The dashboard shows the KPI deltas; the opportunity page explains the decline in plain language and opens the **evidence drawer**: six numbered checks, each with its metric id (`afternoon-order-delta-v1`, `bundle-margin-v1`, ...), the exact value, its definition, the window it covers and the source table it came from. Under it, an explicit *"What this evidence does NOT say"* panel states that two five-day windows support a testable suggestion but do not prove cause, and that variable costs cover ingredients and packaging only.
+```
+src/
+  app/                     pages + API route handlers (thin)
+    api/...                demo/state|reset|insights, merchants, campaigns/*, assistant/*
+    merchant/              dashboard, opportunity, offer workspace
+    campaigns/[id]/        activity, simulated outbox, redemptions, results
+  components/              mascot cast (6 SVG characters), picker, provider/chat/tour,
+                           charts (GroupedBars, Meter, Donut, Waterfall, DayBars, Funnel), ui primitives
+  domain/                  metrics, offers, consent (pure business logic)
+  services/                campaigns lifecycle, demo state, multi-merchant resolution
+  adapters/ai.ts           bounded AI adapter: fixture | live Z.ai | labeled fallback
+  lib/                     db, clock (IST windows), money (paise), seed (deterministic variants),
+                           saathi-brain (fact book + live prompts + rupee guard), mascots-config, sound
+  fixtures/bakery-v1.json  single source of truth for every demo number
+scripts/                   seed CLI + fixture verifier
+tests/                     vitest suites (88) + playwright e2e hero flow
+docs/                      screenshots of every stage + animations + team context pack
+```
+</details>
 
-![Opportunity page with evidence drawer](docs/screenshots/02-opportunity-evidence.png)
+## 📡 API reference (all session-scoped, JSON)
 
-Why this matters: the app would rather say "we don't know why" than invent a reason. The AI's system prompt carries the same rule - it may not invent causes, lift, or a Paytm endorsement.
-
-### 2. Design the offer with live math
-
-The offer workspace recomputes on every change, **in server code, before anything is queued**:
-
-| Term | Value | How it is derived |
+| Route | Method | Purpose |
 | --- | --- | --- |
-| Bundle | 2 samosas + 1 tea | Fixed in the fixture; stock and costs read live from the inventory table |
-| Usual combined price | ₹90 | 2 × ₹35 + ₹20 |
-| Variable cost / bundle | ₹40 | 2 × ₹15 + ₹10 (from inventory; `NULL` cost = "cannot calculate", never zero) |
-| Contribution / margin | ₹30 / 42.9% | price − cost, then ÷ price; compared against the 25% policy floor |
-| Stock capacity | 25 bundles | min over components of floor(stock ÷ quantity per bundle) |
-| Max discount exposure | ₹400 | (₹90 − ₹70) × cap 20 |
+| `/api/demo/state` | GET | Bootstrap: seeded state, KPIs, merchants, AI mode |
+| `/api/demo/reset` | POST | Reseed **this session's active business** |
+| `/api/demo/insights` | GET | Per-day 3–6 p.m. totals + campaign funnel |
+| `/api/merchants` | GET / POST | List businesses / add one (cap 6, deterministic variant) |
+| `/api/merchants/{id}` | DELETE | Remove an owned business and all its rows |
+| `/api/opportunities` | GET | Evidence-backed opportunities (or the low-data reason) |
+| `/api/campaigns/draft` | POST | New draft version: computed terms + AI copy + previewHash |
+| `/api/campaigns/{id}/approve` | POST | Bind the exact preview hash; stale → `409` |
+| `/api/campaigns/{id}/execute` | POST | Transactional simulated queue; idempotent; re-checks everything |
+| `/api/demo/campaigns/{id}/redeem` | POST | Fixture event ids only; replays idempotent; cap enforced |
+| `/api/campaigns/{id}/results` | GET | Activity + simulated outcomes + audit trail |
+| `/api/assistant/chat` | POST | Fact-book answers or rupee-checked live model replies |
+| `/api/assistant/settings` | GET/POST/DELETE | Chat brain key: server memory only, masked, public-host validated |
 
-![Offer workspace with draft, live check and approval preview](docs/screenshots/04-offer-draft-approved-math.png)
+Errors always follow one envelope: `{ "error": { "code", "message", "fieldErrors?" } }` with meaningful status codes (`400/401/403/404/409/422/429/503`).
 
-### 3. Unprofitable offers are refused, visibly
+## 🪞 What's real vs simulated
 
-Set the price to ₹50 and the margin drops to 20.0% - below the 25% floor. The check turns red, **Approve is disabled**, and the refusal message explains the arithmetic ("₹10 left after ₹40 variable cost"). Nothing downstream (approval, queue, redemption) can accept this offer, because the same `computeOffer()` runs again server-side at approval time.
+| ✅ REAL (computed in tested code) | 🏷️ SIMULATED (labeled on every screen) |
+| --- | --- |
+| Sales metrics, window math (5 daily 3–6 p.m. IST bands — not continuous ranges!) | The bakery dataset (`bakery-v1` fixture, seeded PRNG) |
+| Offer economics, capacity, discount exposure | The customer list and consent register (50 fake IDs) |
+| Consent filtering + audience hashing | Message delivery (outbox — never sends) |
+| Approval hash binding, idempotency, cap enforcement | Redemption events (10 fixed fixture events) |
+| Results arithmetic | The clock (pinned to Fri 6 Nov 2026, 7:00 PM IST) |
 
-![Unsafe price rejected](docs/screenshots/05-unsafe-price-rejected.png)
+AI: drafts explanation + customer copy only, from verified facts — fixture mode (default, no credentials) or live Z.ai.
 
-### 4. AI drafts the words, never the numbers
+## 🧪 Testing & verification
 
-The AI adapter drafts the headline, explanation and customer message from the verified metrics and offer math. It is **bounded on five levels**:
-
-- **Schema**: the live response must parse into a Zod-validated shape (headline/explanation/assumptions/copy).
-- **Evidence allowlist**: every evidence id it cites must exist in the computed set - invented ids are rejected.
-- **Monetary guard**: generated copy may only contain the computed price token and must mention the cap; any other money figure falls back to a template.
-- **No write access**: the adapter returns prose only. It cannot touch the database, prices, caps, dates or consent.
-- **Endpoint guard**: before any live request, the configured base URL is validated - http(s) only, and loopback/private/link-local/reserved hosts are refused (including numeric encodings like `2130706433` or `0177.0.0.1` and IPv6 zone ids), so a misconfigured `ZAI_BASE_URL` cannot make the server call into the local network. The request itself refuses redirects, so a redirect can never move the call onto an unvalidated host. The database path gets the same treatment: project-relative paths only, no `..` escapes, no URL schemes.
-
-`AI_MODE=fixture` (default) produces the same deterministic draft with no credentials and a visible *Honest fallback - no model call was made* note. `AI_MODE=live` calls the Z.ai chat-completions endpoint with a 15 s timeout and one bounded retry; any failure falls back to the labeled fixture draft with the reason shown.
-
-Customer copy can be generated in English or Hindi. The Hindi version ships with an honest warning: *draft translation - have a Hindi speaker review the financial wording before any real use*.
-
-![Hindi customer copy toggle](docs/screenshots/03-offer-hindi-copy.png)
-
-### 5. Approve the exact version (hash-bound)
-
-**Approve** binds a SHA-256 preview hash of (id, version, price, cap, audience hash, inventory version, expiry). Any change to any of those facts afterwards invalidates the approval - approve returns `409 stale_preview`. Execution rechecks everything again server-side: latest version only, hash matches, not expired, inventory version unchanged, audience consent hash unchanged. This is the control loop that makes "the AI suggested it" never mean "the AI did it".
-
-### 6. Queue a simulated campaign (transactional, idempotent)
-
-The button says **Queue simulated campaign** - never "send". 40 consented customers (revoked/missing consents excluded automatically) enter a simulated outbox inside a `BEGIN IMMEDIATE` transaction, one row per recipient with a per-recipient idempotency key. A repeated execute returns the original receipt (`duplicate: true`) instead of double-queuing; a reused client key with different input gets `409`.
-
-![Campaign activity - approved terms and simulated outbox](docs/screenshots/06-campaign-activity.png)
-
-### 7. Simulated redemptions with atomic cap enforcement
-
-Ten fixture events (R-001…R-010) can be applied one by one or all at once. Replaying an event changes nothing (the UI even offers a **Re-apply R-003** button to demo this live), the 20/day cap is enforced by a count inside the transaction, amounts must equal approved price × quantity, and component stock is re-checked cumulatively. Results: **₹700 sales − ₹400 variable cost = ₹300 contribution**, labeled *Simulated campaign outcomes*, with a full audit trail underneath.
-
-![Simulated results with idempotent replay](docs/screenshots/07-simulated-results.png)
-
-### 8. Saying "insufficient evidence" is a feature
-
-The **Thin-data demo** loads a second fixture (`bakery-thin-v1`: 12 vs 8 afternoon orders). Eligibility requires both windows complete with ≥ 20 completed afternoon orders and ≥ 10% decline, so the app refuses to recommend and explains exactly why - the honest behaviour a real product needs when a merchant's history is thin.
-
-![Thin-data: insufficient evidence](docs/screenshots/08-thin-data-insufficient-evidence.png)
-
----
-
-## What is real vs simulated
-
-| | Computed in code (real logic) | Labeled as simulated |
-| --- | --- | --- |
-| **Real** | sales metrics, offer economics, capacity, consent filtering, approval binding, idempotency, cap enforcement, results arithmetic | |
-| **Simulated** | | bakery dataset (`bakery-v1`), customer list + consents, message delivery (outbox, never sends), redemptions (10 fixture events), the demo clock (pinned Fri 6 Nov 2026 7:00 p.m. IST) |
-| **AI** | drafts explanation + copy only, from verified facts | fixture (default) or live Z.ai; failures fall back visibly |
-
-## Tech stack
-
-| Layer      | Choice                                                        |
-| ---------- | ------------------------------------------------------------- |
-| Framework  | Next.js 14 (App Router) + TypeScript strict + Tailwind CSS           |
-| Data       | SQLite via better-sqlite3 (Node server runtime only)          |
-| Validation | Zod (all API payloads + AI responses)                         |
-| AI         | Z.ai chat-completions adapter (`AI_MODE=live`) + labeled fixture fallback |
-| Tests      | Vitest (55 unit tests) + Playwright (hero path e2e) + fixture reconciliation gate |
-
-### Architecture in one picture
-
-```
-Browser (client components, fetch)
-   |
-   v
-API route handlers (src/app/api/**)   <-- thin: session + Zod parse + service call
-   |
-   v
-Services (src/services/)              <-- transactional campaign lifecycle
-   |         |
-   |         +--> Domain (src/domain/)  <-- pure logic: metrics, offers, consent
-   |
-   +--> Adapters (src/adapters/ai.ts)   <-- bounded: fixture | live Z.ai | labeled fallback
-   |
-   v
-SQLite (src/lib/db.ts, schema auto-created)
-```
-
-Layer rules that keep the guarantees intact:
-
-- Route handlers stay thin - no business decisions in routes.
-- Domain functions are pure-ish (they take the db handle; no React, no HTTP).
-- The AI adapter can never write to the database; it returns prose, validated and allowlisted.
-- Money is **integer paise everywhere** (₹70 = 7000); formatting happens only at the UI edge (`src/lib/money.ts`).
-- Afternoon windows are the **union of five daily 15:00-18:00 IST bands**, not a continuous Mon-Fri range - a continuous range would wrongly count morning orders. Timezone math is a fixed UTC+5:30 offset (no DST, no external tz library), in `src/lib/clock.ts`.
-
-### Sessions and tenants
-
-Each browser gets an httpOnly `ms_demo_sid` cookie mapped to one synthetic tenant row. Every business row carries `merchant_id` and every query filters by it; tenant identity never comes from a request body. "Load sample data" / "Reset demo" deletes and reseeds only that session's tenant, so multiple judges can demo simultaneously without resetting each other. A client-supplied campaign id that belongs to another tenant returns a clean `404`.
-
-## Quick start
-
-```bash
-npm install
-npm run db:seed          # create + seed ./data/merchant-saathi.sqlite
-npm run fixtures:verify  # reconcile every fixture number (must be all PASS)
-npm run dev              # http://localhost:3000/merchant
-```
-
-Open **http://localhost:3000/merchant** and click **Load sample data**.
-
-### Environment
-
-Copy `.env.example` to `.env.local`. Defaults are safe: `AI_MODE=fixture` (no credentials needed, visibly labeled), `DEMO_MODE=true` (clock pinned to Fri 6 Nov 2026, 7:00 p.m. IST so the demo windows stay complete).
-
-For live AI: set `AI_MODE=live`, `ZAI_API_KEY`, `ZAI_MODEL` (standard Z.ai application API key; endpoint `https://api.z.ai/api/paas/v4/chat/completions`). Live failures fall back to the labeled fixture draft with the reason shown.
-
-## Scripts
-
-| Command                | What it does                                              |
-| ---------------------- | --------------------------------------------------------- |
-| `npm run dev`          | Dev server at :3000                                        |
-| `npm run build`        | Production build                                           |
-| `npm start`            | Production server                                          |
-| `npm run lint`         | ESLint (next/core-web-vitals)                              |
-| `npm run typecheck`    | `tsc --noEmit`                                             |
-| `npm test`             | Vitest unit tests (money, approval, consent, idempotency)  |
-| `npm run test:e2e`     | Playwright hero-path flow (build first; runs its own server on :3100) |
-| `npm run db:seed`      | Seed the default database                                  |
-| `npm run fixtures:verify` | Verify all fixture invariants; non-zero exit on mismatch |
-
-Full check before any demo or PR:
+- **88 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails, thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard.
+- **1 Playwright e2e**: the full hero path — load → −30% → draft → ₹50 rejected → restore → approve → queue → 10 events → ₹300 → idempotent replay.
+- **`npm run fixtures:verify`**: reconciles every fixture number against the database — the pre-demo gate. It once caught a real data-loss bug in our own migration; that fix (FK-suspended table rebuild + husk self-heal) is now permanent.
 
 ```bash
 npm run fixtures:verify && npm test && npm run lint && npm run typecheck && npm run build
 ```
 
-## API contract (all session-scoped)
+## 🚀 Run it in 10 minutes
 
-| Route                              | Method | Notes                                                                 |
-| ---------------------------------- | ------ | --------------------------------------------------------------------- |
-| `/api/demo/state`                  | GET    | Seeded/unseeded + KPIs + AI mode                                       |
-| `/api/demo/reset`                  | POST   | Resets **this browser session's** tenant and reseeds                   |
-| `/api/opportunities`               | GET    | Evidence-backed opportunities (or a low-data reason)                   |
-| `/api/campaigns/draft`             | POST   | Creates a draft version; returns computed terms + AI copy + previewHash |
-| `/api/campaigns/{id}/approve`      | POST   | Binds the exact preview hash; stale previews get 409                   |
-| `/api/campaigns/{id}/execute`      | POST   | Transactional simulated queue; idempotent; rechecks stock/consent/expiry |
-| `/api/demo/campaigns/{id}/redeem`  | POST   | Fixed fixture event ids only; replays idempotent; cap enforced         |
-| `/api/campaigns/{id}/results`      | GET    | Activity + simulated outcomes + audit trail                            |
-| `/api/assistant/chat`              | POST   | Mithu's answers: fact book (default) or rupee-checked live model reply |
-| `/api/assistant/settings`          | GET/POST/DELETE | Chat brain key: stored in server memory, masked status, public-host validation |
-
-Errors: `{ "error": { "code", "message", "fieldErrors?", "retryable?" } }` with meaningful status codes (400/401/403/404/409/422/429/503). Tenant identity comes from the server session cookie - never from a caller-supplied merchant ID.
-
-## Money & lifecycle invariants (tested)
-
-- All money is **integer paise**. No floats touch stored amounts.
-- Contribution = price − variable cost; margin = contribution / price; floor 25%.
-- Missing SKU cost => "cannot calculate", never zero-cost.
-- Capacity = min(floor(stock / per-bundle quantity)); a cap above capacity is refused, not silently lowered.
-- Line items sum exactly to order totals (verified by `fixtures:verify` and tests).
-- Approval binds a hash of price+cap+audience+inventory version+expiry; execution rechecks all of them.
-- Duplicate execute / duplicate redemption events have no double effect; cap 20 enforced atomically.
-- Executing after the offer's validity window passes is refused (`expired`); redemptions stop when component stock runs out; events whose amount contradicts the approved price are rejected.
-- A client-supplied campaign id must already belong to the session's tenant - foreign or unknown ids get a clean 404, never an internal error.
-- Resetting a session clears its stored idempotency receipts, so client keys cannot replay or conflict after a reset.
-
-## Honest labels
-
-- Fixture data is labeled **Synthetic demo data (bakery-v1)**; the demo clock is labeled **injected**.
-- AI mode shows **fixture**, **live**, or **fallback (labeled)** with the failure reason.
-- Results are labeled **Simulated campaign outcomes**; contribution is not claimed as proven incremental profit.
-- Variable costs cover ingredients and packaging only - not rent, labour, tax or spoilage.
-
-## Project layout
-
-```
-src/
-  app/                     # pages + API route handlers (thin)
-    api/...                # demo/state|reset|insights, merchants list/add/remove, opportunities, campaigns/draft|approve|execute|results, demo redeem, assistant/chat|settings
-    merchant/              # dashboard, opportunity, offer workspace
-    campaigns/[id]/        # activity, simulated outbox, redemptions, results
-  components/              # opportunity-card, evidence-drawer, ui primitives,
-                           # mascot cast (6 characters) + picker + provider/chat/tour/brain-modal, charts
-  domain/                  # metrics, offers, consent (pure business logic)
-  services/                # campaigns lifecycle, demo state (transactional core)
-  adapters/ai.ts           # bounded AI adapter: fixture | live Z.ai | fallback
-  lib/                     # db, clock (IST windows), money (paise), session, validation, errors, http,
-                           # seed (deterministic variants), saathi-brain, assistant-settings, mascots-config, sound
-  fixtures/bakery-v1.json  # single source of truth for every demo number
-scripts/                   # seed CLI + fixture verifier
-tests/                     # vitest suites (incl. assistant.test.ts) + playwright e2e
-docs/screenshots/          # UI captures used in this README
+```bash
+git clone https://github.com/Arya-jannawar/merchant-saathi.git
+cd merchant-saathi
+npm install
+cp .env.example .env.local      # defaults are safe; no API key needed
+npm run db:seed
+npm run fixtures:verify         # must print: All fixture checks passed.
+npm run dev
 ```
 
-## Verified locally
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow Mithu (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL`, or paste a key in the chat's 🧠 dialog. Node 20+, nothing else to install.
 
-Recorded from an actual run on this machine (Windows 11, Node 24, npm 11):
+<details>
+<summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>
 
-- `npm run fixtures:verify` - all checks PASS
-- `npm test` - 88 unit tests passing (config guards, assistant brain, and the multi-business suites: creation caps, ownership isolation, per-day insights reconciliation)
-- `npm run lint` / `npm run typecheck` - clean
-- `npm run build` - production build succeeds
-- `npm run test:e2e` - hero path passes (requires build first; first run downloads Chromium)
+1. **Dashboard (30s)** — the decline: 100 → 70 orders, ₹8,000 → ₹5,600, flat ₹80 AOV. "The problem is order count, not basket size."
+2. **Opportunity (30s)** — open the evidence drawer. "Every number has a receipt. We never say *why* — two windows can't prove cause."
+3. **Offer workspace (60s)** — type **50**. The meter drops below the floor, approve locks. Back to 70: 42.9% margin, cap 20, exposure ₹400. "Code does the math. The AI only writes words."
+4. **Approve & queue (30s)** — hash-bound approval, 40 consented customers, *simulated* outbox. Replay R-003: *"changed nothing."*
+5. **Results (30s)** — ₹700 − ₹400 = ₹300 contribution. "Honest labels everywhere. That's the product."
 
-See `docs/VERIFICATION.md` for the exact observed output.
+</details>
 
-## Deployment notes (prototype scope)
+## 🗺 Roadmap
 
-This is a **single-process prototype**: SQLite needs a writable durable directory (a small VM or local machine; not
-ephemeral serverless storage). For multi-instance production you would move the repository adapter to managed
-PostgreSQL, add durable jobs, real authentication and rate limits, and per-tenant fixture isolation. That design is
-future work, not something this build claims.
+- [x] Hero loop end-to-end + thin-data refusal + Hindi copy
+- [x] Mascot cast, guided tour, sound kit, infographic dashboard
+- [x] Multi-business sessions with ownership guards
+- [ ] Live-AI smoke test with real credentials (fallback path is already honest)
+- [ ] CSV import with per-row validation and rejected-row report
+- [ ] Hosted deployment (single Node process + durable disk; real auth first)
 
-## Demo script (3 minutes)
+**Pilot plan:** 3–5 Pune bakery owners · measure time-to-prepare an offer, pricing errors, comprehension of evidence · pricing validated only after real trials.
 
-1. 0:00-0:25 - the bakery's quiet afternoons; synthetic data label.
-2. 0:25-0:55 - reveal the 30% decline; click evidence; matching windows and counts.
-3. 0:55-1:25 - build the offer; inspect AI explanation and fixed offer math.
-4. 1:25-1:55 - try Rs 50 -> rejection; restore Rs 70 -> approve the exact preview.
-5. 1:55-2:20 - queue the simulated campaign; excluded contacts; activity trail.
-6. 2:20-2:40 - apply redemptions; Rs 300 contribution; no causal-lift claim.
-7. 2:40-3:00 - real integration path and next pilot (3-5 Pune bakery owners).
+## 👑 Team FinovateX
 
-## Troubleshooting: "Cannot find module './NNN.js'" (dev server)
+<p align="center">
+  <img src="docs/animations/credits-finale.svg" width="100%" alt="Team FinovateX - Avani Jannawar, Siddhant Pardeshi, Arya Jannawar"/>
+</p>
 
-If the dev server shows `Server Error: Cannot find module './276.js'` (or a similar chunk number) after you ran
-`npm run build`, the production build clobbered the dev server's `.next` cache — both share that folder and cannot run
-at the same time. Fix: stop the dev server (`Ctrl+C`), delete `.next`, and start `npm run dev` again. Rule of thumb:
-**never run `npm run build` while `npm run dev` is running** (use `npm run fixtures:verify` + `npm test` for quick
-checks instead — they do not touch `.next`).
+| | | |
+|:---:|:---:|:---:|
+| **Avani Jannawar** | **Siddhant Pardeshi** | **Arya Jannawar** |
+| Product & QA · mascot cast, animation & sound system, visual identity | Systems & hardening · multi-business engine, idempotency, migration safety | AI & core engine · evidence pipeline, offer guardrails, bounded adapter |
+
+<p align="center">
+  <img src="docs/animations/guardrail-flash.svg" width="60%" alt="The guardrail that rejects unprofitable offers"/>
+</p>
+
+<p align="center">
+  <sub><b>Watch the rejection loop once more.</b> That stamp is the whole product: the app would rather say <i>no</i> — on camera, with receipts — than guess.<br/>
+  Star ⭐ the repo if a product that refuses to lie hooked you too.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/animations/mascot-moods.svg" width="100%" alt="The mascot cast waving goodbye"/>
+</p>
+
+---
+
+<p align="center">
+  <sub>All data, people and customers are synthetic. Campaigns are simulated. No real messages are ever sent.<br/>
+  Not an official Paytm product and claims no endorsement. Built with 🧁, ☕ and honesty by Team FinovateX.</sub>
+</p>

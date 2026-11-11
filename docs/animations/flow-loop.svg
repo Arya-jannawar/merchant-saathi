@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="The hero loop: decline, evidence, offer math, approval, simulated outbox, results">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#07234a"/>
+      <stop offset="1" stop-color="#0a2e5c"/>
+    </linearGradient>
+    <radialGradient id="dotGlow">
+      <stop offset="0" stop-color="#00b9f1" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#00b9f1" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="230" rx="18" fill="url(#bg3)"/>
+  <text x="450" y="36" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">The owner control loop - one complete, honest cycle</text>
+
+  <path id="route" d="M90 120 H810" stroke="#1d4e86" stroke-width="3" stroke-dasharray="7 7" fill="none"/>
+  <path d="M90 120 H810" stroke="#00b9f1" stroke-width="3" fill="none" opacity="0.35" stroke-dasharray="7 7">
+    <animate attributeName="stroke-dashoffset" from="28" to="0" dur="1.2s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- traveling spark -->
+  <g>
+    <circle r="26" fill="url(#dotGlow)">
+      <animateMotion dur="7.2s" repeatCount="indefinite" path="M90 120 H810"/>
+    </circle>
+    <circle r="7" fill="#ffffff">
+      <animateMotion dur="7.2s" repeatCount="indefinite" path="M90 120 H810"/>
+    </circle>
+  </g>
+
+  <!-- nodes -->
+  <g class="node n1">
+    <rect x="46" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
+    <text x="90" y="112" text-anchor="middle" font-size="20">📊</text>
+    <text x="90" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Decline</text>
+    <text x="90" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">100 &#8594; 70 orders</text>
+  </g>
+  <g class="node n2">
+    <rect x="188" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
+    <text x="232" y="112" text-anchor="middle" font-size="20">🔍</text>
+    <text x="232" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Evidence</text>
+    <text x="232" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">6 receipts</text>
+  </g>
+  <g class="node n3">
+    <rect x="330" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
+    <text x="374" y="112" text-anchor="middle" font-size="20">🧮</text>
+    <text x="374" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Offer math</text>
+    <text x="374" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">42.9% margin</text>
+  </g>
+  <g class="node n4">
+    <rect x="472" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#fbbf24" stroke-width="2"/>
+    <text x="516" y="112" text-anchor="middle" font-size="20">🔐</text>
+    <text x="516" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Approve</text>
+    <text x="516" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#fde68a">hash-bound</text>
+  </g>
+  <g class="node n5">
+    <rect x="614" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
+    <text x="658" y="112" text-anchor="middle" font-size="20">📮</text>
+    <text x="658" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Simulated</text>
+    <text x="658" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">40 recipients</text>
+  </g>
+  <g class="node n6">
+    <rect x="756" y="86" width="100" height="68" rx="16" fill="#0d3a2a" stroke="#10b981" stroke-width="2.5"/>
+    <text x="806" y="112" text-anchor="middle" font-size="20">🎯</text>
+    <text x="806" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">&#8377;300 result</text>
+    <text x="806" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#6ee7b7">700-400=300</text>
+  </g>
+
+  <text x="450" y="192" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#bcd6ee">Code computes every number. AI only drafts the words. The owner approves the exact preview - anything stale is refused with 409.</text>
+  <text x="450" y="212" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700" fill="#fbbf24" class="pulse">Rs 700 sales - Rs 400 ingredients = Rs 300 contribution toward fixed costs (simulated, labeled)</text>
+
+  <style>
+    .node { transform-box: fill-box; transform-origin: center; }
+    .n1 { animation: nodePulse 7.2s linear infinite; }
+    .n2 { animation: nodePulse 7.2s 1.2s linear infinite; }
+    .n3 { animation: nodePulse 7.2s 2.4s linear infinite; }
+    .n4 { animation: nodePulse 7.2s 3.6s linear infinite; }
+    .n5 { animation: nodePulse 7.2s 4.8s linear infinite; }
+    .n6 { animation: nodePulse 7.2s 6s linear infinite; }
+    @keyframes nodePulse { 0%, 18%, 100% { transform: scale(1); } 7% { transform: scale(1.09); } }
+    .pulse { animation: soft 2.6s ease-in-out infinite; }
+    @keyframes soft { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+  </style>
+</svg>
