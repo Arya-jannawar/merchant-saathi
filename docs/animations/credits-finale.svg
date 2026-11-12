@@ -1,5 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="Team FinovateX: Avani Jannawar, Siddhant Pardeshi, Arya Jannawar">
   <defs>
+    <radialGradient id="eyeGloss" cx="0.35" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#2b3a55"/>
+      <stop offset="0.55" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#050b16"/>
+    </radialGradient>
+    <radialGradient id="cheekGloss" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fda4af" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fda4af" stop-opacity="0"/>
+    </radialGradient>
     <radialGradient id="vignette" cx="0.5" cy="0.42" r="0.75">
       <stop offset="0" stop-color="#123d7c"/>
       <stop offset="1" stop-color="#050f22"/>
@@ -37,12 +46,12 @@
     <path d="M39 104 L44 134 Q66 142 88 134 L93 104 Z" fill="#00b9f1"/>
     <path d="M54 106 L58 138" stroke="#0393c7" stroke-width="3" stroke-linecap="round"/>
     <path d="M78 106 L74 138" stroke="#0393c7" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="52" cy="84" r="4.6" fill="#0f172a"/><circle cx="80" cy="84" r="4.6" fill="#0f172a"/>
+    <circle cx="52" cy="84" r="4.6" fill="url(#eyeGloss)"/><circle class="shine" cx="50.44" cy="82.25" r="1.93" fill="#fff"/><circle cx="80" cy="84" r="4.6" fill="url(#eyeGloss)"/><circle class="shine" cx="78.44" cy="82.25" r="1.93" fill="#fff"/>
     <circle cx="50.4" cy="82" r="1.5" fill="#fff"/><circle cx="78.4" cy="82" r="1.5" fill="#fff"/>
-    <ellipse cx="42" cy="92" rx="5" ry="3" fill="#fda4af"/><ellipse cx="90" cy="92" rx="5" ry="3" fill="#fda4af"/>
+    <ellipse cx="42" cy="92" rx="5" ry="3" fill="url(#cheekGloss)"/><ellipse cx="90" cy="92" rx="5" ry="3" fill="url(#cheekGloss)"/>
     <path d="M58 92 Q66 102 74 92" stroke="#7c2d12" stroke-width="2.8" fill="none" stroke-linecap="round"/>
     <g class="arm">
-      <ellipse cx="112" cy="96" rx="10" ry="5.5" fill="#fda4af" transform="rotate(20 112 96)"/>
+      <ellipse cx="112" cy="96" rx="10" ry="5.5" fill="url(#cheekGloss)"/>
     </g>
     <path class="spk" d="M120 66 l2.4 5.4 5.4 2.4 -5.4 2.4 -2.4 5.4 -2.4 -5.4 -5.4 -2.4 5.4 -2.4 Z" fill="#fbbf24"/>
     <path class="spk2" d="M18 118 l1.8 4 4 1.8 -4 1.8 -1.8 4 -1.8 -4 -4 -1.8 4 -1.8 Z" fill="#f472b6"/>
@@ -85,5 +94,7 @@
     @keyframes big { 0%, 100% { opacity: 0.82; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
     .sweepline { animation: lineSweep 3.4s ease-in-out infinite; }
     @keyframes lineSweep { 0% { transform: translateX(-140px); opacity: 0; } 25% { opacity: 1; } 75% { transform: translateX(620px); opacity: 0; } 100% { transform: translateX(620px); opacity: 0; } }
+      .shine { animation: sparkle 3.4s ease-in-out infinite; }
+    @keyframes sparkle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
   </style>
 </svg>

@@ -9,6 +9,7 @@
  * mascot a distinct voice for every mood (see src/lib/sound.ts).
  */
 
+import { useId } from "react";
 import { getMascot, type MascotId, type MascotMood } from "@/lib/mascots-config";
 
 const MOOD_CLASS: Record<MascotMood, string> = {
@@ -71,6 +72,7 @@ function Face({
   mouthY,
   mood,
   eyeColor = "#0f172a",
+  glossId,
 }: {
   cx: number;
   eyeY: number;
@@ -79,6 +81,7 @@ function Face({
   mouthY: number;
   mood: MascotMood;
   eyeColor?: string;
+  glossId: string;
 }) {
   const mouth = mouthPath(mood, cx, mouthY);
   const heartEyes = mood === "hearts";
@@ -86,7 +89,10 @@ function Face({
   const winkLeft = mood === "wink";
   const asleep = mood === "sleeping" || mood === "wake";
   const bigEyes = mood === "surprised";
-  const eyeR = bigEyes ? 7 : 5.5;
+  const eyeR = bigEyes ? 7.6 : 6.4;
+  // Cuter by construction: glossy gradient eyes with a double sparkle, soft
+  // gradient cheeks - gloss ids are per-instance so several mascots can share
+  // a page without colliding.
   return (
     <g className="ms-mascot__face">
       <g className="ms-mascot__eyes">
@@ -97,13 +103,14 @@ function Face({
               fill="#f43f5e"
             />
           ) : asleep ? (
-            <path d={`M${cx - eyeGap - 5} ${eyeY} q5 4 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M${cx - eyeGap - 5.5} ${eyeY} q5.5 4.5 11 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
           ) : winkLeft ? (
-            <path d={`M${cx - eyeGap - 5} ${eyeY - 1} q5 3 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M${cx - eyeGap - 5.5} ${eyeY - 1} q5.5 3 11 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <>
-              <circle cx={cx - eyeGap} cy={eyeY} r={eyeR} fill={eyeColor} />
-              <circle cx={cx - eyeGap - 1.8} cy={eyeY - 2} r="1.8" fill="#fff" />
+              <circle cx={cx - eyeGap} cy={eyeY} r={eyeR} fill={`url(#${glossId}-eye)`} />
+              <circle className="ms-mascot__shine" cx={cx - eyeGap - 2.2} cy={eyeY - 2.4} r="2.3" fill="#fff" />
+              <circle className="ms-mascot__shine2" cx={cx - eyeGap + 2} cy={eyeY + 1.8} r="1" fill="#fff" opacity="0.85" />
             </>
           )}
         </g>
@@ -114,19 +121,20 @@ function Face({
               fill="#f43f5e"
             />
           ) : asleep ? (
-            <path d={`M${cx + eyeGap - 5} ${eyeY} q5 4 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
+            <path d={`M${cx + eyeGap - 5.5} ${eyeY} q5.5 4.5 11 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <>
-              <circle cx={cx + eyeGap} cy={eyeY} r={eyeR} fill={eyeColor} />
-              <circle cx={cx + eyeGap - 1.8} cy={eyeY - 2} r="1.8" fill="#fff" />
+              <circle cx={cx + eyeGap} cy={eyeY} r={eyeR} fill={`url(#${glossId}-eye)`} />
+              <circle className="ms-mascot__shine" cx={cx + eyeGap - 2.2} cy={eyeY - 2.4} r="2.3" fill="#fff" />
+              <circle className="ms-mascot__shine2" cx={cx + eyeGap + 2} cy={eyeY + 1.8} r="1" fill="#fff" opacity="0.85" />
             </>
           )}
         </g>
       </g>
       {squint ? (
         <g stroke="#7c2d12" strokeWidth="2.5" strokeLinecap="round" className="ms-mascot__brows">
-          <path d={`M${cx - eyeGap - 7} ${eyeY - 9} L${cx - eyeGap + 6} ${eyeY - 6}`} />
-          <path d={`M${cx + eyeGap + 7} ${eyeY - 9} L${cx + eyeGap - 6} ${eyeY - 6}`} />
+          <path d={`M${cx - eyeGap - 7} ${eyeY - 10} L${cx - eyeGap + 6} ${eyeY - 6.5}`} />
+          <path d={`M${cx + eyeGap + 7} ${eyeY - 10} L${cx + eyeGap - 6} ${eyeY - 6.5}`} />
         </g>
       ) : null}
       {mood === "curious" ? (
@@ -134,14 +142,17 @@ function Face({
           ?
         </text>
       ) : null}
-      <ellipse cx={cx - eyeGap - 8} cy={cheekY} rx="5" ry="3" fill="#fda4af" opacity={heartEyes ? 0.95 : 0.85} />
-      <ellipse cx={cx + eyeGap + 8} cy={cheekY} rx="5" ry="3" fill="#fda4af" opacity={heartEyes ? 0.95 : 0.85} />
+      <ellipse className="ms-mascot__cheek" cx={cx - eyeGap - 8.5} cy={cheekY} rx="6.2" ry="3.6" fill={`url(#${glossId}-cheek)`} />
+      <ellipse className="ms-mascot__cheek" cx={cx + eyeGap + 8.5} cy={cheekY} rx="6.2" ry="3.6" fill={`url(#${glossId}-cheek)`} />
       <g className="ms-mascot__mouth">
         {mouth.filled ? (
           <path d={mouth.d} fill="#7c2d12" stroke="#7c2d12" strokeWidth="1.5" strokeLinejoin="round" />
         ) : (
           <path d={mouth.d} fill="none" stroke="#7c2d12" strokeWidth="2.5" strokeLinecap="round" />
         )}
+        {mouth.filled && (mood === "happy" || mood === "dance" || mood === "hearts") ? (
+          <ellipse cx={cx} cy={mouthY + 7} rx="3.4" ry="2" fill="#f472b6" opacity="0.9" />
+        ) : null}
       </g>
     </g>
   );
@@ -189,7 +200,7 @@ function Particles({ accent }: { accent: string }) {
   );
 }
 
-function MithuBody({ mood }: { mood: MascotMood }) {
+function MithuBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       <g className="ms-mascot__cherry">
@@ -201,7 +212,7 @@ function MithuBody({ mood }: { mood: MascotMood }) {
       <path d="M36 48 Q52 36 74 42" fill="none" stroke="#fce1d4" strokeWidth="5" strokeLinecap="round" />
       <path d="M28 62 q4 8 9 2" fill="none" stroke="#fff1e6" strokeWidth="6" strokeLinecap="round" />
       <path d="M78 64 q5 7 10 0" fill="none" stroke="#fff1e6" strokeWidth="6" strokeLinecap="round" />
-      <Face cx={60} eyeY={57} cheekY={65} mouthY={73} mood={mood} />
+      <Face cx={60} eyeY={57} cheekY={65} mouthY={73} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="20" cy="72" rx="8" ry="4.5" fill="#fda4af" transform="rotate(-18 20 72)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="100" cy="72" rx="8" ry="4.5" fill="#fda4af" transform="rotate(18 100 72)" />
@@ -215,7 +226,7 @@ function MithuBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-function ChotuBody({ mood }: { mood: MascotMood }) {
+function ChotuBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       {/* samosa: plump triangle with a crimped ridge */}
@@ -224,7 +235,7 @@ function ChotuBody({ mood }: { mood: MascotMood }) {
       <path d="M60 18 Q52 30 46 46" fill="none" stroke="#d9822b" strokeWidth="5" strokeLinecap="round" />
       <path d="M44 30 Q38 44 36 56" fill="none" stroke="#e59240" strokeWidth="4" strokeLinecap="round" />
       <path d="M76 30 Q82 44 84 56" fill="none" stroke="#e59240" strokeWidth="4" strokeLinecap="round" />
-      <Face cx={60} eyeY={62} cheekY={72} mouthY={80} mood={mood} />
+      <Face cx={60} eyeY={62} cheekY={72} mouthY={80} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="20" cy="84" rx="8" ry="4.5" fill="#ef8f3c" transform="rotate(-18 20 84)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="100" cy="84" rx="8" ry="4.5" fill="#ef8f3c" transform="rotate(18 100 84)" />
@@ -234,7 +245,7 @@ function ChotuBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-function DhoomBody({ mood }: { mood: MascotMood }) {
+function DhoomBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       {/* cutting-glass of chai */}
@@ -243,7 +254,7 @@ function DhoomBody({ mood }: { mood: MascotMood }) {
       <path d="M41 62 L45.5 106 Q60 112 74.5 106 L79 62 Z" fill="#d9a05b" />
       <path d="M41 62 L79 62 L78 72 L42 72 Z" fill="#c1874a" />
       <path d="M46 78 q8 6 14 0 q7-6 14 0" fill="none" stroke="#b9823f" strokeWidth="3" strokeLinecap="round" />
-      <Face cx={60} eyeY={78} eyeGap={11} cheekY={88} mouthY={94} mood={mood} />
+      <Face cx={60} eyeY={78} eyeGap={11} cheekY={88} mouthY={94} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="30" cy="92" rx="8" ry="4.5" fill="#e2e8f0" transform="rotate(-18 30 92)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="90" cy="92" rx="8" ry="4.5" fill="#e2e8f0" transform="rotate(18 90 92)" />
@@ -255,7 +266,7 @@ function DhoomBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-function ShonaBody({ mood }: { mood: MascotMood }) {
+function ShonaBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       {/* golden rupee coin */}
@@ -265,7 +276,7 @@ function ShonaBody({ mood }: { mood: MascotMood }) {
       <text x="60" y="98" textAnchor="middle" fontSize="34" fontWeight="900" fill="#92400e">
         ₹
       </text>
-      <Face cx={60} eyeY={62} cheekY={72} mouthY={80} mood={mood} />
+      <Face cx={60} eyeY={62} cheekY={72} mouthY={80} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="18" cy="86" rx="8" ry="4.5" fill="#d97706" transform="rotate(-18 18 86)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="102" cy="86" rx="8" ry="4.5" fill="#d97706" transform="rotate(18 102 86)" />
@@ -275,7 +286,7 @@ function ShonaBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-function LadduBody({ mood }: { mood: MascotMood }) {
+function LadduBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       {/* motichoor laddu: orange sphere of tiny boondi */}
@@ -294,7 +305,7 @@ function LadduBody({ mood }: { mood: MascotMood }) {
         <circle cx="90" cy="62" r="4" />
       </g>
       <path d="M60 30 q14-10 26-4 q-8 12 -26 8" fill="#16a34a" />
-      <Face cx={60} eyeY={64} cheekY={74} mouthY={82} mood={mood} />
+      <Face cx={60} eyeY={64} cheekY={74} mouthY={82} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="18" cy="84" rx="8" ry="4.5" fill="#d97706" transform="rotate(-18 18 84)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="102" cy="84" rx="8" ry="4.5" fill="#d97706" transform="rotate(18 102 86)" />
@@ -303,7 +314,7 @@ function LadduBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-function JalebiBody({ mood }: { mood: MascotMood }) {
+function JalebiBody({ mood, glossId }: { mood: MascotMood; glossId: string }) {
   return (
     <g className="ms-mascot__body">
       {/* jalebi: thick glossy spiral */}
@@ -316,7 +327,7 @@ function JalebiBody({ mood }: { mood: MascotMood }) {
         <path d="M34 56 q10-14 26-16" />
         <path d="M84 92 q-8 12 -22 14" />
       </g>
-      <Face cx={60} eyeY={64} eyeGap={12} cheekY={74} mouthY={82} mood={mood} />
+      <Face cx={60} eyeY={64} eyeGap={12} cheekY={74} mouthY={82} mood={mood} glossId={glossId} />
       <ellipse className="ms-mascot__arm-left" cx="18" cy="88" rx="8" ry="4.5" fill="#ea580c" transform="rotate(-18 18 88)" />
       <g className="ms-mascot__arm-right">
         <ellipse cx="102" cy="88" rx="8" ry="4.5" fill="#ea580c" transform="rotate(18 102 88)" />
@@ -325,7 +336,7 @@ function JalebiBody({ mood }: { mood: MascotMood }) {
   );
 }
 
-const BODIES: Record<MascotId, (props: { mood: MascotMood }) => React.ReactNode> = {
+const BODIES: Record<MascotId, (props: { mood: MascotMood; glossId: string }) => React.ReactNode> = {
   mithu: MithuBody,
   chotu: ChotuBody,
   dhoom: DhoomBody,
@@ -357,6 +368,7 @@ export function MascotById({
   className?: string;
 }) {
   const Body = BODIES[id] ?? MithuBody;
+  const glossId = "msg" + useId().replace(/[^a-zA-Z0-9]/g, "");
   return (
     <svg
       viewBox="0 0 120 128"
@@ -366,8 +378,21 @@ export function MascotById({
       role="img"
       aria-label={`${getMascot(id).name}, the Merchant Saathi mascot`}
     >
+      <defs>
+        <radialGradient id={`${glossId}-eye`} cx="0.35" cy="0.3" r="0.9">
+          <stop offset="0" stopColor="#2b3a55" />
+          <stop offset="0.55" stopColor="#0f172a" />
+          <stop offset="1" stopColor="#050b16" />
+        </radialGradient>
+        <radialGradient id={`${glossId}-cheek`} cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#fda4af" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#fda4af" stopOpacity="0" />
+        </radialGradient>
+      </defs>
       <Particles accent={ACCENTS[id] ?? "#f472b6"} />
-      <Body mood={mood} />
+      <g className="ms-mascot__plush">
+        <Body mood={mood} glossId={glossId} />
+      </g>
     </svg>
   );
 }

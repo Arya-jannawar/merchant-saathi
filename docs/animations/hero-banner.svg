@@ -1,5 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" width="900" height="250" role="img" aria-label="Merchant Saathi - evidence backed AI growth partner for small merchants">
   <defs>
+    <radialGradient id="eyeGloss" cx="0.35" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#2b3a55"/>
+      <stop offset="0.55" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#050b16"/>
+    </radialGradient>
+    <radialGradient id="cheekGloss" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fda4af" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fda4af" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#07234a">
         <animate attributeName="stop-color" values="#07234a;#0a2e5c;#07234a" dur="6s" repeatCount="indefinite"/>
@@ -52,13 +61,13 @@
     <circle cx="55" cy="102" r="7" fill="#ef4444"/>
     <path d="M38 122 Q35 106 52 104 Q55 94 66 97 Q78 93 82 104 Q90 110 86 120 Q82 126 62 126 Q44 126 38 122 Z" fill="#fff1e6"/>
     <path d="M40 128 L44 148 Q60 154 76 148 L80 128 Z" fill="#00b9f1"/>
-    <circle cx="52" cy="114" r="3.4" fill="#0f172a"/><circle cx="68" cy="114" r="3.4" fill="#0f172a"/>
+    <circle cx="52" cy="114" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="50.84" cy="112.71" r="1.43" fill="#fff"/><circle cx="68" cy="114" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="66.84" cy="112.71" r="1.43" fill="#fff"/>
     <path d="M55 121 q7 6 14 0" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round" transform="translate(-5 0)"/>
   </g>
   <g class="m m2"><!-- Chotu samosa -->
     <path d="M170 96 Q188 110 194 136 Q196 148 186 152 L154 152 Q144 148 146 136 Q152 110 170 96 Z" fill="#f4a950"/>
     <path d="M170 96 Q176 106 178 118" stroke="#d9822b" stroke-width="4" fill="none" stroke-linecap="round"/>
-    <circle cx="163" cy="128" r="3.4" fill="#0f172a"/><circle cx="177" cy="128" r="3.4" fill="#0f172a"/>
+    <circle cx="163" cy="128" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="161.84" cy="126.71" r="1.43" fill="#fff"/><circle cx="177" cy="128" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="175.84" cy="126.71" r="1.43" fill="#fff"/>
     <path d="M164 137 q7 6 14 0" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round" transform="translate(-2 0)"/>
   </g>
   <g class="m m3"><!-- Dhoom chai -->
@@ -67,20 +76,20 @@
     <path d="M275 122 L278.5 144 Q288 148 297.5 144 L301 122 Z" fill="#d9a05b"/>
     <path d="M283 96 q5-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
     <path d="M295 98 q-5-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <circle cx="282" cy="130" r="3.2" fill="#0f172a"/><circle cx="294" cy="130" r="3.2" fill="#0f172a"/>
+    <circle cx="282" cy="130" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="280.91" cy="128.78" r="1.34" fill="#fff"/><circle cx="294" cy="130" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="292.91" cy="128.78" r="1.34" fill="#fff"/>
     <path d="M282 137 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
   </g>
   <g class="m m4"><!-- Shona coin -->
     <circle cx="410" cy="126" r="24" fill="#fbbf24" stroke="#d97706" stroke-width="4"/>
     <circle cx="410" cy="126" r="17" fill="none" stroke="#fde68a" stroke-width="2"/>
     <text x="410" y="133" text-anchor="middle" font-family="Segoe UI, Arial" font-size="16" font-weight="800" fill="#92400e">&#8377;</text>
-    <circle cx="403" cy="118" r="3" fill="#0f172a"/><circle cx="417" cy="118" r="3" fill="#0f172a"/>
+    <circle cx="403" cy="118" r="3.0" fill="url(#eyeGloss)"/><circle class="shine" cx="401.98" cy="116.86" r="1.26" fill="#fff"/><circle cx="417" cy="118" r="3.0" fill="url(#eyeGloss)"/><circle class="shine" cx="415.98" cy="116.86" r="1.26" fill="#fff"/>
     <path d="M404 125 q6 5 12 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
   </g>
   <g class="m m5"><!-- Laddu -->
     <circle cx="530" cy="126" r="24" fill="#f59e0b"/>
     <circle cx="522" cy="114" r="4" fill="#fbbf24"/><circle cx="538" cy="116" r="4" fill="#fbbf24"/><circle cx="530" cy="140" r="4" fill="#fbbf24"/><circle cx="516" cy="134" r="3.4" fill="#fbbf24"/><circle cx="545" cy="134" r="3.4" fill="#fbbf24"/>
-    <circle cx="524" cy="121" r="3.2" fill="#0f172a"/><circle cx="537" cy="121" r="3.2" fill="#0f172a"/>
+    <circle cx="524" cy="121" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="522.91" cy="119.78" r="1.34" fill="#fff"/><circle cx="537" cy="121" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="535.91" cy="119.78" r="1.34" fill="#fff"/>
     <path d="M524 128 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
     <path d="M530 96 q10-7 18-3 q-6 8 -18 5" fill="#16a34a"/>
   </g>
@@ -89,12 +98,12 @@
       <circle cx="650" cy="126" r="22" stroke-dasharray="96 45" stroke-dashoffset="-14"/>
       <circle cx="650" cy="126" r="11" stroke-dasharray="48 22" stroke-dashoffset="6"/>
     </g>
-    <circle cx="644" cy="119" r="3.2" fill="#0f172a"/><circle cx="656" cy="119" r="3.2" fill="#0f172a"/>
+    <circle cx="644" cy="119" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="642.91" cy="117.78" r="1.34" fill="#fff"/><circle cx="656" cy="119" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="654.91" cy="117.78" r="1.34" fill="#fff"/>
     <path d="M644 127 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
   </g>
   <g class="m m7"><!-- mini Mithu again at the end for rhythm -->
     <circle cx="770" cy="122" r="20" fill="#fff1e6" stroke="#fce1d4" stroke-width="3"/>
-    <circle cx="764" cy="118" r="3.2" fill="#0f172a"/><circle cx="776" cy="118" r="3.2" fill="#0f172a"/>
+    <circle cx="764" cy="118" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="762.91" cy="116.78" r="1.34" fill="#fff"/><circle cx="776" cy="118" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="774.91" cy="116.78" r="1.34" fill="#fff"/>
     <path d="M764 126 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
     <circle cx="770" cy="98" r="6" fill="#ef4444"/>
   </g>
@@ -122,5 +131,7 @@
     .m6 { animation: hop 1.6s 1.1s cubic-bezier(0.36,0.07,0.19,0.97) infinite; }
     .m7 { animation: hop 1.6s 1.32s cubic-bezier(0.36,0.07,0.19,0.97) infinite; }
     @keyframes hop { 0%, 60%, 100% { transform: translateY(0) scale(1, 1); } 20% { transform: translateY(-14px) scale(0.96, 1.05); } 40% { transform: translateY(0) scale(1.04, 0.94); } 50% { transform: translateY(-5px) scale(1, 1); } }
+      .shine { animation: sparkle 3.4s ease-in-out infinite; }
+    @keyframes sparkle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
   </style>
 </svg>

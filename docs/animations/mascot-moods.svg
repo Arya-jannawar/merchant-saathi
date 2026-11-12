@@ -1,5 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 210" width="900" height="210" role="img" aria-label="Six mascot buddies each performing a signature animation">
   <defs>
+    <radialGradient id="eyeGloss" cx="0.35" cy="0.3" r="0.9">
+      <stop offset="0" stop-color="#2b3a55"/>
+      <stop offset="0.55" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#050b16"/>
+    </radialGradient>
+    <radialGradient id="cheekGloss" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fda4af" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#fda4af" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0a2e5c"/>
       <stop offset="1" stop-color="#07234a"/>
@@ -16,7 +25,7 @@
       <circle cx="95" cy="94" r="7" fill="#ef4444"/>
       <path d="M77 114 Q74 98 91 96 Q94 86 105 89 Q117 85 121 96 Q129 102 125 112 Q121 118 101 118 Q83 118 77 114 Z" fill="#fff1e6"/>
       <path d="M79 120 L83 140 Q99 146 115 140 L119 120 Z" fill="#00b9f1"/>
-      <circle cx="91" cy="106" r="3.4" fill="#0f172a"/><circle cx="107" cy="106" r="3.4" fill="#0f172a"/>
+      <circle cx="91" cy="106" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="89.84" cy="104.71" r="1.43" fill="#fff"/><circle cx="107" cy="106" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="105.84" cy="104.71" r="1.43" fill="#fff"/>
       <path d="M94 113 q7 6 14 0" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round" transform="translate(-5 0)"/>
       <path class="sp sp1" d="M132 96 l2.2 5 5 2.2 -5 2.2 -2.2 5 -2.2 -5 -5 -2.2 5 -2.2 Z" fill="#fbbf24"/>
       <path class="sp sp2" d="M62 92 l1.8 4 4 1.8 -4 1.8 -1.8 4 -1.8 -4 -4 -1.8 4 -1.8 Z" fill="#f472b6"/>
@@ -30,7 +39,7 @@
     <g class="angry">
       <path d="M250 88 Q268 102 274 128 Q276 140 266 144 L234 144 Q224 140 226 128 Q232 102 250 88 Z" fill="#f4a950"/>
       <path d="M250 88 Q256 98 258 110" stroke="#d9822b" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <circle cx="243" cy="120" r="3.4" fill="#0f172a"/><circle cx="257" cy="120" r="3.4" fill="#0f172a"/>
+      <circle cx="243" cy="120" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="241.84" cy="118.71" r="1.43" fill="#fff"/><circle cx="257" cy="120" r="3.4" fill="url(#eyeGloss)"/><circle class="shine" cx="255.84" cy="118.71" r="1.43" fill="#fff"/>
       <path d="M236 112 L248 115" stroke="#7c2d12" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M264 112 L252 115" stroke="#7c2d12" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M244 130 L250 126 L256 130" stroke="#7c2d12" stroke-width="2.4" fill="none" stroke-linecap="round"/>
@@ -47,7 +56,7 @@
       <path d="M404 96 L409 140 Q420 145 431 140 L436 96 Z" fill="#fef3c7" opacity="0.55"/>
       <path d="M404 96 L409 140 Q420 145 431 140 L436 96 Z" fill="none" stroke="#e2e8f0" stroke-width="3"/>
       <path d="M407 112 L410.5 136 Q420 140 429.5 136 L433 112 Z" fill="#d9a05b"/>
-      <circle cx="414" cy="122" r="3.2" fill="#0f172a"/><circle cx="426" cy="122" r="3.2" fill="#0f172a"/>
+      <circle cx="414" cy="122" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="412.91" cy="120.78" r="1.34" fill="#fff"/><circle cx="426" cy="122" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="424.91" cy="120.78" r="1.34" fill="#fff"/>
       <path d="M414 129 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <path class="st2a" d="M412 88 q6-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
       <path class="st2b" d="M426 90 q-6-9 0-16" stroke="#cbd5e1" stroke-width="3" fill="none" stroke-linecap="round"/>
@@ -62,7 +71,7 @@
       <circle cx="570" cy="116" r="26" fill="#fbbf24" stroke="#d97706" stroke-width="4"/>
       <circle cx="570" cy="116" r="18" fill="none" stroke="#fde68a" stroke-width="2"/>
       <text x="570" y="123" text-anchor="middle" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#92400e">&#8377;</text>
-      <circle cx="563" cy="107" r="3.1" fill="#0f172a"/><circle cx="577" cy="107" r="3.1" fill="#0f172a"/>
+      <circle cx="563" cy="107" r="3.1" fill="url(#eyeGloss)"/><circle class="shine" cx="561.95" cy="105.82" r="1.3" fill="#fff"/><circle cx="577" cy="107" r="3.1" fill="url(#eyeGloss)"/><circle class="shine" cx="575.95" cy="105.82" r="1.3" fill="#fff"/>
       <path d="M564 114 q7 5 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
     </g>
     <text x="570" y="168" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13" font-weight="800" fill="#ffffff">Crypto</text>
@@ -74,7 +83,7 @@
     <g class="jump">
       <circle cx="700" cy="118" r="26" fill="#f59e0b"/>
       <circle cx="691" cy="104" r="4.4" fill="#fbbf24"/><circle cx="709" cy="106" r="4.4" fill="#fbbf24"/><circle cx="700" cy="132" r="4.4" fill="#fbbf24"/><circle cx="685" cy="124" r="3.8" fill="#fbbf24"/><circle cx="716" cy="124" r="3.8" fill="#fbbf24"/>
-      <circle cx="693" cy="112" r="3.2" fill="#0f172a"/><circle cx="707" cy="112" r="3.2" fill="#0f172a"/>
+      <circle cx="693" cy="112" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="691.91" cy="110.78" r="1.34" fill="#fff"/><circle cx="707" cy="112" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="705.91" cy="110.78" r="1.34" fill="#fff"/>
       <path d="M693 120 q8 6 15 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <path d="M700 88 q11-8 20-3 q-7 9 -20 6" fill="#16a34a"/>
     </g>
@@ -89,7 +98,7 @@
         <circle cx="820" cy="116" r="23" stroke-dasharray="100 48" stroke-dashoffset="-14"/>
         <circle cx="820" cy="116" r="12" stroke-dasharray="52 24" stroke-dashoffset="6"/>
       </g>
-      <circle cx="814" cy="109" r="3.2" fill="#0f172a"/><circle cx="826" cy="109" r="3.2" fill="#0f172a"/>
+      <circle cx="814" cy="109" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="812.91" cy="107.78" r="1.34" fill="#fff"/><circle cx="826" cy="109" r="3.2" fill="url(#eyeGloss)"/><circle class="shine" cx="824.91" cy="107.78" r="1.34" fill="#fff"/>
       <path d="M814 117 q7 6 13 0" stroke="#7c2d12" stroke-width="2.2" fill="none" stroke-linecap="round"/>
       <path class="sp3" d="M846 92 l2 4.4 4.4 2 -4.4 2 -2 4.4 -2 -4.4 -4.4 -2 4.4 -2 Z" fill="#fbbf24"/>
     </g>
@@ -121,5 +130,7 @@
     .wob { transform-box: fill-box; transform-origin: center bottom; animation: wobble 2s ease-in-out infinite; }
     .sp3 { animation: rise 1.8s ease-out infinite; }
     @keyframes wobble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg) translateY(-4px); } }
+      .shine { animation: sparkle 3.4s ease-in-out infinite; }
+    @keyframes sparkle { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
   </style>
 </svg>

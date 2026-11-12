@@ -236,6 +236,18 @@ textarea {
 .ms-mascot--wake .ms-mascot__arm-left { transform-box: view-box; transform-origin: 20px 72px; animation: ms-arm-stretch 1.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .ms-mascot--sleeping { filter: brightness(0.85) saturate(0.75); }
 
+/* plush gloss: every mood carries a soft colored aura, the eyes sparkle */
+.ms-mascot__shine { transform-box: fill-box; transform-origin: center; animation: ms-shine 3.4s ease-in-out infinite; }
+.ms-mascot__shine2 { transform-box: fill-box; transform-origin: center; animation: ms-shine 3.4s 1.7s ease-in-out infinite; }
+@keyframes ms-shine { 0%, 100% { opacity: 0.75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.18); } }
+.ms-mascot__plush { filter: drop-shadow(0 0 6px rgba(0, 185, 241, 0.16)); }
+.ms-mascot--happy .ms-mascot__plush, .ms-mascot--excited .ms-mascot__plush { filter: drop-shadow(0 0 10px rgba(0, 185, 241, 0.3)); }
+.ms-mascot--hearts .ms-mascot__plush { filter: drop-shadow(0 0 12px rgba(244, 63, 94, 0.35)); }
+.ms-mascot--angry .ms-mascot__plush { filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.35)); }
+.ms-mascot--dance .ms-mascot__plush { filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.3)); }
+.ms-mascot--curious .ms-mascot__plush { filter: drop-shadow(0 0 8px rgba(0, 185, 241, 0.22)); }
+.ms-mascot--enthusiastic .ms-mascot__plush { filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4)); }
+
 @keyframes ms-giggle-key { 0%, 100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-2px); } }
 @keyframes ms-eye-grow { from { transform: scale(0.6); } to { transform: scale(1.25); } }
 @keyframes ms-snooze { 0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); } 50% { transform: translateY(2px) scale(1.015, 0.985) rotate(1.5deg); } }
