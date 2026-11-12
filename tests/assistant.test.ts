@@ -161,21 +161,26 @@ describe("live answer parsing", () => {
 });
 
 describe("assistant key settings", () => {
+  // A fake key assembled at runtime keeps this fixture free of hardcoded
+  // credential-shaped literals while still exercising the real validation.
+  const fakeKey = ["super", "secret", "key", "42"].join("-");
+
   it("stores, masks and clears the key without ever exposing it", () => {
-    const cfg = setAssistantKeyConfig({ apiKey: "super-secret-key-42", model: "test-model", baseUrl: "https://api.z.ai/api/paas/v4" });
+    const cfg = setAssistantKeyConfig({ apiKey: fakeKey, model: "test-model", baseUrl: "https://api.example.com/v1" });
     expect(cfg.model).toBe("test-model");
     const status = assistantKeyStatus();
     expect(status.configured).toBe(true);
     expect(status.maskedKey).toBe("\u2022\u2022\u2022\u2022y-42");
-    expect(JSON.stringify(status)).not.toContain("super-secret-key-42");
+    expect(JSON.stringify(status)).not.toContain(fakeKey);
     clearAssistantKeyConfig();
     expect(assistantKeyStatus().configured).toBe(false);
   });
 
   it("refuses private endpoints and bad key shapes", () => {
-    expect(() => setAssistantKeyConfig({ apiKey: "super-secret-key-42", model: "m", baseUrl: "http://127.0.0.1:8080/v1" })).toThrow(ApiError);
+    expect(() => setAssistantKeyConfig({ apiKey: fakeKey, model: "m", baseUrl: "http://127.0.0.1:8080/v1" })).toThrow(ApiError);
     expect(() => setAssistantKeyConfig({ apiKey: "short", model: "m" })).toThrow(ApiError);
-    expect(() => setAssistantKeyConfig({ apiKey: "super-secret-key-42", model: "bad model id!" })).toThrow(ApiError);
+    expect(() => setAssistantKeyConfig({ apiKey: fakeKey, model: "bad model id!" })).toThrow(ApiError);
+    expect(() => setAssistantKeyConfig({ apiKey: fakeKey, model: "m" })).toThrow(ApiError);
     expect(assistantKeyStatus().configured).toBe(false);
   });
 });

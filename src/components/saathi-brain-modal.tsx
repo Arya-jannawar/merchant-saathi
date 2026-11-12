@@ -110,17 +110,17 @@ export function BrainModal({
             <input
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="e.g. glm-4.6"
+              placeholder="e.g. my-provider-model-id"
               autoComplete="off"
               className="mt-1 w-full"
             />
           </label>
           <label className="block text-sm font-semibold text-slate-700">
-            Endpoint <span className="font-normal text-slate-400">(optional, public https only)</span>
+            Endpoint <span className="font-normal text-slate-400">(public https only)</span>
             <input
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
-              placeholder="https://api.z.ai/api/paas/v4"
+              placeholder="https://api.example.com/v1"
               autoComplete="off"
               className="mt-1 w-full"
             />

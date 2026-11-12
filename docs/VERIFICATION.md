@@ -40,8 +40,8 @@ All fixture checks passed.
 
 ```
 > npm test
-Test Files  8 passed (8)
-     Tests  88 passed (88)
+Test Files  9 passed (9)
+     Tests  95 passed (95)
 ```
 Suites: `metrics.test.ts` (fixture totals, band filtering, clock edges), `offers.test.ts`
 (margin floor, zero/negative price, missing cost = cannot-calculate, cap vs capacity,
@@ -259,7 +259,7 @@ The operations copilot round (the "manage operations" pillar):
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run
   (no API key available). Fixture mode is the default and is visibly labeled. To verify live:
-  set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL` in `.env.local` and restart. The same
+  set `AI_MODE=live` + `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL` in `.env.local` and restart. The same
   applies to the chat assistant's "live brain": the settings dialog, endpoint validation,
   fallback labeling and the rupee guard are tested, but an actual model round-trip needs
   a real key - until then the fact book answers everything.

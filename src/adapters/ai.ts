@@ -5,11 +5,12 @@ import { formatINR } from "@/lib/money";
  * Bounded AI adapter.
  *
  * - "fixture" mode: deterministic, visibly labeled draft. No credentials needed.
- * - "live" mode: server-side call to the Z.ai chat-completions endpoint with a
- *   15s timeout, a single bounded retry for transient failures, schema
- *   validation, and an evidence-ID allowlist. Any failure falls back to the
- *   labeled fixture draft - the model can never change money, inventory,
- *   consent or execution state because it only ever returns prose fields.
+ * - "live" mode: server-side call to the configured chat-completions endpoint
+ *   (OpenAI-compatible) with a 15s timeout, a single bounded retry for
+ *   transient failures, schema validation, and an evidence-ID allowlist. Any
+ *   failure falls back to the labeled fixture draft - the model can never
+ *   change money, inventory, consent or execution state because it only ever
+ *   returns prose fields.
  */
 
 export type AiMode = "fixture" | "live";
@@ -70,13 +71,13 @@ export function validateModelEndpoint(baseUrl: string): URL {
   try {
     url = new URL(baseUrl);
   } catch {
-    throw new Error("ZAI_BASE_URL is not a valid URL.");
+    throw new Error("LLM_BASE_URL is not a valid URL.");
   }
   if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("ZAI_BASE_URL must use http or https.");
+    throw new Error("LLM_BASE_URL must use http or https.");
   }
   const rawHost = url.hostname.toLowerCase().replace(/\.$/, "");
-  if (!rawHost) throw new Error("ZAI_BASE_URL has no host.");
+  if (!rawHost) throw new Error("LLM_BASE_URL has no host.");
   // url.hostname keeps IPv6 brackets ("[::1]"); the literal checks want the bare address.
   const host = rawHost.startsWith("[") && rawHost.endsWith("]") ? rawHost.slice(1, -1) : rawHost;
   if (
@@ -86,29 +87,29 @@ export function validateModelEndpoint(baseUrl: string): URL {
     host.endsWith(".internal") ||
     host.endsWith(".home.arpa")
   ) {
-    throw new Error(`ZAI_BASE_URL host is not allowed: ${host}`);
+    throw new Error(`LLM_BASE_URL host is not allowed: ${host}`);
   }
   if (host.includes("%")) {
     // IPv6 zone ids ("fe80::1%eth0") are link-local by nature; refuse the form.
-    throw new Error(`ZAI_BASE_URL host is not allowed: ${host}`);
+    throw new Error(`LLM_BASE_URL host is not allowed: ${host}`);
   }
   if (host.includes(":")) {
-    if (!isPublicIpv6(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+    if (!isPublicIpv6(host)) throw new Error(`LLM_BASE_URL host is not a public address: ${host}`);
     return url;
   }
   if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) {
     // Dotted-quad IPv4 literal: validate the address itself.
-    if (!isPublicIpv4(host)) throw new Error(`ZAI_BASE_URL host is not a public address: ${host}`);
+    if (!isPublicIpv4(host)) throw new Error(`LLM_BASE_URL host is not a public address: ${host}`);
     return url;
   }
   // Anything else must be a plausible domain name: letters/digits/hyphens,
   // at least one dot, no all-numeric label runs (blocks decimal, octal like
   // 0177.0.0.1, and 0x-prefixed hex forms via the character set).
   if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(host)) {
-    throw new Error(`ZAI_BASE_URL host is not a valid public domain: ${host}`);
+    throw new Error(`LLM_BASE_URL host is not a valid public domain: ${host}`);
   }
   if (/^\d+(?:\.\d+)*$/.test(host)) {
-    throw new Error(`ZAI_BASE_URL host must not be a numeric address encoding: ${host}`);
+    throw new Error(`LLM_BASE_URL host must not be a numeric address encoding: ${host}`);
   }
   return url;
 }
@@ -256,10 +257,12 @@ interface ChatCompletionResponse {
 }
 
 async function callLiveModel(ctx: AiDraftContext, allowedEvidenceIds: string[]): Promise<AiDraft> {
-  const apiKey = process.env.ZAI_API_KEY?.trim();
-  const model = process.env.ZAI_MODEL?.trim();
-  const baseUrl = (process.env.ZAI_BASE_URL?.trim() || "https://api.z.ai/api/paas/v4").replace(/\/$/, "");
-  if (!apiKey || !model) throw new Error("Live AI is configured but ZAI_API_KEY/ZAI_MODEL are missing.");
+  const apiKey = process.env.LLM_API_KEY?.trim();
+  const model = process.env.LLM_MODEL?.trim();
+  const baseUrl = process.env.LLM_BASE_URL?.trim();
+  if (!apiKey || !model || !baseUrl) {
+    throw new Error("Live AI is configured but LLM_API_KEY/LLM_MODEL/LLM_BASE_URL are missing.");
+  }
   // Validate once, then rebuild the request URL from the parsed, validated URL
   // object - the fetch below never touches the raw env-derived string.
   const safeEndpoint = validateModelEndpoint(baseUrl);

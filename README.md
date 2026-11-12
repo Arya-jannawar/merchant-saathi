@@ -7,9 +7,9 @@
   &nbsp;
   <img src="https://img.shields.io/badge/Next.js%2014-TypeScript%20strict-000000?style=for-the-badge&logo=next.js" alt="Next.js 14 TypeScript"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-88%20passing-10b981?style=for-the-badge&logo=vitest" alt="88 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-95%20passing-10b981?style=for-the-badge&logo=vitest" alt="95 tests passing"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20Z.ai-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
+  <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20model%20API-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
   &nbsp;
   <img src="https://img.shields.io/badge/deps-zero%20chart%2Fanimation%20libraries-8b5cf6?style=for-the-badge" alt="zero chart or animation dependencies"/>
 </p>
@@ -167,7 +167,7 @@ flowchart TD
     B[Browser - client components] -->|fetch| R[API route handlers - thin: session + zod + service]
     R --> S[Services - transactional campaign lifecycle]
     S --> D[Domain - PURE logic: metrics, offers, consent]
-    S --> A[AI adapter - fixture or live Z.ai, bounded, validated]
+    S --> A[AI adapter - fixture or live model API, bounded, validated]
     S --> DB[(SQLite - better-sqlite3, session-scoped tenants)]
 ```
 
@@ -192,12 +192,12 @@ src/
                            charts (GroupedBars, Meter, Donut, Waterfall, DayBars, Funnel), ui primitives
   domain/                  metrics, offers, consent (pure business logic)
   services/                campaigns lifecycle, demo state, multi-merchant resolution
-  adapters/ai.ts           bounded AI adapter: fixture | live Z.ai | labeled fallback
+  adapters/ai.ts           bounded AI adapter: fixture | live model API | labeled fallback
   lib/                     db, clock (IST windows), money (paise), seed (deterministic variants),
                            saathi-brain (fact book + live prompts + rupee guard), mascots-config, sound
   fixtures/bakery-v1.json  single source of truth for every demo number
 scripts/                   seed CLI + fixture verifier
-tests/                     vitest suites (88) + playwright e2e hero flow
+tests/                     vitest suites (95) + playwright e2e hero flow
 docs/                      screenshots of every stage + animations + team context pack
 ```
 </details>
@@ -233,11 +233,11 @@ Errors always follow one envelope: `{ "error": { "code", "message", "fieldErrors
 | Approval hash binding, idempotency, cap enforcement | Redemption events (10 fixed fixture events) |
 | Results arithmetic | The clock (pinned to Fri 6 Nov 2026, 7:00 PM IST) |
 
-AI: drafts explanation + customer copy only, from verified facts — fixture mode (default, no credentials) or live Z.ai.
+AI: drafts explanation + customer copy only, from verified facts — fixture mode (default, no credentials) or live model API.
 
 ## 🧪 Testing & verification
 
-- **88 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails, thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard.
+- **95 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails, thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard.
 - **1 Playwright e2e**: the full hero path — load → −30% → draft → ₹50 rejected → restore → approve → queue → 10 events → ₹300 → idempotent replay.
 - **`npm run fixtures:verify`**: reconciles every fixture number against the database — the pre-demo gate. It once caught a real data-loss bug in our own migration; that fix (FK-suspended table rebuild + husk self-heal) is now permanent.
 
@@ -257,7 +257,7 @@ npm run fixtures:verify         # must print: All fixture checks passed.
 npm run dev
 ```
 
-Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL`, or paste a key in the chat's 🧠 dialog. Node 20+, nothing else to install.
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL`, or paste a key and endpoint in the chat's 🧠 dialog. Node 20+, nothing else to install.
 
 <details>
 <summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>

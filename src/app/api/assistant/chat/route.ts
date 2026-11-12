@@ -52,12 +52,12 @@ export const POST = routeHandler(async (request: Request) => {
     }
   }
 
-  if (getAiMode() === "live" && process.env.ZAI_API_KEY?.trim() && process.env.ZAI_MODEL?.trim()) {
+  if (getAiMode() === "live" && process.env.LLM_API_KEY?.trim() && process.env.LLM_MODEL?.trim()) {
     try {
       const content = await callAssistantModel(buildAssistantPrompts(question, facts), {
-        apiKey: process.env.ZAI_API_KEY.trim(),
-        model: process.env.ZAI_MODEL.trim(),
-        baseUrl: (process.env.ZAI_BASE_URL?.trim() || "https://api.z.ai/api/paas/v4").replace(/\/$/, ""),
+        apiKey: process.env.LLM_API_KEY.trim(),
+        model: process.env.LLM_MODEL.trim(),
+        baseUrl: process.env.LLM_BASE_URL?.trim() ?? "",
       });
       const parsed = parseAssistantAnswer(content, facts);
       return ok({ ...parsed, mode: "live" as const, note: null, intent: null });

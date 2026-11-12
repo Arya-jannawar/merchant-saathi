@@ -24,13 +24,13 @@ describe("resolveDatabasePath", () => {
 });
 
 describe("validateModelEndpoint", () => {
-  it("accepts the public Z.ai endpoint and other public https hosts", () => {
-    expect(validateModelEndpoint("https://api.z.ai/api/paas/v4").hostname).toBe("api.z.ai");
-    expect(validateModelEndpoint("http://api.example.com/v1").protocol).toBe("http:");
+  it("accepts public https hosts", () => {
+    expect(validateModelEndpoint("https://api.example.com/v1").hostname).toBe("api.example.com");
+    expect(validateModelEndpoint("https://models.example-llm.com/openai/v1").hostname).toBe("models.example-llm.com");
   });
 
   it("refuses non-http(s) schemes", () => {
-    expect(() => validateModelEndpoint("ftp://api.z.ai/v4")).toThrow();
+    expect(() => validateModelEndpoint("ftp://api.example.com/v1")).toThrow();
     expect(() => validateModelEndpoint("file:///etc/passwd")).toThrow();
   });
 
@@ -77,11 +77,14 @@ describe("validateModelEndpoint", () => {
 
   it("refuses single-label intranet names and malformed hosts", () => {
     expect(() => validateModelEndpoint("http://intranet/v1")).toThrow();
-    expect(() => validateModelEndpoint("http://api_z.ai/v1")).toThrow(); // underscore
+    expect(() => validateModelEndpoint("http://api_z.example.com/v1")).toThrow(); // underscore
     expect(() => validateModelEndpoint("http:///v1")).toThrow();
   });
 
   it("still accepts real public API domains", () => {
-    expect(validateModelEndpoint("https://open.bigmodel.cn/api/paas/v4").hostname).toBe("open.bigmodel.cn");
+    expect(validateModelEndpoint("https://api.openai.com/v1").hostname).toBe("api.openai.com");
+    expect(validateModelEndpoint("https://generativelanguage.googleapis.com/v1beta").hostname).toBe(
+      "generativelanguage.googleapis.com"
+    );
   });
 });

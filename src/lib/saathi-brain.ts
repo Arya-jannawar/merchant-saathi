@@ -617,7 +617,8 @@ interface ChatCompletionResponse {
 }
 
 /**
- * Calls a Z.ai-compatible chat-completions endpoint with the given key config.
+ * Calls the configured OpenAI-compatible chat-completions endpoint with the
+ * given key config.
  * Endpoint host is validated first (same rules as the draft adapter) and the
  * fetch uses redirect:"error" so the bearer key can never be forwarded to an
  * unvalidated host.
