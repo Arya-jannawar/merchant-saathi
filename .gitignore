@@ -1,30 +1,31 @@
+
+
+
+
+
+
 # dependencies
-node_modules/
-
-# next.js
-.next/
-out/
-
-# secrets and local env
-.env
-.env.local
-.env.*.local
-
 # local database
+# logs and OS files
+# next.js
+# secrets and local env
+# tests
+# ts
+*.log
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*.local
+.env.local
+.next/
+Thumbs.db
+blob-report/
 data/*.sqlite
 data/*.sqlite-shm
 data/*.sqlite-wal
-
-# tests
-test-results/
-playwright-report/
-blob-report/
-
-# logs and OS files
-*.log
+docs/team/
+node_modules/
 npm-debug.log*
-.DS_Store
-Thumbs.db
-
-# ts
-*.tsbuildinfo
+out/
+playwright-report/
+test-results/
