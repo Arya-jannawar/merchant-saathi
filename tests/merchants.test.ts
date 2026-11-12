@@ -2,6 +2,11 @@
 // isolation, insights correctness, and variant reset behavior.
 import { describe, expect, it } from "vitest";
 import { openTestDb } from "./helpers";
+import { buildAssistantFacts, answerFromFactBook } from "@/lib/saathi-brain";
+
+function buildAssistantFactsForTest(d: ReturnType<typeof openTestDb>, merchantId: string) {
+  return buildAssistantFacts(d, merchantId);
+}
 import {
   createMerchant,
   getDemoInsights,
@@ -13,9 +18,9 @@ import {
   MerchantNotFoundError,
   MAX_MERCHANTS_PER_SESSION,
 } from "@/services/demo";
-import { resetMerchantById, resetTenant, merchantIdFor, DEFAULT_VARIANT_SEED } from "@/lib/seed";
-import { loadFixture } from "@/lib/fixture";
 import { draftCampaign } from "@/services/campaigns";
+import { DOMAIN_REGISTRY, loadFixture } from "@/lib/fixture";
+import { resetMerchantById, resetTenant, merchantIdFor, DEFAULT_VARIANT_SEED } from "@/lib/seed";
 import { completedAfternoonTotals } from "@/domain/metrics";
 import { lastCompleteAfternoonWindow, previousAfternoonWindow, getNow } from "@/lib/clock";
 import { ApiError } from "@/lib/errors";
@@ -99,6 +104,60 @@ describe("multi-merchant sessions", () => {
     const list = listMerchants(d, "merchants-remove");
     expect(list.length).toBe(1);
     expect(list[0].isDefault).toBe(true);
+  });
+});
+
+describe("domain registration platform", () => {
+  it("registers a salon with themed bundle and identical verified economics", async () => {
+    const d = freshDb("domains-salon");
+    const salon = createMerchant(d, "domains-salon", "Bling Studio Salon", "salon-v1");
+    expect(salon.domain).toEqual({
+      id: "salon",
+      label: "Salon & Grooming",
+      emoji: "💈",
+      pitch: expect.any(String),
+    });
+
+    const state = getDemoState(d, "domains-salon", salon.id);
+    expect(state.merchant?.domain.label).toBe("Salon & Grooming");
+    expect(state.bundleHint).toContain("Haircut + beard trim");
+
+    // the domain's numbers are the platform's verified numbers, only themed
+    const draft = await draftCampaign(d, salon.id, loadFixture("salon-v1"), {
+      opportunityId: "afternoon-decline-v1",
+      pricePaise: 7000,
+      cap: 20,
+      locale: "en",
+    });
+    expect(draft.offer.bundleName).toBe("Haircut + beard trim");
+    expect(draft.computed.marginPct).toBeCloseTo(42.857, 2);
+    expect(draft.computed.maxDiscountExposurePaise).toBe(40000);
+    expect(draft.computed.passes).toBe(true);
+  });
+
+  it("keeps a registered domain across resets and refuses nothing at the registry level", async () => {
+    const d = freshDb("domains-reset");
+    const cafe = createMerchant(d, "domains-reset", "The Daily Grind Cafe", "cafe-v1");
+    const { resetActiveMerchant } = await import("@/services/demo");
+    const result = resetActiveMerchant(d, "domains-reset", cafe.id);
+    expect(result.merchantName).toBe("The Daily Grind Cafe");
+    const list = listMerchants(d, "domains-reset");
+    expect(list.find((m) => m.id === cafe.id)?.fixtureVersion).toBe("cafe-v1");
+    // the registry ships every domain with its own themed bundle
+    expect(DOMAIN_REGISTRY.length).toBe(8);
+    expect(DOMAIN_REGISTRY.map((entry) => entry.domain.id)).toEqual(
+      expect.arrayContaining(["bakery", "cafe", "kirana", "salon", "mobile", "juice", "garage", "tuition"])
+    );
+    void loadFixture;
+  });
+
+  it("answers the fact book with the domain's own bundle name", async () => {
+    const d = freshDb("domains-factbook");
+    const cafe = createMerchant(d, "domains-factbook", "The Daily Grind Cafe", "cafe-v1");
+    const facts = buildAssistantFactsForTest(d, cafe.id);
+    const answer = answerFromFactBook("is the ₹70 offer safe?", facts);
+    expect(answer.answer).toContain("Cappuccino + croissant");
+    expect(answer.answer).toContain("42.9%");
   });
 });
 

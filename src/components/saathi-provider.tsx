@@ -6,6 +6,7 @@ import { getMascot, INTERACTION_MOODS, MASCOTS, type MascotId, type MascotMood, 
 import { soundKit, type SoundName } from "@/lib/sound";
 import { api, ApiClientError, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
+import { RegisterBusinessModal } from "@/components/register-business";
 import { SaathiTour } from "@/components/saathi-tour";
 import { MascotPicker } from "@/components/mascot-picker";
 
@@ -647,10 +648,8 @@ function MerchantStrip({
   const [merchants, setMerchants] = useState<MerchantDto[]>([]);
   const [active, setActive] = useState<string | null>(getActiveMerchantId());
   const [open, setOpen] = useState(false);
-  const [adding, setAdding] = useState(false);
-  const [name, setName] = useState("");
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
   const current = merchants.find((m) => m.id === active) ?? null;
 
   useEffect(() => {
@@ -686,28 +685,6 @@ function MerchantStrip({
     onSwitched(m, prevName);
     // Reload so every screen refetches with the new merchant scope.
     setTimeout(() => window.location.reload(), 550);
-  }
-
-  async function add() {
-    setBusy(true);
-    try {
-      const created = await api<MerchantDto>("/api/merchants", {
-        method: "POST",
-        body: JSON.stringify(name.trim() ? { name: name.trim() } : {}),
-      });
-      setMerchants((m) => [...m, created]);
-      setActiveMerchantId(created.id);
-      setActive(created.id);
-      setAdding(false);
-      setName("");
-      onAdded(created);
-      setTimeout(() => window.location.reload(), 550);
-    } catch (err) {
-      setAddError(err instanceof ApiClientError ? err.message : "Could not add the business.");
-      setAdding(true);
-    } finally {
-      setBusy(false);
-    }
   }
 
   async function remove(m: MerchantDto) {
@@ -758,8 +735,9 @@ function MerchantStrip({
                       m.id === active ? "bg-accent-soft text-brand" : "text-slate-600 hover:bg-brand-light hover:text-brand"
                     }`}
                   >
+                    <span aria-hidden className="mr-1">{m.domain.emoji}</span>
                     {m.name}
-                    <span className="ml-1.5 text-[10px] font-normal text-slate-400">{m.fixtureVersion}</span>
+                    <span className="ml-1.5 text-[10px] font-normal text-slate-400">{m.domain.label}</span>
                   </button>
                   <button
                     type="button"
@@ -774,46 +752,33 @@ function MerchantStrip({
                 </li>
               ))}
             </ul>
-            {adding ? (
-              <div className="mt-2 space-y-1.5">
-                <div className="flex gap-1.5">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") void add();
-                    }}
-                    placeholder="Business name (optional)"
-                    maxLength={60}
-                    aria-label="New business name"
-                    className="!py-1.5 text-xs"
-                    autoFocus
-                  />
-                  <button type="button" onClick={() => void add()} disabled={busy} className="btn-primary !px-2.5 !py-1.5 text-xs">
-                    Add
-                  </button>
-                </div>
-                {addError ? <p className="px-1 text-[10px] font-semibold text-rose-600">{addError}</p> : null}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setAddError(null);
-                  setAdding(true);
-                }}
-                disabled={busy}
-                className="mt-1 w-full rounded-xl border border-dashed border-brand/40 px-3 py-2 text-xs font-bold text-brand transition hover:bg-brand-light"
-              >
-                + Add a business
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setWizardOpen(true);
+                soundKit.play("open");
+              }}
+              disabled={busy}
+              className="mt-1 w-full rounded-xl border border-dashed border-brand/40 px-3 py-2 text-xs font-bold text-brand transition hover:bg-brand-light"
+            >
+              + Register a business
+            </button>
             <p className="mt-1.5 px-1 text-[10px] leading-snug text-slate-400">
               Each business gets its own seeded numbers, offer and campaigns. Data stays in this browser session.
             </p>
           </div>
         ) : null}
       </div>
+      <RegisterBusinessModal
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onRegistered={(m) => {
+          setMerchants((list) => [...list, m]);
+          setActiveMerchantId(m.id);
+          setActive(m.id);
+          onAdded(m);
+        }}
+      />
     </div>
   );
 }

@@ -48,5 +48,5 @@ export const redeemRequestSchema = z.object({
 });
 
 export const resetRequestSchema = z.object({
-  fixtureVersion: z.enum(["bakery-v1", "bakery-thin-v1"]).optional(),
+  fixtureVersion: z.enum(["bakery-v1", "bakery-thin-v1", "cafe-v1", "kirana-v1", "salon-v1", "mobile-v1", "juice-v1", "garage-v1", "tuition-v1"]).optional(),
 });

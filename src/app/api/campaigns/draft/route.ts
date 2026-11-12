@@ -3,7 +3,6 @@ import { getDemoSessionId, getRequestedMerchantId } from "@/lib/session";
 import { routeHandler, ok, parseBody } from "@/lib/http";
 import { resolveTenant } from "@/services/demo";
 import { draftCampaign } from "@/services/campaigns";
-import { loadFixture } from "@/lib/fixture";
 import { draftRequestSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +11,7 @@ export const dynamic = "force-dynamic";
 export const POST = routeHandler(async (request: Request) => {
   const db = getDb();
   const sessionId = getDemoSessionId();
-  const merchantId = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const fixture = loadFixture();
+  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(draftRequestSchema, await request.json());
   const result = await draftCampaign(db, merchantId, fixture, {
     campaignId: body.campaignId,

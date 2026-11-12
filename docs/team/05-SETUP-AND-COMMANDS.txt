@@ -41,7 +41,7 @@ ALL COMMANDS (npm scripts)
   npm start                production server (run build first)
   npm run lint             ESLint (next/core-web-vitals)
   npm run typecheck        tsc --noEmit (strict)
-  npm test                 Vitest unit tests (88 tests)
+  npm test                 Vitest unit tests (91 tests)
   npm run test:watch       Vitest in watch mode
   npm run test:e2e         Playwright hero-path flow (run npm run build first;
                            first run downloads Chromium ~130 MB; starts its own

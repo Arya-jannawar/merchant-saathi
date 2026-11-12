@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { formatINR } from "@/lib/money";
-import { getDemoState, type DemoState } from "@/services/demo";
+import { getDemoState, loadMerchantFixture, type DemoState } from "@/services/demo";
 import { getOpportunities } from "@/domain/metrics";
 import { computeOffer } from "@/domain/offers";
 import { getCampaignResults, type StoredOffer } from "@/services/campaigns";
@@ -79,8 +79,9 @@ export interface AssistantFacts {
   } | null;
 }
 
-export function buildAssistantFacts(db: SqliteDatabase, merchantId: string): AssistantFacts {
-  const fixture = loadFixture();
+export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixtureOverride?: import("@/lib/fixture").Fixture): AssistantFacts {
+  // The merchant's own fixture owns its numbers and bundle naming (domain-aware).
+  const fixture = fixtureOverride ?? loadMerchantFixture(db, merchantId);
   const ownerRow = db.prepare("SELECT demo_session_id FROM merchants WHERE id = ?").get(merchantId) as
     | { demo_session_id: string }
     | undefined;

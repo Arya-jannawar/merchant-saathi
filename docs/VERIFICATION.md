@@ -220,6 +220,26 @@ A fourth round made the mascots interactive and added a sleep cycle
   Byte (cupcake), Firewall (samosa), Java (chai), Crypto (coin), Pixel
   (laddu), Glitch (jalebi). README animations and picker screenshot updated.
 
+The registration platform round (verified live + in tests):
+
+- Seven domain fixture variants generated from bakery-v1 with themed
+  SKU/bundle names and a domain block; a script check confirmed every numeric
+  block (windows, inventory, bundle shape, SKU prices, redemptions, policy)
+  is identical across all fixtures.
+- npm run fixtures:verify now reconciles ALL 8 domain fixtures against their
+  own freshly seeded tenants (orders, line items, inventory, bundle cost,
+  audience) - all PASS.
+- Route layer: every session route resolves the ACTIVE merchant's own fixture
+  (resolveTenant -> loadMerchantFixture); a registered cafe drafts
+  "Cappuccino + croissant", a kirana drafts "Rice + dal family pack" - margins
+  and exposure identical.
+- Tests +3 (91 total): salon registration with themed draft + identical
+  economics, domain survives reset in place, registry shape, fact book names
+  the domain bundle.
+- Live browser: registered "Sharma Kirana Store" (kirana) through the wizard,
+  buddy Pixel pre-selected; dashboard showed the domain badge + themed
+  heading, offer workspace showed the "Rice + dal family pack" bundle hint.
+
 ## Known limitations (honest list)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run

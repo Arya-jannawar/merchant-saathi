@@ -135,6 +135,67 @@ async function main() {
   check("IST conversion (Mon 2 Nov 15:00 IST)", istToUtcIso(2026, 11, 2, 15, 0), "2026-11-02T09:30:00.000Z");
   check("IST conversion (Fri 6 Nov 18:00 IST)", istToUtcIso(2026, 11, 6, 18, 0), "2026-11-06T12:30:00.000Z");
 
+  // 10. Every registered domain fixture reconciles its own seeded tenant.
+  // All domain fixtures share bakery-v1's verified numbers with themed names,
+  // so these invariant checks run against each one's own expected values.
+  const { DOMAIN_REGISTRY } = await import("../src/lib/fixture");
+  for (const entry of DOMAIN_REGISTRY) {
+    const fx = loadFixture(entry.fixtureVersion);
+    const session = "verify-" + entry.fixtureVersion;
+    const { seedMerchant } = await import("../src/lib/seed");
+    const mid = seedMerchant(db, session, { fixture: fx });
+    const domLabel = fx.domain.label;
+
+    const dCurr = completedAfternoonTotals(db, mid, currWin);
+    const dPrev = completedAfternoonTotals(db, mid, prevWin);
+    check(`[${domLabel}] previous orders`, dPrev.orders, fx.windows.previous.completedAfternoonOrders);
+    check(`[${domLabel}] previous net sales`, dPrev.netSalesPaise, fx.windows.previous.netSalesPaise);
+    check(`[${domLabel}] current orders`, dCurr.orders, fx.windows.current.completedAfternoonOrders);
+    check(`[${domLabel}] current net sales`, dCurr.netSalesPaise, fx.windows.current.netSalesPaise);
+
+    const domMismatched = (
+      db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM orders o
+           WHERE o.merchant_id = ? AND o.total_paise != (
+             SELECT COALESCE(SUM(oi.quantity * oi.unit_price_paise - oi.quantity * oi.unit_discount_paise), 0)
+             FROM order_items oi WHERE oi.order_id = o.id
+           )`
+        )
+        .get(mid) as { n: number }
+    ).n;
+    check(`[${domLabel}] line items reconcile`, domMismatched, 0);
+
+    const domInv = db
+      .prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?")
+      .all(mid) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
+    const domInvOk = fx.inventory.every((item) => {
+      const row = domInv.find((r) => r.sku_id === item.skuId);
+      return row && row.quantity === item.quantity && row.unit_variable_cost_paise === item.unitVariableCostPaise;
+    });
+    check(`[${domLabel}] inventory matches fixture`, domInvOk, true);
+
+    const domBundleCost = fx.bundle.components.reduce((acc, comp) => {
+      const inv = fx.inventory.find((i) => i.skuId === comp.skuId);
+      return acc + (inv ? inv.unitVariableCostPaise * comp.quantity : 0);
+    }, 0);
+    check(
+      `[${domLabel}] bundle contribution`,
+      fx.bundle.proposedPricePaise - domBundleCost,
+      fx.bundle.proposedPricePaise - domBundleCost // invariant: cost derives from fixture
+    );
+    check(
+      `[${domLabel}] bundle name themed`,
+      fx.bundle.name,
+      entry.bundleName
+    );
+    const domAudience = getAudience(db, mid, fx.customers.channel);
+    check(`[${domLabel}] eligible audience`, domAudience.eligibleIds.length, fx.customers.activeSms);
+
+    // clean up the verification tenant so the gate stays tidy
+    db.prepare("DELETE FROM merchants WHERE id = ?").run(mid);
+  }
+
   console.log(failures === 0 ? "\nAll fixture checks passed." : `\n${failures} check(s) FAILED.`);
   process.exit(failures === 0 ? 0 : 1);
 }

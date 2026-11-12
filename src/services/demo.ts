@@ -1,6 +1,6 @@
 import type { SqliteDatabase } from "@/lib/db";
 import { getNow, isClockInjected, istParts, lastCompleteAfternoonWindow, previousAfternoonWindow } from "@/lib/clock";
-import { loadFixture, type Fixture } from "@/lib/fixture";
+import { loadFixture, DOMAIN_REGISTRY, type Fixture, type FixtureVersion } from "@/lib/fixture";
 import { seedMerchant, resetMerchantById, deleteMerchantById, DEFAULT_VARIANT_SEED } from "@/lib/seed";
 import { averageOrderValuePaise, completedAfternoonTotals, completedTotalsInRange, afternoonBands, salesDeltaPct } from "@/domain/metrics";
 import { getAudience } from "@/domain/consent";
@@ -13,6 +13,7 @@ export interface MerchantListItem {
   name: string;
   fixtureVersion: string;
   isDefault: boolean;
+  domain: { id: string; label: string; emoji: string };
 }
 
 export function listMerchants(db: SqliteDatabase, sessionId: string): MerchantListItem[] {
@@ -21,12 +22,29 @@ export function listMerchants(db: SqliteDatabase, sessionId: string): MerchantLi
       "SELECT id, variant_seed, display_name, fixture_version FROM merchants WHERE demo_session_id = ? ORDER BY created_at ASC, id ASC"
     )
     .all(sessionId) as { id: string; variant_seed: number; display_name: string; fixture_version: string }[];
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.display_name,
-    fixtureVersion: r.fixture_version,
-    isDefault: r.variant_seed === DEFAULT_VARIANT_SEED,
-  }));
+  return rows.map((r) => {
+    let domain = { id: "bakery", label: "Bakery & Sweets", emoji: "🧁" };
+    try {
+      domain = loadFixture(r.fixture_version as FixtureVersion).domain;
+    } catch {
+      // unknown stored version: keep the neutral default
+    }
+    return {
+      id: r.id,
+      name: r.display_name,
+      fixtureVersion: r.fixture_version,
+      isDefault: r.variant_seed === DEFAULT_VARIANT_SEED,
+      domain,
+    };
+  });
+}
+
+/** The fixture that owns a merchant's numbers - domain-aware. */
+export function loadMerchantFixture(db: SqliteDatabase, merchantId: string): Fixture {
+  const row = db.prepare("SELECT fixture_version FROM merchants WHERE id = ?").get(merchantId) as
+    | { fixture_version: string }
+    | undefined;
+  return loadFixture((row?.fixture_version as FixtureVersion) ?? "bakery-v1");
 }
 
 /**
@@ -57,14 +75,15 @@ export class MerchantNotFoundError extends Error {
 export function createMerchant(
   db: SqliteDatabase,
   sessionId: string,
-  displayName?: string
+  displayName?: string,
+  domainVersion?: FixtureVersion
 ): MerchantListItem {
   const existing = listMerchants(db, sessionId);
   if (existing.length >= MAX_MERCHANTS_PER_SESSION) {
     throw new MerchantLimitError();
   }
   const variantSeed = DEFAULT_VARIANT_SEED + (existing.length + 1) * 7919;
-  const fixture = loadFixture();
+  const fixture = loadFixture(domainVersion ?? "bakery-v1");
   const id = seedMerchant(db, sessionId, { variantSeed, displayName, fixture });
   return {
     id,
@@ -73,6 +92,7 @@ export function createMerchant(
       (db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(id) as { display_name: string }).display_name,
     fixtureVersion: fixture.fixtureVersion,
     isDefault: false,
+    domain: fixture.domain,
   };
 }
 
@@ -90,15 +110,19 @@ export function resetActiveMerchant(
   db: SqliteDatabase,
   sessionId: string,
   requestedMerchantId: string | null | undefined,
-  fixtureVersion: "bakery-v1" | "bakery-thin-v1" = "bakery-v1"
+  fixtureVersion?: FixtureVersion
 ): { fixtureVersion: string; merchantName: string } {
-  const fixture = loadFixture(fixtureVersion);
   // No active business yet -> seed the default one (first-visit "Load sample data").
   const resolved = resolveMerchant(db, sessionId, requestedMerchantId);
   if (!resolved.merchantId) {
+    const fixture = loadFixture(fixtureVersion ?? "bakery-v1");
     const id = seedMerchant(db, sessionId, { fixture });
     return { fixtureVersion: fixture.fixtureVersion, merchantName: merchantDisplayName(db, id) };
   }
+  // No explicit fixture -> keep the merchant's own (a registered salon stays a salon).
+  const fixture = loadFixture(
+    fixtureVersion ?? (loadMerchantFixture(db, resolved.merchantId).fixtureVersion as FixtureVersion)
+  );
   const { merchantId, displayName } = resetMerchantById(db, sessionId, resolved.merchantId, fixture);
   return { fixtureVersion: fixture.fixtureVersion, merchantName: displayName };
 }
@@ -116,10 +140,13 @@ export function ensureTenant(db: SqliteDatabase, sessionId: string): string {
   return seedMerchant(db, sessionId, {});
 }
 
-export function resolveTenant(db: SqliteDatabase, sessionId: string, requestedMerchantId?: string | null): string {
+export function resolveTenant(db: SqliteDatabase, sessionId: string, requestedMerchantId?: string | null): { merchantId: string; fixture: Fixture } {
   const resolved = resolveMerchant(db, sessionId, requestedMerchantId);
-  if (resolved.merchantId) return resolved.merchantId;
-  return seedMerchant(db, sessionId, {});
+  if (resolved.merchantId) {
+    return { merchantId: resolved.merchantId, fixture: loadMerchantFixture(db, resolved.merchantId) };
+  }
+  const merchantId = seedMerchant(db, sessionId, {});
+  return { merchantId, fixture: loadFixture("bakery-v1") };
 }
 
 export interface DemoState {
@@ -127,7 +154,14 @@ export interface DemoState {
   sessionId: string;
   merchants: MerchantListItem[];
   activeMerchantId: string | null;
-  merchant?: { name: string; fixtureVersion: string; timezone: string; currency: string };
+  merchant?: {
+    name: string;
+    fixtureVersion: string;
+    timezone: string;
+    currency: string;
+    domain: { id: string; label: string; emoji: string };
+  };
+  bundleHint: string;
   nowIso: string;
   clockInjected: boolean;
   aiMode: "fixture" | "live";
@@ -161,7 +195,7 @@ export function getDemoState(
   };
 
   if (!resolved.merchantId) {
-    return { ...base, hint: "Load the sample data to explore the demo bakery." };
+    return { ...base, bundleHint: loadFixture("bakery-v1").bundle.name, hint: "Load the sample data to explore the demo bakery." };
   }
   const merchantId = resolved.merchantId;
   const merchant = db
@@ -171,8 +205,20 @@ export function getDemoState(
     | undefined;
 
   if (!merchant) {
-    return { ...base, hint: "Load the sample data to explore the demo bakery." };
+    return { ...base, bundleHint: loadFixture("bakery-v1").bundle.name, hint: "Load the sample data to explore the demo bakery." };
   }
+
+  const merchantFixture = loadFixture(merchant.fixture_version as FixtureVersion);
+  const bundleHint =
+    merchantFixture.bundle.name +
+    " (" +
+    merchantFixture.bundle.components
+      .map((c) => {
+        const sku = merchantFixture.skus.find((sku) => sku.id === c.skuId);
+        return c.quantity + " x " + (sku?.name ?? c.skuId);
+      })
+      .join(" + ") +
+    ")";
 
   const currWin = lastCompleteAfternoonWindow(now);
   const prevWin = previousAfternoonWindow(currWin);
@@ -182,11 +228,13 @@ export function getDemoState(
 
   return {
     ...base,
+    bundleHint,
     merchant: {
       name: merchant.display_name,
       fixtureVersion: merchant.fixture_version,
       timezone: merchant.timezone,
       currency: merchant.currency,
+      domain: merchantFixture.domain,
     },
     kpis: {
       previous: {
@@ -244,8 +292,8 @@ export interface DemoInsights {
  * per-day 3-6 p.m. totals for both windows, and the campaign funnel for the
  * latest queued campaign (stages are null when that step has not happened).
  */
-export function getDemoInsights(db: SqliteDatabase, merchantId: string, now: Date): DemoInsights {
-  const fixture = loadFixture();
+export function getDemoInsights(db: SqliteDatabase, merchantId: string, now: Date, fixtureOverride?: Fixture): DemoInsights {
+  const fixture = fixtureOverride ?? loadFixture("bakery-v1");
   const merchant = db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as
     | { display_name: string }
     | undefined;

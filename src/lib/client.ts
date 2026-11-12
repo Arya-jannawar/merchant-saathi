@@ -83,7 +83,14 @@ export interface DemoStateDto {
   sessionId: string;
   merchants: MerchantDto[];
   activeMerchantId: string | null;
-  merchant?: { name: string; fixtureVersion: string; timezone: string; currency: string };
+  merchant?: {
+    name: string;
+    fixtureVersion: string;
+    timezone: string;
+    currency: string;
+    domain: { id: string; label: string; emoji: string };
+  };
+  bundleHint: string;
   nowIso: string;
   clockInjected: boolean;
   aiMode: "fixture" | "live";
@@ -102,6 +109,16 @@ export interface MerchantDto {
   name: string;
   fixtureVersion: string;
   isDefault: boolean;
+  domain: { id: string; label: string; emoji: string };
+}
+
+export interface DomainOptionDto {
+  id: string;
+  label: string;
+  emoji: string;
+  pitch: string;
+  bundleName: string;
+  fixtureVersion: string;
 }
 
 export interface InsightsDayDto {

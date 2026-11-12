@@ -20,12 +20,29 @@ export interface FixtureInventoryItem {
   unitVariableCostPaise: number;
 }
 
-export type FixtureVersion = "bakery-v1" | "bakery-thin-v1";
+export type FixtureVersion =
+  | "bakery-v1"
+  | "bakery-thin-v1"
+  | "cafe-v1"
+  | "kirana-v1"
+  | "salon-v1"
+  | "mobile-v1"
+  | "juice-v1"
+  | "garage-v1"
+  | "tuition-v1";
+
+export interface FixtureDomain {
+  id: string;
+  label: string;
+  emoji: string;
+  pitch: string;
+}
 
 export interface Fixture {
   fixtureVersion: string;
   definitionVersion: string;
   merchant: { displayName: string; timezone: string; currency: string };
+  domain: FixtureDomain;
   clock: { nowIso: string };
   policy: { minMarginPct: number; minCompletedOrdersPerWindow: number; declineThresholdPct: number };
   skus: FixtureSku[];
@@ -73,8 +90,29 @@ export interface Fixture {
   }[];
 }
 
+const cache = new Map<string, Fixture>();
+
 export function loadFixture(version: FixtureVersion = "bakery-v1"): Fixture {
+  const cached = cache.get(version);
+  if (cached) return cached;
   const fixturePath = path.resolve(process.cwd(), "src", "fixtures", `${version}.json`);
   const raw = fs.readFileSync(fixturePath, "utf8");
-  return JSON.parse(raw) as Fixture;
+  const fixture = JSON.parse(raw) as Fixture;
+  cache.set(version, fixture);
+  return fixture;
 }
+
+/** The business domains a merchant can register under (thin demo excluded). */
+export const DOMAIN_REGISTRY: { fixtureVersion: FixtureVersion; domain: FixtureDomain; bundleName: string }[] = [
+  "bakery-v1",
+  "cafe-v1",
+  "kirana-v1",
+  "salon-v1",
+  "mobile-v1",
+  "juice-v1",
+  "garage-v1",
+  "tuition-v1",
+].map((v) => {
+  const f = loadFixture(v as FixtureVersion);
+  return { fixtureVersion: v as FixtureVersion, domain: f.domain, bundleName: f.bundle.name };
+});

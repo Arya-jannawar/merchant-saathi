@@ -15,25 +15,76 @@
     "declineThresholdPct": 10
   },
   "skus": [
-    { "id": "SKU-SAMOSA", "name": "Samosa", "pricePaise": 3500, "unitVariableCostPaise": 1500 },
-    { "id": "SKU-TEA", "name": "Tea", "pricePaise": 2000, "unitVariableCostPaise": 1000 },
-    { "id": "SKU-PASTRY", "name": "Veg pastry", "pricePaise": 4000, "unitVariableCostPaise": 1800 },
-    { "id": "SKU-SANDWICH", "name": "Grilled sandwich", "pricePaise": 5000, "unitVariableCostPaise": 2200 },
-    { "id": "SKU-JUICE", "name": "Fresh lime juice", "pricePaise": 6000, "unitVariableCostPaise": 2500 }
+    {
+      "id": "SKU-SAMOSA",
+      "name": "Samosa",
+      "pricePaise": 3500,
+      "unitVariableCostPaise": 1500
+    },
+    {
+      "id": "SKU-TEA",
+      "name": "Tea",
+      "pricePaise": 2000,
+      "unitVariableCostPaise": 1000
+    },
+    {
+      "id": "SKU-PASTRY",
+      "name": "Veg pastry",
+      "pricePaise": 4000,
+      "unitVariableCostPaise": 1800
+    },
+    {
+      "id": "SKU-SANDWICH",
+      "name": "Grilled sandwich",
+      "pricePaise": 5000,
+      "unitVariableCostPaise": 2200
+    },
+    {
+      "id": "SKU-JUICE",
+      "name": "Fresh lime juice",
+      "pricePaise": 6000,
+      "unitVariableCostPaise": 2500
+    }
   ],
   "inventory": [
-    { "skuId": "SKU-SAMOSA", "quantity": 60, "unitVariableCostPaise": 1500 },
-    { "skuId": "SKU-TEA", "quantity": 25, "unitVariableCostPaise": 1000 },
-    { "skuId": "SKU-PASTRY", "quantity": 30, "unitVariableCostPaise": 1800 },
-    { "skuId": "SKU-SANDWICH", "quantity": 15, "unitVariableCostPaise": 2200 },
-    { "skuId": "SKU-JUICE", "quantity": 20, "unitVariableCostPaise": 2500 }
+    {
+      "skuId": "SKU-SAMOSA",
+      "quantity": 60,
+      "unitVariableCostPaise": 1500
+    },
+    {
+      "skuId": "SKU-TEA",
+      "quantity": 25,
+      "unitVariableCostPaise": 1000
+    },
+    {
+      "skuId": "SKU-PASTRY",
+      "quantity": 30,
+      "unitVariableCostPaise": 1800
+    },
+    {
+      "skuId": "SKU-SANDWICH",
+      "quantity": 15,
+      "unitVariableCostPaise": 2200
+    },
+    {
+      "skuId": "SKU-JUICE",
+      "quantity": 20,
+      "unitVariableCostPaise": 2500
+    }
   ],
   "bundle": {
     "id": "BUNDLE-SAMOSA-CHAI",
     "name": "Two samosas + one tea",
     "components": [
-      { "skuId": "SKU-SAMOSA", "quantity": 2 },
-      { "skuId": "SKU-TEA", "quantity": 1 }
+      {
+        "skuId": "SKU-SAMOSA",
+        "quantity": 2
+      },
+      {
+        "skuId": "SKU-TEA",
+        "quantity": 1
+      }
     ],
     "normalPricePaise": 9000,
     "proposedPricePaise": 7000,
@@ -45,14 +96,18 @@
       "mondayIsoDate": "2026-10-26",
       "completedAfternoonOrders": 12,
       "netSalesPaise": 96000,
-      "orderDistribution": { "80": 12 }
+      "orderDistribution": {
+        "80": 12
+      }
     },
     "current": {
       "label": "2-6 Nov 2026",
       "mondayIsoDate": "2026-11-02",
       "completedAfternoonOrders": 8,
       "netSalesPaise": 64000,
-      "orderDistribution": { "80": 8 }
+      "orderDistribution": {
+        "80": 8
+      }
     }
   },
   "customers": {
@@ -61,7 +116,10 @@
     "revokedSms": 5,
     "noConsent": 5,
     "channel": "sms",
-    "consentSources": ["in-store signup card", "QR opt-in at counter"]
+    "consentSources": [
+      "in-store signup card",
+      "QR opt-in at counter"
+    ]
   },
   "campaign": {
     "validity": "next weekday afternoon",
@@ -76,15 +134,81 @@
     "discountPaise": 20000
   },
   "simulatedRedemptionEvents": [
-    { "eventId": "R-001", "customerId": "CUST-001", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T15:12:00+05:30" },
-    { "eventId": "R-002", "customerId": "CUST-004", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T15:26:00+05:30" },
-    { "eventId": "R-003", "customerId": "CUST-007", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T15:41:00+05:30" },
-    { "eventId": "R-004", "customerId": "CUST-010", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T15:55:00+05:30" },
-    { "eventId": "R-005", "customerId": "CUST-013", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T16:03:00+05:30" },
-    { "eventId": "R-006", "customerId": "CUST-016", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T16:18:00+05:30" },
-    { "eventId": "R-007", "customerId": "CUST-019", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T16:37:00+05:30" },
-    { "eventId": "R-008", "customerId": "CUST-022", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T16:52:00+05:30" },
-    { "eventId": "R-009", "customerId": "CUST-025", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T17:06:00+05:30" },
-    { "eventId": "R-010", "customerId": "CUST-028", "quantity": 1, "amountPaise": 7000, "occurredAtIso": "2026-11-09T17:24:00+05:30" }
-  ]
+    {
+      "eventId": "R-001",
+      "customerId": "CUST-001",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T15:12:00+05:30"
+    },
+    {
+      "eventId": "R-002",
+      "customerId": "CUST-004",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T15:26:00+05:30"
+    },
+    {
+      "eventId": "R-003",
+      "customerId": "CUST-007",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T15:41:00+05:30"
+    },
+    {
+      "eventId": "R-004",
+      "customerId": "CUST-010",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T15:55:00+05:30"
+    },
+    {
+      "eventId": "R-005",
+      "customerId": "CUST-013",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T16:03:00+05:30"
+    },
+    {
+      "eventId": "R-006",
+      "customerId": "CUST-016",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T16:18:00+05:30"
+    },
+    {
+      "eventId": "R-007",
+      "customerId": "CUST-019",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T16:37:00+05:30"
+    },
+    {
+      "eventId": "R-008",
+      "customerId": "CUST-022",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T16:52:00+05:30"
+    },
+    {
+      "eventId": "R-009",
+      "customerId": "CUST-025",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T17:06:00+05:30"
+    },
+    {
+      "eventId": "R-010",
+      "customerId": "CUST-028",
+      "quantity": 1,
+      "amountPaise": 7000,
+      "occurredAtIso": "2026-11-09T17:24:00+05:30"
+    }
+  ],
+  "domain": {
+    "id": "bakery",
+    "label": "Bakery & Sweets",
+    "emoji": "🧁",
+    "pitch": "The thin-data demo: tiny windows, honest refusal."
+  }
 }

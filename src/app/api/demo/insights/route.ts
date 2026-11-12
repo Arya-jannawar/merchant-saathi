@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export const GET = routeHandler(async (request: Request) => {
   const db = getDb();
   const sessionId = getDemoSessionId();
-  const merchantId = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const insights = getDemoInsights(db, merchantId, getNow());
+  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const insights = getDemoInsights(db, merchantId, getNow(), fixture);
   return ok(insights);
 });

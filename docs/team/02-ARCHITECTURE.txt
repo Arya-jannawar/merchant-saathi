@@ -85,6 +85,13 @@ SESSIONS AND TENANTS (important!)
   - Variant businesses are seeded deterministically from a variant_seed stored
     on the merchant row (see seed.ts: trimmed hero windows, pooled names), so
     every business differs but stays reproducible and reconciled.
+  - DOMAIN FIXTURES: registration stores the chosen domain as the merchant's
+    fixture_version (bakery-v1, cafe-v1, kirana-v1, salon-v1, mobile-v1,
+    juice-v1, garage-v1, tuition-v1). All domain fixtures share bakery-v1's
+    verified numbers with themed SKU/bundle names (src/fixtures/*.json,
+    registry in fixture.ts). Every route resolves the ACTIVE merchant's own
+    fixture via resolveTenant -> loadMerchantFixture; the fixture verifier
+    reconciles every domain fixture against its own seeded tenant.
   - "Load sample data" / "Reset demo" (POST /api/demo/reset) deletes that
     session's tenant (cascade) and reseeds it. Multiple judges can demo
     simultaneously without resetting each other.

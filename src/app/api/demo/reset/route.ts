@@ -14,7 +14,9 @@ export const POST = routeHandler(async (request: Request) => {
   // Body is optional; an empty body resets to the standard bakery-v1 fixture.
   const raw = await request.json().catch(() => ({}));
   const body = parseBody(resetRequestSchema, raw ?? {});
-  const result = resetActiveMerchant(db, sessionId, getRequestedMerchantId(request), body.fixtureVersion ?? "bakery-v1");
+    // An explicit fixture switches the story (standard/thin demo); without one the
+  // merchant keeps its own registered domain.
+  const result = resetActiveMerchant(db, sessionId, getRequestedMerchantId(request), body.fixtureVersion);
   return ok({ fixtureVersion: result.fixtureVersion, merchantName: result.merchantName, reset: true });
 });
 

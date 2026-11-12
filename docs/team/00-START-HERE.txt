@@ -68,10 +68,13 @@ CURRENT STATE (honest summary)
     and cap meters in the offer workspace, cap-utilization bar and a money
     waterfall (Rs 700 - Rs 400 = Rs 300) on the campaign page. All values come
     from the same computed DTOs as before - no hand-drawn numbers.
-  - MULTIPLE BUSINESSES: the 🏪 strip (top-left) lets you add, switch and
-    remove businesses in one click. Each business gets its own deterministic
-    synthetic numbers, consent register, offers and campaigns; the server only
-    honors business ids owned by your session. Up to 6 per session.
+  - REGISTRATION PLATFORM: new sessions land on a platform hero - register a
+    business (name -> domain -> buddy) in three steps. Eight domains ship as
+    themed fixtures (Bakery, Cafe, Kirana, Salon, Mobile, Juice, Auto,
+    Coaching) with the SAME verified economics under every theme.
+    fixtures:verify reconciles every domain fixture on each run. The store
+    strip switches/removes businesses; every route loads the active business's
+    own domain fixture. Up to 6 businesses per session.
   - Sounds: a full synthesized kit (Web Audio, compressor on the master bus,
     noise-sweep textures, no audio files) for taps, approvals, rejections,
     tour steps, business switching and every mascot x mood pair. Mute toggle

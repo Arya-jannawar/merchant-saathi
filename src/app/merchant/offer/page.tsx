@@ -9,6 +9,7 @@ import {
   type ExecuteResponseDto,
 } from "@/lib/client";
 import { formatDateTime, formatINR, formatPct } from "@/lib/format";
+import type { DemoStateDto } from "@/lib/client";
 import { Alert, Badge, Card, Stat } from "@/components/ui";
 import EvidenceDrawer from "@/components/evidence-drawer";
 import { Meter } from "@/components/charts";
@@ -29,7 +30,14 @@ export default function OfferWorkspacePage() {
 
   const [busy, setBusy] = useState<"" | "draft" | "approve" | "execute">("");
   const [error, setError] = useState<string | null>(null);
+  const [bundleHint, setBundleHint] = useState("Loading bundle…");
   const saathi = useSaathi();
+
+  useEffect(() => {
+    api<DemoStateDto>("/api/demo/state")
+      .then((s) => setBundleHint(`${s.merchant?.domain.emoji ?? "🧁"} ${s.bundleHint}`))
+      .catch(() => setBundleHint("Bundle (from your domain fixture)"));
+  }, []);
 
   const pricePaise = parseRupees(priceInput);
   const cap = Number.parseInt(capInput, 10);
@@ -164,8 +172,8 @@ export default function OfferWorkspacePage() {
           <h2 className="text-base font-bold text-navy">Terms</h2>
           <div className="mt-4 space-y-4">
             <label className="block">
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Bundle (fixed in this demo)</span>
-              <input value="Two samosas + one tea (2 x ₹35 + 1 x ₹20)" disabled readOnly className="mt-1 w-full" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Bundle (fixed by your domain fixture)</span>
+              <input value={bundleHint} disabled readOnly className="mt-1 w-full" />
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">

@@ -127,8 +127,19 @@ Every mascot × mood pair has its **own synthesized tune** — the same melody i
 ### 💬 8. Mithu's chat — grounded answers, optional live brain
 Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"* — the built-in **fact book** answers from the session's verified numbers with a *How I reasoned* trace. Paste a provider API key + model in the 🧠 dialog and answers become generative with deeper reasoning — still guarded: any rupee amount the model invents that isn't in the computed facts makes the reply fall back to the fact book with a labeled note. The key lives in **server memory only** (never disk, masked to the browser, public-host validated).
 
-### 🏪 9. Multiple businesses, zero tedium
-The 🏪 strip adds, switches and removes businesses in one click — each with its own deterministic synthetic numbers, consent register, offers and campaigns (up to 6 per session). Requests carry the active business id and the server honors **only ids owned by your session**. Stale selectors self-heal; the same client idempotency key never collides across businesses.
+### 🏪 9. A platform for every Paytm merchant - register, don't configure
+
+<p align="center"><img src="docs/screenshots/11-registration.png" width="100%" alt="The registration wizard with the domain grid"/></p>
+
+Merchant Saathi is built as a **platform**: hit *Register your business* and a three-step wizard has you selling in seconds -
+
+1. **Name your business** (or let the domain generate one).
+2. **Pick your domain** - Bakery 🧁, Cafe ☕, Kirana 🛒, Salon 💈, Mobile & Repair 📱, Juice 🥤, Auto Service 🔧, Coaching 📚. Each domain ships its own themed SKUs, a domain-appropriate bundle ("Haircut + beard trim", "Rice + dal family pack", "Screen guard + quick service"...) and its own pitch.
+3. **Pick a buddy** - your mascot from the six-character cast, pre-set before you even land on the dashboard.
+
+**Same verified math under every domain.** Every domain fixture is bakery-v1's audited economics with themed names: the 42.9% margin, the ₹400 exposure cap, the ₹700 − ₹400 = ₹300 story - all identical, all reconciled by `npm run fixtures:verify`, which now validates **every domain fixture** against its own seeded tenant on every run.
+
+**Platform mechanics:** the 🏪 switcher shows each business with its domain emoji and label; switching is one click and every screen refetches with the new scope. Every request carries the active business id; the server honors **only ids owned by your session** - and loads **that business's own domain fixture** for offers, approvals, executions and results. Client idempotency keys are scoped per business; resetting a business refreshes its rows **in place without losing its domain**; deleting one removes its data for good. Up to 6 businesses per session. New sessions land on a platform-style hero (domain grid + one-click registration) instead of an empty screen.
 
 ## 🏗 Architecture
 
@@ -181,7 +192,8 @@ docs/                      screenshots of every stage + animations + team contex
 | `/api/demo/state` | GET | Bootstrap: seeded state, KPIs, merchants, AI mode |
 | `/api/demo/reset` | POST | Reseed **this session's active business** |
 | `/api/demo/insights` | GET | Per-day 3–6 p.m. totals + campaign funnel |
-| `/api/merchants` | GET / POST | List businesses / add one (cap 6, deterministic variant) |
+| `/api/domains` | GET | The registration domain registry (label, emoji, pitch, themed bundle) |
+| `/api/merchants` | GET / POST | List businesses / register one (domain + name, cap 6) |
 | `/api/merchants/{id}` | DELETE | Remove an owned business and all its rows |
 | `/api/opportunities` | GET | Evidence-backed opportunities (or the low-data reason) |
 | `/api/campaigns/draft` | POST | New draft version: computed terms + AI copy + previewHash |
@@ -244,8 +256,8 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 ## 🗺 Roadmap
 
 - [x] Hero loop end-to-end + thin-data refusal + Hindi copy
-- [x] Mascot cast, guided tour, sound kit, infographic dashboard
-- [x] Multi-business sessions with ownership guards
+- [x] Mascot cast (interactive emotions + sleep cycle), guided tour, sound kit, infographic dashboard
+- [x] Registration platform: domain-themed fixtures, wizard onboarding, per-domain verification
 - [ ] Live-AI smoke test with real credentials (fallback path is already honest)
 - [ ] CSV import with per-row validation and rejected-row report
 - [ ] Hosted deployment (single Node process + durable disk; real auth first)

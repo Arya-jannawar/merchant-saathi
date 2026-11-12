@@ -25,8 +25,8 @@ export const POST = routeHandler(async (request: Request) => {
   const { question } = parseBody(ChatBodySchema, await request.json().catch(() => null));
   const db = getDb();
   const sessionId = getDemoSessionId();
-  const merchantId = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const facts = buildAssistantFacts(db, merchantId);
+  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const facts = buildAssistantFacts(db, merchantId, fixture);
 
   const keyConfig = getAssistantKeyConfig();
   if (keyConfig) {

@@ -8,6 +8,9 @@ export const dynamic = "force-dynamic";
 
 const CreateMerchantSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
+  domain: z
+    .enum(["bakery-v1", "cafe-v1", "kirana-v1", "salon-v1", "mobile-v1", "juice-v1", "garage-v1", "tuition-v1"])
+    .optional(),
 });
 
 /** GET /api/merchants - the businesses owned by this demo session. */
@@ -22,6 +25,6 @@ export const POST = routeHandler(async (request: Request) => {
   const db = getDb();
   const sessionId = getDemoSessionId();
   const body = parseBody(CreateMerchantSchema, await request.json().catch(() => null));
-  const merchant = createMerchant(db, sessionId, body.name);
+  const merchant = createMerchant(db, sessionId, body.name, body.domain);
   return ok(merchant, 201);
 });

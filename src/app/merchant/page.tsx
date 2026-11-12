@@ -7,14 +7,17 @@ import { Alert, Badge, Card } from "@/components/ui";
 import OpportunityCard from "@/components/opportunity-card";
 import { CountUp, DayBars, DonutChart, FunnelStrip, GroupedBars, type FunnelStep } from "@/components/charts";
 import { useSaathi } from "@/components/saathi-provider";
-import type { DemoInsightsDto, OpportunitiesDto } from "@/lib/client";
+import type { DemoInsightsDto, DomainOptionDto, OpportunitiesDto } from "@/lib/client";
 import { soundKit } from "@/lib/sound";
+import { RegisterBusinessModal } from "@/components/register-business";
 
 export default function MerchantDashboard() {
   const [state, setState] = useState<DemoStateDto | null>(null);
   const [opps, setOpps] = useState<OpportunitiesDto | null>(null);
   const [insights, setInsights] = useState<DemoInsightsDto | null>(null);
   const [metric, setMetric] = useState<"orders" | "sales" | "aov">("orders");
+  const [domains, setDomains] = useState<DomainOptionDto[]>([]);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [oppsLoading, setOppsLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +29,11 @@ export default function MerchantDashboard() {
       setError(null);
       const s = await api<DemoStateDto>("/api/demo/state");
       setState(s);
+      if (!s.seeded) {
+        api<{ domains: DomainOptionDto[] }>("/api/domains")
+          .then((res) => setDomains(res.domains))
+          .catch(() => undefined);
+      }
       if (s.seeded) {
         setOppsLoading(true);
         try {
@@ -103,7 +111,9 @@ export default function MerchantDashboard() {
     <div className="space-y-6">
       {/* status strip */}
       <div data-tour="status-strip" className="ms-rise flex flex-wrap items-center gap-2">
-        <Badge tone="blue">Synthetic demo data ({state.merchant?.fixtureVersion ?? "bakery-v1"})</Badge>
+        <Badge tone="blue">
+          {state.merchant?.domain.emoji} {state.merchant?.domain.label ?? "Bakery & Sweets"} · synthetic demo data
+        </Badge>
         <Badge tone="cyan">
           AI mode: {state.aiMode === "live" ? "live model" : "fixture (labeled, no credentials)"}
         </Badge>
@@ -136,29 +146,76 @@ export default function MerchantDashboard() {
       {error ? <Alert tone="error" title={error} /> : null}
 
       {!state.seeded ? (
-        <Card className="ms-pop p-8 text-center">
-          <h1 className="text-2xl font-extrabold text-navy">Merchant Saathi</h1>
-          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-            {state.hint ?? "Load the sample data to explore the demo bakery."} This prototype loads one transparent
-            synthetic bakery dataset (fixture <strong>bakery-v1</strong>) so every number on screen can be traced and
-            reconciled. No real customer or payment data is used.
-          </p>
-          <button type="button" onClick={() => loadSampleData("bakery-v1")} disabled={busy} className="btn-primary mx-auto mt-6 !px-6 !py-3 text-base">
-            {busy ? "Loading sample data..." : "Load sample data"}
-          </button>
-          <p className="mt-3 text-xs text-slate-400">
-            or{" "}
-            <button
-              type="button"
-              onClick={() => loadSampleData("bakery-thin-v1")}
-              disabled={busy}
-              className="font-semibold text-brand underline"
-            >
-              load the thin-data demo
-            </button>{" "}
-            to see the app say &quot;insufficient evidence&quot; when windows are too small.
-          </p>
-        </Card>
+        <div className="space-y-5">
+          <Card className="ms-pop overflow-hidden">
+            <div className="relative overflow-hidden bg-gradient-to-br from-navy via-brand to-[#06203f] px-8 pb-8 pt-8 text-center">
+              <div className="pointer-events-none absolute -right-8 -top-6 opacity-30 text-[120px] leading-none" aria-hidden>🧁☕🛒💈📱🥤🔧📚</div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Merchant Saathi platform</p>
+              <h1 className="mt-2 text-3xl font-extrabold text-white">The AI growth partner for every Paytm merchant</h1>
+              <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-brand-mid">
+                Register once, pick your domain, and get an evidence-backed growth loop for your shop: the afternoon
+                story with receipts, a margin-safe offer computed in code, a hash-bound approval, and a campaign that
+                reports honestly. All numbers on this platform are synthetic and simulated - every screen says so.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegisterOpen(true);
+                    soundKit.play("open");
+                  }}
+                  className="rounded-xl bg-accent px-6 py-3 text-base font-bold text-white shadow-card transition hover:scale-[1.03] hover:brightness-110"
+                >
+                  Register your business →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void loadSampleData("bakery-v1")}
+                  disabled={busy}
+                  className="rounded-xl border border-white/40 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                >
+                  {busy ? "Loading sample data..." : "Load sample data"}
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-slate-400">
+                or explore the{" "}
+                <button
+                  type="button"
+                  onClick={() => void loadSampleData("bakery-thin-v1")}
+                  disabled={busy}
+                  className="font-semibold text-accent underline"
+                >
+                  thin-data demo
+                </button>{" "}
+                to see the platform refuse to guess when evidence is too small.
+              </p>
+            </div>
+            <div className="grid gap-2 px-6 py-5 sm:grid-cols-4">
+              {domains.slice(0, 8).map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => {
+                    setRegisterOpen(true);
+                    soundKit.play("open");
+                  }}
+                  className="rounded-2xl border border-slate-200 p-3 text-left transition hover:scale-[1.03] hover:border-accent hover:shadow-card"
+                >
+                  <p className="flex items-center gap-2 text-sm font-extrabold text-navy">
+                    <span className="text-lg" aria-hidden>{d.emoji}</span>
+                    {d.label}
+                  </p>
+                  <p className="mt-0.5 text-[10px] leading-snug text-slate-500">{d.pitch}</p>
+                </button>
+              ))}
+            </div>
+          </Card>
+          <RegisterBusinessModal
+            open={registerOpen}
+            onClose={() => setRegisterOpen(false)}
+            onRegistered={() => undefined}
+          />
+        </div>
       ) : (
         <>
           <div className="flex flex-wrap items-baseline justify-between gap-2">

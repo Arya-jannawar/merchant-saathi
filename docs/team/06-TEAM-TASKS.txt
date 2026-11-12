@@ -22,6 +22,10 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
       synthesized voice per mascot x mood; picker dialog with live previews
   [x] Multiple businesses: add/switch/remove from the 🏪 strip; ownership
       guard on every route; per-merchant idempotency keys
+  [x] Registration platform: 8 domain fixtures (same verified math, themed
+      SKUs/bundles), 3-step registration wizard (name -> domain -> buddy),
+      per-merchant fixture routing in every route, verifier reconciles all
+      domains (+3 domain tests, 91 total)
   [x] Dashboard infographic: metric switcher, day-by-day bars with tooltips,
       campaign funnel strip (all values from /api/demo/insights)
   [x] Mithu mascot: moods, speech bubbles, guided spotlight tour per screen,

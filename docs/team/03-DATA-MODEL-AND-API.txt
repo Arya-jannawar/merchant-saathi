@@ -72,8 +72,10 @@ ENDPOINTS (all session-scoped; JSON)
        -> per-day 3-6 p.m. totals for both windows + campaign funnel
           { days { previous[5], current[5] }, funnel { customers, eligible,
             queued?, redemptions?, contributionPaise?, simulated: true } | null }
-GET  /api/merchants                -> { merchants[] } (this session's businesses)
-POST /api/merchants { name? }      -> 201 MerchantDto (cap 6; deterministic variant seed)
+GET  /api/domains                  -> { domains[] } registry: id, label, emoji, pitch,
+                                      bundleName, fixtureVersion
+GET  /api/merchants                -> { merchants[] } (this session's businesses, with domain)
+POST /api/merchants { name?, domain? } -> 201 MerchantDto (cap 6; domain-shaped seed)
 DELETE /api/merchants/{id}         -> removes an OWNED business + all its rows
 GET  /api/opportunities
        -> { items: [ { id, observation, metricIds, limitations, windows,
