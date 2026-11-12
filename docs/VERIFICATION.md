@@ -240,6 +240,21 @@ The registration platform round (verified live + in tests):
   buddy Pixel pre-selected; dashboard showed the domain badge + themed
   heading, offer workspace showed the "Rice + dal family pack" bundle hint.
 
+The operations copilot round (the "manage operations" pillar):
+
+- src/domain/operations.ts: units sold per SKU per day computed from
+  completed order rows in the current window; days-of-cover = stock / rate;
+  campaign draw-down = bundle components x remaining redemption capacity of
+  the queued campaign; restock units target a 14-day cover and are costed at
+  the inventory table's unit costs.
+- Tests +4 (95 total): run-rate lines match seeded inventory, campaign
+  draw-down reflects the remaining cap (40 samosas / 20 tea before events, 38
+  after R-001), restock cost arithmetic in paise, fact book answers from the
+  stockroom.
+- GET /api/operations is domain-aware (uses the active merchant's fixture) and
+  the assistant handles "should I restock?" style questions with grounded
+  numbers. Advisory only: nothing mutates inventory.
+
 ## Known limitations (honest list)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run

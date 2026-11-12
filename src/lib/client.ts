@@ -296,6 +296,32 @@ export interface ResetResponseDto {
   reset: boolean;
 }
 
+export interface OperationsDto {
+  merchantId: string;
+  merchantName: string;
+  windowLabel: string;
+  targetCoverDays: number;
+  lines: {
+    skuId: string;
+    skuName: string;
+    stock: number;
+    dailyRate: number | null;
+    daysOfCover: number | null;
+    status: "out" | "critical" | "low" | "healthy";
+    campaignDrawDown: number;
+    projectedAfterCampaign: number;
+    restockUnits: number;
+    restockCostPaise: number;
+  }[];
+  restockTotalUnits: number;
+  restockTotalCostPaise: number;
+  briefing: string[];
+  serve: {
+    consents: { active: number; revoked: number; none: number; channel: string };
+    champions: { label: string; demoChannelId: string; units: number; spendPaise: number }[];
+  };
+}
+
 export interface AssistantChatDto {
   answer: string;
   reasoning: string[];

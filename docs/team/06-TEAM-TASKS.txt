@@ -26,6 +26,9 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
       SKUs/bundles), 3-step registration wizard (name -> domain -> buddy),
       per-merchant fixture routing in every route, verifier reconciles all
       domains (+3 domain tests, 91 total)
+  [x] Operations copilot (the "manage operations" pillar): per-SKU run-rates
+      from order rows, days-of-cover, campaign draw-down, costed restock plan,
+      consent health + redemption champions (+4 tests, 95 total)
   [x] Dashboard infographic: metric switcher, day-by-day bars with tooltips,
       campaign funnel strip (all values from /api/demo/insights)
   [x] Mithu mascot: moods, speech bubbles, guided spotlight tour per screen,

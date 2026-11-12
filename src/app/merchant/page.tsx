@@ -145,17 +145,44 @@ export default function MerchantDashboard() {
 
       {error ? <Alert tone="error" title={error} /> : null}
 
+      {/* three-pillar copilot nav */}
+      {state.seeded ? (
+        <div className="ms-stagger grid gap-3 sm:grid-cols-3">
+          {(
+            [
+              { emoji: "📈", title: "Grow", text: "One evidence-backed opportunity, priced safely.", href: "/merchant/offer", tone: "from-emerald-50 to-white border-emerald-200" },
+              { emoji: "🧰", title: "Manage", text: "Run-rates, stock cover and a restock plan.", href: "/merchant/operations", tone: "from-sky-50 to-white border-sky-200" },
+              { emoji: "💬", title: "Serve", text: "Consent-first campaigns your customers chose.", href: "/merchant/operations#serve", tone: "from-fuchsia-50 to-white border-fuchsia-200" },
+            ] as const
+          ).map((pillar) => (
+            <a
+              key={pillar.title}
+              href={pillar.href}
+              className={`rounded-2xl border bg-gradient-to-br ${pillar.tone} p-4 transition hover:scale-[1.02] hover:shadow-card`}
+            >
+              <p className="flex items-center gap-2 text-sm font-extrabold text-navy">
+                <span className="text-lg" aria-hidden>{pillar.emoji}</span>
+                {pillar.title}
+                <span aria-hidden className="ml-auto text-slate-400">→</span>
+              </p>
+              <p className="mt-1 text-xs leading-snug text-slate-600">{pillar.text}</p>
+            </a>
+          ))}
+        </div>
+      ) : null}
+
       {!state.seeded ? (
         <div className="space-y-5">
           <Card className="ms-pop overflow-hidden">
             <div className="relative overflow-hidden bg-gradient-to-br from-navy via-brand to-[#06203f] px-8 pb-8 pt-8 text-center">
               <div className="pointer-events-none absolute -right-8 -top-6 opacity-30 text-[120px] leading-none" aria-hidden>🧁☕🛒💈📱🥤🔧📚</div>
               <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-accent">Merchant Saathi platform</p>
-              <h1 className="mt-2 text-3xl font-extrabold text-white">The AI growth partner for every Paytm merchant</h1>
+              <h1 className="mt-2 text-3xl font-extrabold text-white">The AI business copilot for every Paytm merchant</h1>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-brand-mid">
-                Register once, pick your domain, and get an evidence-backed growth loop for your shop: the afternoon
-                story with receipts, a margin-safe offer computed in code, a hash-bound approval, and a campaign that
-                reports honestly. All numbers on this platform are synthetic and simulated - every screen says so.
+                One platform, three pillars: <b className="text-white">Grow</b> with evidence-backed offers,{" "}
+                <b className="text-white">Manage</b> operations with restock intelligence,{" "}
+                <b className="text-white">Serve</b> customers with consent-first campaigns. Every number is computed in
+                code and labeled honestly - synthetic demo data, simulated campaigns, all of it on the record.
               </p>
               <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                 <button

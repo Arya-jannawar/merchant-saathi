@@ -59,6 +59,7 @@ describe("assistantMonetaryTermsValid", () => {
     economics: { pricePaise: 7000, normalPricePaise: 9000, bundleCostPaise: 4000, contributionPaise: 3000, marginPct: 42.9, floorPct: 25, passes: true, capacity: 25, requestedCap: 20, maxDiscountExposurePaise: 40000, discountPct: 22.2 },
     campaign: null,
     opportunity: null,
+    operations: null,
     lowDataReason: null,
     merchantName: "x",
     fixtureVersion: "bakery-v1",

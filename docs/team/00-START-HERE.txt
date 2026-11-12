@@ -84,6 +84,11 @@ CURRENT STATE (honest summary)
     (orders / net sales / AOV), per-day 3-6 p.m. bars with hover tooltips
     (from /api/demo/insights - computed from order rows), and a campaign
     funnel strip that fills in as you queue and redeem.
+  - THREE PILLARS (the problem statement): Grow (evidence-backed offers),
+    Manage (Operations tab - run-rates per SKU, days of cover, campaign
+    draw-down, costed restock plans, all advisory), Serve (consent health +
+    redemption champions). The dashboard shows the pillar quick-nav; ask the
+    mascot "should I restock?" - the fact book answers from the stockroom.
   - AI runs in "fixture" mode by default (labeled, no credentials needed).
     The live Z.ai adapter is implemented but NOT yet smoke-tested with a real
     API key - that is task T-A3 for whoever owns credentials.

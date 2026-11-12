@@ -3,6 +3,7 @@ import { formatINR } from "@/lib/money";
 import { getDemoState, loadMerchantFixture, type DemoState } from "@/services/demo";
 import { getOpportunities } from "@/domain/metrics";
 import { computeOffer } from "@/domain/offers";
+import { getOperationsInsights } from "@/domain/operations";
 import { getCampaignResults, type StoredOffer } from "@/services/campaigns";
 import { loadFixture } from "@/lib/fixture";
 import { getNow } from "@/lib/clock";
@@ -45,6 +46,21 @@ export interface AssistantFacts {
     evidence: { id: string; label: string; valueLabel: string; period: string }[];
   } | null;
   lowDataReason: string | null;
+  operations: {
+    windowLabel: string;
+    targetCoverDays: number;
+    lines: {
+      skuName: string;
+      stock: number;
+      dailyRate: number | null;
+      daysOfCover: number | null;
+      status: "out" | "critical" | "low" | "healthy";
+      restockUnits: number;
+      restockCostPaise: number;
+    }[];
+    restockTotalUnits: number;
+    restockTotalCostPaise: number;
+  } | null;
   economics: {
     pricePaise: number;
     normalPricePaise: number;
@@ -149,7 +165,24 @@ export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixt
     };
   }
 
+  const ops = getOperationsInsights(db, merchantId, fixture, now);
+
   return {
+    operations: {
+      windowLabel: ops.windowLabel,
+      targetCoverDays: ops.targetCoverDays,
+      lines: ops.lines.map((l) => ({
+        skuName: l.skuName,
+        stock: l.stock,
+        dailyRate: l.dailyRate,
+        daysOfCover: l.daysOfCover,
+        status: l.status,
+        restockUnits: l.restockUnits,
+        restockCostPaise: l.restockCostPaise,
+      })),
+      restockTotalUnits: ops.restockTotalUnits,
+      restockTotalCostPaise: ops.restockTotalCostPaise,
+    },
     merchantName: state?.merchant?.name ?? "the demo bakery",
     fixtureVersion: state?.merchant?.fixtureVersion ?? fixture.fixtureVersion,
     aiMode: state?.aiMode ?? "fixture",
@@ -207,6 +240,7 @@ export type AssistantIntent =
   | "queue"
   | "results"
   | "consent"
+  | "operations"
   | "honesty"
   | "tour"
   | "thin"
@@ -220,6 +254,7 @@ const INTENT_PATTERNS: { intent: AssistantIntent; patterns: string[] }[] = [
   { intent: "queue", patterns: ["queue", "send", "outbox", "whatsapp", "sms", "message", "customers", "notify", "campaign"] },
   { intent: "results", patterns: ["result", "how much", "money", "earn", "earned", "revenue", "contribution", "made", "gain", "worth it", "redemption"] },
   { intent: "consent", patterns: ["consent", "audience", "eligible", "excluded", "opt-in", "opt in", "permission"] },
+  { intent: "operations", patterns: ["stock", "inventory", "restock", "cover", "operations", "run rate", "run-rate", "supplier", "reorder"] },
   { intent: "honesty", patterns: ["real", "simulated", "fake", "synthetic", "demo data", "honest", "trust", "actual", "live"] },
   { intent: "tour", patterns: ["how does this work", "guide", "start", "tour", "where", "what should i do", "next step", "how to use", "explain the app", "explain this"] },
   { intent: "thin", patterns: ["thin", "insufficient", "not enough data", "small sample", "no opportunity"] },
@@ -398,6 +433,41 @@ export function answerFromFactBook(question: string, facts: AssistantFacts): Ass
         reasoning: [...BASE_REASONING(facts, intent), "Separated the real vs simulated lists exactly as the labels do."],
         followUps: ["What can the AI actually do?", "How do I know the numbers are right?"],
       };
+    case "operations": {
+      const op = facts.operations;
+      if (!op) {
+        return {
+          intent,
+          answer: "I could not read the stockroom just now - try again in a moment.",
+          reasoning: BASE_REASONING(facts, intent),
+          followUps: ["Is the ₹70 offer safe?", "Why are orders down?"],
+        };
+      }
+      const low = op.lines.filter((l) => l.status !== "healthy");
+      const linesTxt =
+        low.length === 0
+          ? `All ${op.lines.length} SKUs hold more than ${op.targetCoverDays} days of cover at the current run-rate - no restock needed right now.`
+          : `${low.length} SKU${low.length === 1 ? "" : "s"} need attention: ` +
+            low
+              .map((l) => `${l.skuName} (${l.daysOfCover === null ? "no recent sales" : `${l.daysOfCover} days of cover`}${l.status === "out" ? ", out of stock" : ""})`)
+              .join(", ") +
+            ".";
+      const plan =
+        op.restockTotalUnits > 0
+          ? ` The suggested restock plan is ${op.restockTotalUnits} units, about ${formatINR(op.restockTotalCostPaise)} at current unit costs - advisory only, nothing is ordered automatically.`
+          : "";
+      return {
+        intent,
+        answer:
+          `Operations: run-rate comes from completed orders in ${op.windowLabel}. ${linesTxt}${plan} ` +
+          "The restock plan lives in the Operations tab - the copilot advises, you decide.",
+        reasoning: [
+          ...BASE_REASONING(facts, intent),
+          "Recomputed units sold per day per SKU from order rows and compared against current inventory.",
+        ],
+        followUps: ["Is the ₹70 offer safe?", "What did the campaign earn?", "Why are orders down?"],
+      };
+    }
     case "tour":
       return {
         intent,
@@ -494,6 +564,10 @@ export function allowedRupeeAmounts(facts: AssistantFacts): Set<string> {
     addPaise(e.bundleCostPaise);
     addPaise(e.contributionPaise);
     addPaise(e.maxDiscountExposurePaise);
+  }
+  if (facts.operations) {
+    addPaise(facts.operations.restockTotalCostPaise);
+    for (const line of facts.operations.lines) addPaise(line.restockCostPaise);
   }
   if (facts.campaign) {
     addPaise(facts.campaign.offer.pricePaise);

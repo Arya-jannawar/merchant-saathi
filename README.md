@@ -16,8 +16,8 @@
 
 <h1 align="center">Merchant Saathi 🧁</h1>
 
-<p align="center"><b>An AI business partner for a bakery's quiet afternoons.</b><br/>
-A dashboard tells a merchant that orders are down. It never tells them <b>what to do about it</b>, whether the fix is <b>affordable</b>, what to <b>say to customers</b>, or whether it <b>worked</b>. Merchant Saathi closes that entire loop - and proves every single number on the way.</p>
+<p align="center"><b>An AI business copilot for every Paytm merchant.</b><br/>
+One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b> (inventory and restock intelligence), <b>Serve</b> (consent-first customer campaigns). A dashboard alone shows a merchant that orders are down; the copilot answers <b>what to do</b>, <b>whether it is affordable</b>, <b>what to say</b>, <b>whether it worked</b> - and <b>when the stockroom will run dry</b>. Every single number is proven on the way.</p>
 
 <p align="center">
   <img src="docs/animations/mascot-moods.svg" width="100%" alt="Six mascot buddies with signature animations"/>
@@ -28,6 +28,7 @@ A dashboard tells a merchant that orders are down. It never tells them <b>what t
   <a href="#-the-solution-one-honest-loop">The Solution</a> •
   <a href="#-feature-deep-dive">Features</a> •
   <a href="#-architecture">Architecture</a> •
+  <a href="#-the-operations-copilot">Operations</a> •
   <a href="#-whats-real-vs-simulated">Honesty Ledger</a> •
   <a href="#-api-reference">API</a> •
   <a href="#-run-it-in-10-minutes">Run It</a> •
@@ -140,6 +141,22 @@ Merchant Saathi is built as a **platform**: hit *Register your business* and a t
 **Same verified math under every domain.** Every domain fixture is bakery-v1's audited economics with themed names: the 42.9% margin, the ₹400 exposure cap, the ₹700 − ₹400 = ₹300 story - all identical, all reconciled by `npm run fixtures:verify`, which now validates **every domain fixture** against its own seeded tenant on every run.
 
 **Platform mechanics:** the 🏪 switcher shows each business with its domain emoji and label; switching is one click and every screen refetches with the new scope. Every request carries the active business id; the server honors **only ids owned by your session** - and loads **that business's own domain fixture** for offers, approvals, executions and results. Client idempotency keys are scoped per business; resetting a business refreshes its rows **in place without losing its domain**; deleting one removes its data for good. Up to 6 businesses per session. New sessions land on a platform-style hero (domain grid + one-click registration) instead of an empty screen.
+
+## 🧰 The operations copilot - thinking beyond payments
+
+Growth is pillar one. Pillar two is **managing the operation itself** - and that is where most AI demos stop. Merchant Saathi's Operations tab (**/merchant/operations**) computes, from real order rows and the inventory table:
+
+- **Run-rate per SKU** - units sold per day across the most recent complete window
+- **Days of cover** - how long the current stock lasts at that rate, per SKU
+- **Campaign draw-down** - a queued offer can still consume bundle components; projected stock after the campaign is already reflected
+- **A restock plan** - units needed to return to a 14-day target cover, costed at current unit prices, totalled in paise
+- **A copilot briefing** - plain-language bullets naming exactly which SKUs need attention before the weekend
+
+And pillar three, **Serve customers better**: consent-health at a glance (active / revoked / never captured) plus **redemption champions** - which consented customers actually showed up for the offer. Serving better starts with serving only what customers agreed to, then rewarding the regulars.
+
+> 🧰 **Advisory by design.** The copilot computes and narrates; it never mutates inventory or orders stock automatically. The owner decides - the same control loop that governs offers governs operations.
+
+<p align="center"><img src="docs/screenshots/12-operations.png" width="100%" alt="Operations copilot with run-rates and restock plan"/></p>
 
 ## 🏗 Architecture
 
@@ -258,6 +275,7 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 - [x] Hero loop end-to-end + thin-data refusal + Hindi copy
 - [x] Mascot cast (interactive emotions + sleep cycle), guided tour, sound kit, infographic dashboard
 - [x] Registration platform: domain-themed fixtures, wizard onboarding, per-domain verification
+- [x] Operations copilot: run-rates, days-of-cover, campaign draw-down, costed restock plans
 - [ ] Live-AI smoke test with real credentials (fallback path is already honest)
 - [ ] CSV import with per-row validation and rejected-row report
 - [ ] Hosted deployment (single Node process + durable disk; real auth first)

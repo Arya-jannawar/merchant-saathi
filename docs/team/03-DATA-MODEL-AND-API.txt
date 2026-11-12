@@ -72,6 +72,9 @@ ENDPOINTS (all session-scoped; JSON)
        -> per-day 3-6 p.m. totals for both windows + campaign funnel
           { days { previous[5], current[5] }, funnel { customers, eligible,
             queued?, redemptions?, contributionPaise?, simulated: true } | null }
+GET  /api/operations               -> operations copilot: per-SKU run-rate, days of
+                                      cover, campaign draw-down, costed restock
+                                      plan, consent health, redemption champions
 GET  /api/domains                  -> { domains[] } registry: id, label, emoji, pitch,
                                       bundleName, fixtureVersion
 GET  /api/merchants                -> { merchants[] } (this session's businesses, with domain)
