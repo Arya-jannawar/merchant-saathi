@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { MascotById } from "@/components/mascot";
-import { getMascot, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
+import { getMascot, INTERACTION_MOODS, MASCOTS, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
 import { soundKit, type SoundName } from "@/lib/sound";
 import { api, ApiClientError, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
@@ -79,6 +79,14 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
     return getMascot(window.localStorage.getItem("ms_mascot")).id;
   });
   const [pickerOpen, setPickerOpen] = useState(false);
+  const lastActiveRef = useRef<number>(Date.now());
+  const sleepingRef = useRef(false);
+  const hoverTimesRef = useRef<number[]>([]);
+  const hoverCooldownRef = useRef(0);
+  const petCooldownRef = useRef(0);
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clickCountRef = useRef(0);
+  const showcaseRef = useRef(false);
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tipIndex = useRef(0);
@@ -161,6 +169,45 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadBrainStatus();
   }, [loadBrainStatus]);
+
+  // ---- mascot life signs ------------------------------------------------
+  // Sleep after 45s without any input; wake (stretch + sound) on the next one.
+  // While awake and idle-ish, roll a small random emotion every ~20s so the
+  // buddy never sits still.
+  const wakeUp = useCallback(() => {
+    if (!sleepingRef.current) return;
+    sleepingRef.current = false;
+    setMoodTemporarily("wake", "idle", 1_400);
+    soundKit.play("wake");
+  }, [setMoodTemporarily]);
+
+  useEffect(() => {
+    const activity = (): void => {
+      lastActiveRef.current = Date.now();
+      if (sleepingRef.current) wakeUp();
+    };
+    const events: (keyof WindowEventMap)[] = ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"];
+    events.forEach((e) => window.addEventListener(e, activity, { passive: true }));
+
+    const tick = setInterval(() => {
+      if (sleepingRef.current) return;
+      if (Date.now() - lastActiveRef.current > 45_000) {
+        sleepingRef.current = true;
+        setMood("sleeping");
+        soundKit.play("sleep");
+        return;
+      }
+      // ambient charm: a tiny emotion between long stretches of quiet
+      if (Date.now() - lastActiveRef.current > 12_000 && !chatOpen && !tourOpen && !pickerOpen && mood === "idle") {
+        const roll = INTERACTION_MOODS[Math.floor(Math.random() * INTERACTION_MOODS.length)];
+        setMoodTemporarily(roll, "idle", 1_500);
+      }
+    }, 2_000);
+    return () => {
+      events.forEach((e) => window.removeEventListener(e, activity));
+      clearInterval(tick);
+    };
+  }, [chatOpen, tourOpen, pickerOpen, mood, setMoodTemporarily, wakeUp]);
 
   const sendingRef = useRef(false);
   const sendMessage = useCallback(
@@ -290,15 +337,75 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
       {/* mascot button */}
       <button
         type="button"
-        onClick={() => (chatOpen ? (setChatOpen(false), soundKit.play("close")) : openChat())}
+        onClick={() => {
+          if (sleepingRef.current) {
+            wakeUp();
+            return;
+          }
+          if (chatOpen) {
+            setChatOpen(false);
+            soundKit.play("close");
+            return;
+          }
+          clickCountRef.current += 1;
+          if (clickCountRef.current === 1) {
+            clickTimerRef.current = setTimeout(() => {
+              clickCountRef.current = 0;
+              if (!showcaseRef.current) openChat();
+            }, 280);
+          } else {
+            if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
+            clickCountRef.current = 0;
+            // double-click: a mini showcase of this buddy's signature moves
+            showcaseRef.current = true;
+            say(`${getMascot(mascotId).name}'s signature moves - hover the mood chips in the 🎭 picker to hear them all!`, { mood: "excited" });
+            let i = 0;
+            const buddy = MASCOTS.find((m) => m.id === mascotId)!;
+            const step = setInterval(() => {
+              if (i >= buddy.signature.length) {
+                clearInterval(step);
+                showcaseRef.current = false;
+                setMood("idle");
+                soundKit.play("giggle");
+                return;
+              }
+              const m = buddy.signature[i];
+              setMoodTemporarily(m, "idle", 1_250);
+              soundKit.playMascot(mascotId, m);
+              i += 1;
+            }, 1_300);
+          }
+        }}
         onMouseEnter={() => {
           setHovered(true);
+          if (sleepingRef.current) return; // let them dream
           if (!chatOpen) soundKit.play("hover");
+          // a fresh emotion on every visit, with a small cooldown so it never flickers
+          const now = Date.now();
+          if (now > hoverCooldownRef.current) {
+            hoverCooldownRef.current = now + 1_400;
+            const roll = INTERACTION_MOODS[Math.floor(Math.random() * INTERACTION_MOODS.length)] as MascotMood;
+            setMoodTemporarily(roll, "idle", 1_300);
+            soundKit.playEmotion(mascotId, roll as string);
+          }
+        }}
+        onMouseMove={() => {
+          // petting: brush over the buddy a few times and it melts
+          if (sleepingRef.current) return;
+          const now = Date.now();
+          hoverTimesRef.current = [...hoverTimesRef.current.filter((t) => now - t < 2_600), now];
+          if (hoverTimesRef.current.length >= 5 && now > petCooldownRef.current) {
+            hoverTimesRef.current = [];
+            petCooldownRef.current = now + 15_000;
+            setMoodTemporarily("hearts", "idle", 2_800);
+            soundKit.playMascot(mascotId, "hearts");
+            say("So much attention! My turnaround time just got faster. 💖", { mood: "hearts" });
+          }
         }}
         onMouseLeave={() => setHovered(false)}
         className={`fixed bottom-5 right-4 z-50 outline-none sm:right-6 ${hovered && !chatOpen ? "ms-wiggle" : ""}`}
-        aria-label={chatOpen ? "Close chat with Mithu" : "Chat with Mithu, the Merchant Saathi mascot"}
-        title="Hi! I'm Mithu - click me!"
+        aria-label={chatOpen ? `Close chat with ${getMascot(mascotId).name}` : `Chat with ${getMascot(mascotId).name}, your Merchant Saathi buddy`}
+        title="Hi! Click me - double-click for my signature moves!"
       >
         <span className="ms-mascot-dock block">
           <MascotById id={mascotId} mood={chatOpen ? "happy" : mood} talking={thinking} size={84} />

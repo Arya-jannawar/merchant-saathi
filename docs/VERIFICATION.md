@@ -196,6 +196,30 @@ Hardening added in the same round (verified live against the production build):
 - Business switcher repositioned above the sound toggle on mobile (was
   overlapping the status strip at 360 px).
 
+A fourth round made the mascots interactive and added a sleep cycle
+(observed live on the production build):
+
+- Hover emotions: a fresh random emotion (wink / giggle / surprise / curious)
+  on every visit to the dock mascot, each with the buddy's own voice
+  (playEmotion through the mascot voice pipeline).
+- Petting: brushing over the buddy several times melts it into the hearts
+  mood with the hearts jingle and a bubble - verified by sweeping the cursor
+  across the dock.
+- Double-click: a mini showcase cycling the buddy's four signature moves with
+  their jingles; a single click still opens chat (280 ms disambiguation).
+- Sleep cycle: after 45 s without any input the buddy dims, closes its eyes
+  (ms-mascot--sleeping, Zzz particles visible) and a soft descending cue
+  plays. Any pointer/key/wheel/touch activity triggers the stretch-wake
+  animation and an ascending cue; a click on a sleeping buddy only wakes it
+  (chat opens on the next click). Verified: sleeping class + Zzz opacity 1
+  after 48 s idle, wake class after a pointer move, chat stayed closed on the
+  wake click.
+- Ambient charm: when awake and idle, a small random emotion rolls every ~20 s
+  so the buddy never sits perfectly still.
+- Cast renamed to tech names with ids kept stable (CSS/localStorage safe):
+  Byte (cupcake), Firewall (samosa), Java (chai), Crypto (coin), Pixel
+  (laddu), Glitch (jalebi). README animations and picker screenshot updated.
+
 ## Known limitations (honest list)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run

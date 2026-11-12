@@ -49,8 +49,11 @@ CURRENT STATE (honest summary)
   - 88 unit tests + 1 Playwright browser flow, all passing.
   - Lint, typecheck and production build all pass.
   - A cast of SIX mascots now guides the whole site - pick your buddy with the
-    🎭 button. Mithu (cupcake) is joined by Chotu (samosa), Dhoom (chai),
-    Shona (coin), Laddu (laddu) and Jalebi (jalebi). Each has four signature
+    🎭 button. Byte (cupcake) is joined by Firewall (samosa), Java (chai),
+    Crypto (coin), Pixel (laddu) and Glitch (jalebi). All verified live: the
+    hover emotions (wink/giggle/surprise), pet it three times for hearts,
+    double-click for a signature-move showcase, and it SLEEPS (Zzz) after 45
+    idle seconds, stretching awake on your return. Each has four signature
     animations (happy/angry/dance/hearts/curious/enthusiastic) and a distinct
     synthesized voice per move - hover the mood chips in the picker to hear
     them. The mascot also does: speech bubbles, a guided spotlight tour per

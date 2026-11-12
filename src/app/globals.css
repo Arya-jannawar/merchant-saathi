@@ -224,8 +224,31 @@ textarea {
 .ms-mascot--curious .ms-mascot__qmark { transform-box: fill-box; transform-origin: center; animation: ms-qmark-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .ms-mascot--enthusiastic .ms-mascot__body { animation: ms-enthu-key 1.1s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
 
+/* interaction + sleep moods */
+.ms-mascot--wink .ms-mascot__body { animation: ms-breathe 2.2s ease-in-out infinite; }
+.ms-mascot--giggle .ms-mascot__body { animation: ms-giggle-key 0.6s ease-in-out infinite; }
+.ms-mascot--giggle .ms-mascot__eyes { transform: translateY(1px); }
+.ms-mascot--surprised .ms-mascot__body { animation: ms-pop-key 0.5s cubic-bezier(0.22, 1, 0.36, 1) both, ms-breathe 2.4s ease-in-out 0.5s infinite; }
+.ms-mascot--surprised .ms-mascot__eyes { animation: ms-eye-grow 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-mascot--sleeping .ms-mascot__body { animation: ms-snooze 4.2s ease-in-out infinite; }
+.ms-mascot--sleeping .ms-mascot__eyes, .ms-mascot--wake .ms-mascot__eyes { transform: none; }
+.ms-mascot--wake .ms-mascot__body { animation: ms-stretch 1.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-mascot--wake .ms-mascot__arm-left { transform-box: view-box; transform-origin: 20px 72px; animation: ms-arm-stretch 1.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ms-mascot--sleeping { filter: brightness(0.85) saturate(0.75); }
+
+@keyframes ms-giggle-key { 0%, 100% { transform: rotate(-3deg) translateY(0); } 50% { transform: rotate(3deg) translateY(-2px); } }
+@keyframes ms-eye-grow { from { transform: scale(0.6); } to { transform: scale(1.25); } }
+@keyframes ms-snooze { 0%, 100% { transform: translateY(0) scale(1, 1) rotate(0deg); } 50% { transform: translateY(2px) scale(1.015, 0.985) rotate(1.5deg); } }
+@keyframes ms-stretch { 0% { transform: scale(1, 1); } 35% { transform: scale(0.93, 1.08) translateY(-2px); } 65% { transform: scale(1.05, 0.96); } 100% { transform: scale(1, 1); } }
+@keyframes ms-arm-stretch { 0% { transform: rotate(0deg); } 40% { transform: rotate(-95deg) translateY(-8px); } 100% { transform: rotate(0deg); } }
+
 /* per-mood particles: hidden by default, burst on the matching mood */
-.ms-p-hearts, .ms-p-stars, .ms-p-notes, .ms-p-sparkles, .ms-p-anger, .ms-p-steam { opacity: 0; }
+.ms-p-hearts, .ms-p-stars, .ms-p-notes, .ms-p-sparkles, .ms-p-anger, .ms-p-steam, .ms-p-zzz { opacity: 0; }
+.ms-mascot--sleeping .ms-p-zzz { opacity: 1; }
+.ms-mascot--sleeping .ms-p-zzz text { transform-box: fill-box; transform-origin: center; animation: ms-zzz 3.2s ease-out infinite; }
+.ms-mascot--sleeping .ms-p-zzz text:nth-child(2) { animation-delay: 1.05s; }
+.ms-mascot--sleeping .ms-p-zzz text:nth-child(3) { animation-delay: 2.1s; }
+@keyframes ms-zzz { 0% { transform: translateY(8px) scale(0.5); opacity: 0; } 35% { opacity: 1; } 100% { transform: translateY(-16px) scale(1.15); opacity: 0; } }
 .ms-mascot--hearts .ms-p-hearts { opacity: 1; }
 .ms-mascot--hearts .ms-p-hearts path { animation: ms-particle-rise 1.4s ease-out infinite; }
 .ms-mascot--hearts .ms-p-hearts path:nth-child(2) { animation-delay: 0.35s; }

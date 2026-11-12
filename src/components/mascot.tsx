@@ -23,6 +23,11 @@ const MOOD_CLASS: Record<MascotMood, string> = {
   hearts: "ms-mascot--hearts",
   curious: "ms-mascot--curious",
   enthusiastic: "ms-mascot--enthusiastic",
+  wink: "ms-mascot--wink",
+  surprised: "ms-mascot--surprised",
+  giggle: "ms-mascot--giggle",
+  sleeping: "ms-mascot--sleeping",
+  wake: "ms-mascot--wake",
 };
 
 /** Mouth geometry per mood, relative to a face centered at (cx, mouthY). */
@@ -43,6 +48,16 @@ function mouthPath(mood: MascotMood, cx: number, y: number): { d: string; filled
       return { d: `M${cx} ${y} a4.5 4.5 0 1 0 0.01 0`, filled: false };
     case "thinking":
       return { d: `M${cx - 8} ${y + 2} Q${cx} ${y - 2} ${cx + 8} ${y + 2}`, filled: false };
+    case "wink":
+      return { d: `M${cx - 10} ${y} Q${cx} ${y + 10} ${cx + 10} ${y}`, filled: false };
+    case "surprised":
+      return { d: `M${cx} ${y - 1} a5.5 5.5 0 1 0 0.01 0`, filled: false };
+    case "giggle":
+      return { d: `M${cx - 11} ${y} Q${cx} ${y + 13} ${cx + 11} ${y - 1}`, filled: false };
+    case "sleeping":
+      return { d: `M${cx - 3} ${y} a3.5 3.5 0 1 0 0.01 0`, filled: false };
+    case "wake":
+      return { d: `M${cx - 12} ${y + 2} Q${cx} ${y + 16} ${cx + 12} ${y + 2} Z`, filled: true };
     default:
       return { d: `M${cx - 9} ${y} Q${cx} ${y + 8} ${cx + 9} ${y}`, filled: false };
   }
@@ -68,6 +83,10 @@ function Face({
   const mouth = mouthPath(mood, cx, mouthY);
   const heartEyes = mood === "hearts";
   const squint = mood === "angry";
+  const winkLeft = mood === "wink";
+  const asleep = mood === "sleeping" || mood === "wake";
+  const bigEyes = mood === "surprised";
+  const eyeR = bigEyes ? 7 : 5.5;
   return (
     <g className="ms-mascot__face">
       <g className="ms-mascot__eyes">
@@ -77,9 +96,13 @@ function Face({
               d={`M${cx - eyeGap} ${eyeY - 3} c-2-3.4 -7-2.2 -7 1.6 c0 2.6 3 4.6 7 7.6 c4-3 7-5 7-7.6 c0-3.8 -5-5 -7-1.6 Z`}
               fill="#f43f5e"
             />
+          ) : asleep ? (
+            <path d={`M${cx - eyeGap - 5} ${eyeY} q5 4 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
+          ) : winkLeft ? (
+            <path d={`M${cx - eyeGap - 5} ${eyeY - 1} q5 3 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <>
-              <circle cx={cx - eyeGap} cy={eyeY} r="5.5" fill={eyeColor} />
+              <circle cx={cx - eyeGap} cy={eyeY} r={eyeR} fill={eyeColor} />
               <circle cx={cx - eyeGap - 1.8} cy={eyeY - 2} r="1.8" fill="#fff" />
             </>
           )}
@@ -90,9 +113,11 @@ function Face({
               d={`M${cx + eyeGap} ${eyeY - 3} c-2-3.4 -7-2.2 -7 1.6 c0 2.6 3 4.6 7 7.6 c4-3 7-5 7-7.6 c0-3.8 -5-5 -7-1.6 Z`}
               fill="#f43f5e"
             />
+          ) : asleep ? (
+            <path d={`M${cx + eyeGap - 5} ${eyeY} q5 4 10 0`} fill="none" stroke={eyeColor} strokeWidth="2.5" strokeLinecap="round" />
           ) : (
             <>
-              <circle cx={cx + eyeGap} cy={eyeY} r="5.5" fill={eyeColor} />
+              <circle cx={cx + eyeGap} cy={eyeY} r={eyeR} fill={eyeColor} />
               <circle cx={cx + eyeGap - 1.8} cy={eyeY - 2} r="1.8" fill="#fff" />
             </>
           )}
@@ -154,6 +179,11 @@ function Particles({ accent }: { accent: string }) {
       <g className="ms-p-steam" stroke="#94a3b8" strokeWidth="3.5" fill="none" strokeLinecap="round" opacity="0.8">
         <path d="M50 22 q6-9 0-16" />
         <path d="M66 24 q-6-9 0-16" />
+      </g>
+      <g className="ms-p-zzz" fill="#8fd8ff" font-family="Segoe UI, Arial" font-weight="800">
+        <text x="88" y="40" fontSize="13">z</text>
+        <text x="98" y="28" fontSize="17">Z</text>
+        <text x="108" y="16" fontSize="21">Z</text>
       </g>
     </g>
   );

@@ -115,14 +115,14 @@ One click loads the **thin-data demo**: tiny windows, and the app flatly refuses
 
 | Buddy | Is | Signature moves |
 | --- | --- | --- |
-| **Mithu** | cupcake | happy · dance · hearts · curious |
-| **Chotu** | samosa | angry · enthusiastic · dance · curious |
-| **Dhoom** | chai glass | enthusiastic · happy · dance · curious |
-| **Shona** | rupee coin | dance · happy · enthusiastic · hearts |
-| **Laddu** | laddu | dance · happy · angry · enthusiastic |
-| **Jalebi** | jalebi | curious · dance · hearts · angry |
+| **Byte** | cupcake | happy · dance · hearts · curious |
+| **Firewall** | samosa | angry · enthusiastic · dance · curious |
+| **Java** | chai glass | enthusiastic · happy · dance · curious |
+| **Crypto** | rupee coin | dance · happy · enthusiastic · hearts |
+| **Pixel** | laddu | dance · happy · angry · enthusiastic |
+| **Glitch** | jalebi | curious · dance · hearts · angry |
 
-Every mascot × mood pair has its **own synthesized tune** — the same melody is a sweet sparkle on Mithu and a raspy shout on Chotu (voice = waveform + transposition + tempo + flourish: sparkle, pop, steam, coin, bounce, swirl). The buddy guides the whole product: speech bubbles, a **spotlight guided tour** on every screen, and live reactions — celebrates approvals, panics at unsafe prices, explains 409s.
+Every mascot × mood pair has its **own synthesized tune** — the same melody is a sweet sparkle on Byte and a raspy shout on Firewall (voice = waveform + transposition + tempo + flourish: sparkle, pop, steam, coin, bounce, swirl). The buddy is *alive*: it **winks, giggles and gasps** when you hover, melts into **hearts** when you pet it (three quick brushes), shows off its **signature moves on double-click**, and — after 45 quiet seconds — **falls asleep** with floating Zzz's, stretching awake the moment you come back. It guides the whole product: speech bubbles, a **spotlight guided tour** on every screen, and live reactions — celebrates approvals, panics at unsafe prices, explains 409s.
 
 ### 💬 8. Mithu's chat — grounded answers, optional live brain
 Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"* — the built-in **fact book** answers from the session's verified numbers with a *How I reasoned* trace. Paste a provider API key + model in the 🧠 dialog and answers become generative with deeper reasoning — still guarded: any rupee amount the model invents that isn't in the computed facts makes the reply fall back to the fact book with a labeled note. The key lives in **server memory only** (never disk, masked to the browser, public-host validated).
@@ -228,7 +228,7 @@ npm run fixtures:verify         # must print: All fixture checks passed.
 npm run dev
 ```
 
-Open **http://localhost:3000/merchant**, click **Load sample data**, and follow Mithu (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL`, or paste a key in the chat's 🧠 dialog. Node 20+, nothing else to install.
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `ZAI_API_KEY` + `ZAI_MODEL`, or paste a key in the chat's 🧠 dialog. Node 20+, nothing else to install.
 
 <details>
 <summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>

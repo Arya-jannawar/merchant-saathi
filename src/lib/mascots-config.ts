@@ -47,43 +47,43 @@ export const MOOD_LABEL: Record<SignatureMood, string> = {
 export const MASCOTS: MascotDef[] = [
   {
     id: "mithu",
-    name: "Mithu",
-    tagline: "The cupcake - sweet, steady, always right",
+    name: "Byte",
+    tagline: "The cupcake - sweet, steady, always compiling",
     signature: ["happy", "dance", "hearts", "curious"],
     voice: { transpose: 0, wave: "sine", tempo: 1, flourish: "sparkle" },
   },
   {
     id: "chotu",
-    name: "Chotu",
-    tagline: "The samosa - spicy, loud, zero chill",
+    name: "Firewall",
+    tagline: "The samosa - spicy, loud, zero intrusions",
     signature: ["angry", "enthusiastic", "dance", "curious"],
     voice: { transpose: 4, wave: "square", tempo: 1.25, flourish: "pop" },
   },
   {
     id: "dhoom",
-    name: "Dhoom",
-    tagline: "The chai - steaming hot and full of josh",
+    name: "Java",
+    tagline: "The chai - steaming hot, runs anywhere",
     signature: ["enthusiastic", "happy", "dance", "curious"],
     voice: { transpose: 7, wave: "triangle", tempo: 1.15, flourish: "steam" },
   },
   {
     id: "shona",
-    name: "Shona",
-    tagline: "The coin - money-wise with a golden ear",
+    name: "Crypto",
+    tagline: "The coin - money-wise, decentralized energy",
     signature: ["dance", "happy", "enthusiastic", "hearts"],
     voice: { transpose: 12, wave: "sine", tempo: 0.9, flourish: "coin" },
   },
   {
     id: "laddu",
-    name: "Laddu",
-    tagline: "The laddu - round, jolly, bounces first",
+    name: "Pixel",
+    tagline: "The laddu - round, jolly, refreshes first",
     signature: ["dance", "happy", "angry", "enthusiastic"],
     voice: { transpose: -3, wave: "triangle", tempo: 1.1, flourish: "bounce" },
   },
   {
     id: "jalebi",
-    name: "Jalebi",
-    tagline: "The jalebi - twisty, syrupy, a little extra",
+    name: "Glitch",
+    tagline: "The jalebi - twisty, syrupy, delightfully chaotic",
     signature: ["curious", "dance", "hearts", "angry"],
     voice: { transpose: 2, wave: "sawtooth", tempo: 0.95, flourish: "swirl" },
   },
@@ -102,4 +102,14 @@ export type MascotMood =
   | "thinking"
   | "sad"
   | "wave"
-  | SignatureMood;
+  | SignatureMood
+  /** interaction emotions (hover / click / petting) */
+  | "wink"
+  | "surprised"
+  | "giggle"
+  /** idle sleep cycle */
+  | "sleeping"
+  | "wake";
+
+/** Emotions the mascot can roll when you hover, click or pet it. */
+export const INTERACTION_MOODS: MascotMood[] = ["wink", "giggle", "surprised", "curious"];

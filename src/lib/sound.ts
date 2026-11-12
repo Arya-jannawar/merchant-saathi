@@ -30,7 +30,9 @@ export type SoundName =
   | "toggle"
   | "switch" // business switched
   | "addBusiness" // new business created
-  | "removeBusiness"; // business deleted
+  | "removeBusiness" // business deleted
+  | "sleep" // mascot dozing off
+  | "wake"; // mascot stretching awake
 
 const STORAGE_KEY = "ms_sound_enabled";
 const SEMITONE = Math.pow(2, 1 / 12);
@@ -158,6 +160,31 @@ class SoundKit {
     const now = ctx.currentTime;
     for (const note of SCORES[name].notes) this.note(ctx, now + note.at, note);
     for (const nz of SCORES[name].noise ?? []) this.noise(ctx, now + nz.at, nz.dur, nz);
+  }
+
+  /**
+   * Interaction emotions (hover wink, pet-giggle, click surprise) rendered
+   * through the same mascot voice pipeline - each buddy still sounds like
+   * itself, just quicker and softer than the signature jingles.
+   */
+  playEmotion(mascotId: MascotId, mood: string): void {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    const melody = EMOTION_MELODIES[mood];
+    if (!melody) return;
+    const voice = getMascot(mascotId).voice;
+    const scale = Math.pow(SEMITONE, voice.transpose);
+    const tempo = voice.tempo;
+    const now = ctx.currentTime;
+    melody.notes.forEach((step) => {
+      this.note(ctx, now + step.at / tempo, {
+        ...step,
+        f0: step.f0 * scale,
+        f1: step.f1 !== undefined ? step.f1 * scale : undefined,
+        type: voice.wave,
+        gain: Math.min((step.gain ?? 0.055) * (voice.wave === "square" || voice.wave === "sawtooth" ? 0.55 : 1), 0.07),
+      });
+    });
   }
 
   /**
@@ -302,12 +329,27 @@ const SCORES: Record<SoundName, { notes: NoteSpec[]; noise?: NoiseSpec[] }> = {
     noise: [{ at: 0.18, dur: 0.25, f0: 2400, f1: 4800, gain: 0.02, q: 2.2 }],
   },
   removeBusiness: { notes: [n(0, 0.14, 520, 240, "triangle", 0.055)] },
+  sleep: {
+    notes: [n(0, 0.3, 520, 392, "sine", 0.045), n(0.28, 0.4, 392, 294, "sine", 0.04)],
+  },
+  wake: {
+    notes: [n(0, 0.12, 330, 494, "triangle", 0.055), n(0.14, 0.18, 659, 880, "triangle", 0.055)],
+  },
+};
+
+const EMOTION_MELODIES: Record<string, { notes: NoteSpec[] }> = {
+  // cheeky two-note wink
+  wink: { notes: [n(0, 0.08, 988, undefined, "sine", 0.055), n(0.09, 0.14, 1318, undefined, "sine", 0.05)] },
+  // quick triplet giggle
+  giggle: { notes: [n(0, 0.07, 1046, 1174, "sine", 0.05), n(0.08, 0.07, 1174, 1046, "sine", 0.05), n(0.16, 0.12, 1318, undefined, "sine", 0.05)] },
+  // rising "oh!" pop
+  surprised: { notes: [n(0, 0.1, 659, 988, "sine", 0.06), n(0.11, 0.16, 988, undefined, "sine", 0.05)] },
 };
 
 /**
  * One melody per signature mood, in scale degrees around a fixed base
  * frequency. Rendered through each mascot's voice profile, so the same melody
- * is a sweet sparkle on Mithu and a raspy shout on Chotu.
+ * is a sweet sparkle on Byte and a raspy shout on Firewall.
  */
 const MOOD_MELODIES: Record<SignatureMood, { notes: NoteSpec[] }> = {
   // C5-based: warm major lift
