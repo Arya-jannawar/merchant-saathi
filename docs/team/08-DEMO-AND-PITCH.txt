@@ -1,91 +1,108 @@
 ================================================================================
 MERCHANT SAATHI - TEAM CONTEXT PACK
-08-DEMO-AND-PITCH (3-minute script + judge Q&A)
+08-DEMO-AND-PITCH (4-minute script + judge Q&A)
 ================================================================================
 
 BEFORE YOU PRESENT (2-minute preflight)
   npm run fixtures:verify      -> "All fixture checks passed."
   npm run build && npm start   (production server) OR npm run dev
-  Open http://localhost:3000/merchant in a FRESH browser profile.
-  Have the backup screen recording ready (file 06, T-C2).
-  Badges visible on screen: "Synthetic demo data (bakery-v1)" and
-  "AI mode: fixture (labeled, no credentials)" (or live if verified).
+  Open http://localhost:3000/merchant in a FRESH browser profile (incognito
+  works - each browser session is an isolated tenant).
+  Mute toggle is bottom-left (🔊) if the room is noisy; leave sounds ON
+  otherwise - the mascot reactions are part of the show.
+  Have the backup screen recording ready (demo-recording.webm - ask in the
+  group chat; it is not in git).
 
-THE 3-MINUTE SCRIPT (mapped to actual screens)
+THE SCRIPT (4 minutes - rehearse with a timer)
 
-  0:00-0:25  THE PROBLEM (dashboard, before loading data)
-    "Meet Anaya, who runs a bakery in Pune. Her quiet 3-to-6 p.m. window is
-    getting quieter. She doesn't need another dashboard - she needs to know
-    what to DO, whether she can afford it, and proof it adds up."
-    -> Click "Load sample data".
+  BEAT 0 - THE HOOK (20s), landing hero
+    "This is Merchant Saathi - an AI business copilot for every Paytm
+     merchant. Not a dashboard: a copilot with three jobs - GROW the business,
+     MANAGE operations, SERVE customers. And every number it shows is proven."
+    Point at the three pillar cards and the honest-labels promise.
 
-  0:25-0:55  THE EVIDENCE (dashboard + opportunity page)
-    "Completed 3-6 p.m. orders fell from 100 to 70 in the last two full
-    Mon-Fri windows - down 30%, while average order value stayed at Rs 80.
-    So it's order COUNT, not basket size. Every number has a receipt -"
-    -> Click "Inspect evidence"; open the evidence drawer; show one
-       definition (e.g. pending/canceled excluded). Read one limitation
-       aloud: two five-day windows, not proof of cause.
+  BEAT 1 - REGISTER (30s), the wizard
+    Click "Register your business". Name it (e.g. "Sharma Kirana Store"),
+    pick the 🛒 Kirana domain, pick a buddy (Pixel). One click. "A kirana
+    store just joined the platform - same audited math, its own themed
+    catalog. We support eight domains out of the box."
+    (If short on time: say "registering takes 30 seconds" and use the
+    pre-loaded bakery instead.)
 
-  0:55-1:25  THE OFFER, WITH MATH (offer workspace)
-    "The system proposes a capped bundle: two samosas and a tea at Rs 70 -
-     usual price Rs 90. Code - not the AI - computes: Rs 30 contribution,
-     42.9% margin against her 25% floor, stock for 25 bundles, cap 20 a day,
-     maximum discount exposure Rs 400."
-    -> Point at the live-check panel and the AI draft card with its
-       assumptions list.
+  BEAT 2 - GROW: the decline with receipts (45s), dashboard + opportunity
+    Dashboard: KPI cards count up - completed 3-6 p.m. orders 100 -> 70
+    (-30%), net sales Rs 8,000 -> Rs 5,600, AOV flat Rs 80. "Flat AOV: the
+    problem is order COUNT, not basket size." Point at the day-by-day bars
+    (hover one: real numbers per weekday). Then the opportunity page: open the
+    evidence drawer - "six checks, every number has a metric id, a definition,
+    a window and a source. And this panel says what the evidence does NOT say.
+    We never invent causes."
 
-  1:25-1:55  THE REJECTION + THE APPROVAL (offer workspace)
-    "Watch the guardrail: she tries Rs 50."
-    -> Set price 50, Update draft. "20% margin - below her floor. The offer
-       cannot be approved, let alone queued." Restore Rs 70, update draft.
-    -> "She approves the EXACT version - the approval binds a hash of the
-       price, cap, audience, stock version and expiry. Change anything and it
-       invalidates."
+  BEAT 3 - GROW: the offer math (60s), offer workspace
+    "Code, not AI, does every rupee." Prepare the draft at Rs 70: margin
+    42.9% vs the 25% floor, cap 20 vs stock capacity 25, exposure Rs 400.
+    Type 50 and press Update draft: the meter collapses below the floor, the
+    approve button LOCKS, the mascot panics. "Try to queue a loss - the
+    platform says no, on camera." Restore Rs 70, update, approve ("hash-bound:
+    any change invalidates it"), queue the SIMULATED campaign. "40 consented
+    customers, simulated_queued - nothing is ever really sent."
 
-  1:55-2:20  THE SIMULATED CAMPAIGN (campaign page)
-    -> Queue simulated campaign. "40 customers with active SMS demo consent
-       enter a simulated outbox - note the button never says 'send'. Ten
-       customers are excluded - revoked or missing consent - automatically."
+  BEAT 4 - MANAGE + SERVE (60s), operations tab
+    Open Operations. The briefing names exactly which SKUs need restocking
+    before the weekend (days-of-cover per SKU), the restock plan with
+    estimated costs - "computed from real order rows, advisory only: the
+    copilot advises, the owner decides." Then the serve panel: consent health
+    and redemption champions. "Serving better starts with serving only what
+    customers agreed to."
 
-  2:20-2:40  THE RESULTS, HONESTLY (campaign page)
-    -> "Apply all 10 events." "Rs 700 in bundle sales, minus Rs 400 of
-       ingredients and packaging, leaves Rs 300 toward her fixed costs -
-       labeled SIMULATED outcomes. Replaying an event changes nothing -"
-    -> Click "Re-apply R-003". "- idempotent. And no causal-lift claim."
+  BEAT 5 - PROVE IT (60s), campaign page + idempotency
+    Back on the campaign page (from the offer): apply all 10 simulated
+    redemption events -> the waterfall fills Rs 700 - Rs 400 = Rs 300
+    contribution. Re-apply R-003: "changed nothing - idempotent, proven live."
+    Mention the audit trail at the bottom.
 
-  2:40-3:00  THE POINT (close)
-    "Inspect, edit terms, approve - the owner stays in control, and every
-    suggestion ships with its proof. Today it's one synthetic bakery and a
-    simulated outbox; the same loop works on authorized POS exports and real
-    messaging with merchant consent. That's the pilot we want to run with
-    3-5 Pune bakery owners: can they prepare a sound offer faster, and would
-    they pay monthly for it?"
+  BEAT 6 - CLOSE (20s)
+    "Everything you saw is labeled: synthetic data, simulated campaigns,
+    fixture AI. The AI drafts words; code owns every rupee. That is why a
+    merchant can trust this copilot." Ask for questions.
 
-LIKELY QUESTIONS + SHORT ANSWERS
-  Q: Why is this AI at all?
-  A: The model translates verified business facts into accessible explanation
-     and customer-ready copy. Arithmetic and authority stay in tested code -
-     that's deliberate: proof, not a black box.
-  Q: Where does the data come from?
-  A: A transparent synthetic fixture today; authorized merchant/POS exports
-     and platform integrations later. Payment records alone never imply SKU
-     costs, inventory or messaging consent - consent has its own register.
-  Q: How do you prove growth?
-  A: We don't - with fixtures you can't. We prove a usable action loop, correct
-     economics, and honest measurement; lift belongs to a controlled pilot.
-  Q: What happens if stock or consent changes after approval?
-  A: Execution rechecks both and refuses stale state (422) - show the audit
-     trail on the campaign page.
-  Q: Why Rs 50 fails but Rs 70 passes?
-  A: Rs 50 leaves Rs 10 after the Rs 40 variable cost = 20% margin, below her
-     25% floor. Rs 70 leaves Rs 30 = 42.9%. The floor is her policy, editable.
-  Q: Can it scale / is it production-ready?
-  A: It's a single-process prototype: SQLite + demo sessions. The next
-     engineering steps are managed Postgres, durable jobs, real auth and
-     rate limits - we don't claim they're built.
-  Q: Is the AI live?
-  A: Label on screen: fixture mode (deterministic, no credentials) unless we
-     verified a live call - then the badge says live and the fallback banner
-     explains any failure honestly.
+  OPTIONAL FLOURISHES (use if the room is engaged, skip if behind)
+    - Ask the mascot "should I restock?" in the chat - the fact book answers
+      from the stockroom.
+    - Double-click the mascot: it performs its signature moves.
+    - Switch businesses from the 🏪 strip: same math, different store.
+    - The thin-data demo: watch the platform refuse to guess.
+
+JUDGE Q&A (the answers that score)
+  Q: Where do the numbers come from?
+  A: One fixture per domain (JSON), a deterministic seeder, and a
+     reconciliation script (fixtures:verify) that checks every number against
+     freshly seeded rows - it caught a real migration bug during development
+     and we fixed the migration.
+
+  Q: Is the AI doing the math?
+  A: Never. All economics run in pure TypeScript functions (computeOffer).
+     The AI drafts prose from the computed facts; its output is schema-checked
+     and its rupee amounts are validated against the facts - violations fall
+     back to a labeled template.
+
+  Q: Are messages really sent?
+  A: Never. The outbox is simulated and labeled on every screen; demo
+     customer ids are non-deliverable by design.
+
+  Q: How does this scale to millions of merchants?
+  A: Session-isolated multi-tenancy (every query filters by merchant id),
+     domain-versioned fixtures, pure domain functions with no HTTP or React
+     in them, and a repository seam around SQLite - swap to managed Postgres
+     and the copilot logic is unchanged. Chat answers are grounded per
+     merchant via the same fact pack the screens use.
+
+  Q: What if the model is down or returns nonsense?
+  A: 15s timeout, one retry, Zod validation, evidence-id allowlist, rupee
+     guard - any failure falls back to the labeled fixture draft / fact book.
+     The product never depends on the model being smart.
+
+  Q: Why does it refuse to recommend anything on the thin dataset?
+  A: Because that is the honest answer. Eligibility is a demo heuristic and
+     the platform states it instead of guessing. Trust beats theater.
 ================================================================================

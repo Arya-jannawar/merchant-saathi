@@ -21,11 +21,12 @@ FILES IN THIS PACK (read in order, ~25 minutes total)
   01-PROJECT-OVERVIEW.txt     What we are building and why (5 min)
   02-ARCHITECTURE.txt         Stack, layers, request flow (5 min)
   03-DATA-MODEL-AND-API.txt   Tables + endpoints + error rules (5 min)
-  04-FIXTURE-SPEC.txt         Every demo number and where it lives (3 min)
+  04-FIXTURE-SPEC.txt         The 9 domain fixtures: themed names, one set
+                              of audited numbers; how to add a domain (4 min)
   05-SETUP-AND-COMMANDS.txt   Get it running on your machine (5 min + install)
   06-TEAM-TASKS.txt           What is done, who does what next (3 min)
   07-CONVENTIONS.txt          Rules that keep us out of trouble (3 min)
-  08-DEMO-AND-PITCH.txt       The 3-minute demo script + judge Q&A (3 min)
+  08-DEMO-AND-PITCH.txt       The 4-minute demo script + judge Q&A (4 min)
   09-ROADMAP.txt              Optional features and the pilot plan (2 min)
 
 GET RUNNING IN 10 MINUTES (short version - file 05 has details)
@@ -46,7 +47,7 @@ CURRENT STATE (honest summary)
   - The complete hero workflow is implemented and verified end to end:
     dashboard -> evidence -> offer workspace -> approval -> simulated outbox ->
     simulated redemptions -> results (Rs 700 - Rs 400 = Rs 300 contribution).
-  - 88 unit tests + 1 Playwright browser flow, all passing.
+  - 95 unit tests + 1 Playwright browser flow, all passing.
   - Lint, typecheck and production build all pass.
   - A cast of SIX mascots now guides the whole site - pick your buddy with the
     🎭 button. Byte (cupcake) is joined by Firewall (samosa), Java (chai),

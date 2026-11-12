@@ -6,7 +6,7 @@ MERCHANT SAATHI - TEAM CONTEXT PACK
 STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
   [x] Complete hero workflow end to end (dashboard -> results)
   [x] Deterministic seeder + fixture verifier (all checks PASS)
-  [x] 68 unit tests: money, band-filtering, margin floor, missing-cost,
+  [x] The original 68 unit tests: money, band-filtering, margin floor, missing-cost,
       cap-vs-capacity, approval hash binding, stale consent/inventory,
       duplicate execute/redeem, key-reuse conflicts, AI guardrails,
       thin-fixture insufficient-evidence behavior, config guards
@@ -25,7 +25,7 @@ STATUS AT HANDOVER (all verified, see docs/VERIFICATION.md in the repo)
   [x] Registration platform: 8 domain fixtures (same verified math, themed
       SKUs/bundles), 3-step registration wizard (name -> domain -> buddy),
       per-merchant fixture routing in every route, verifier reconciles all
-      domains (+3 domain tests, 91 total)
+      domains (+3 domain tests)
   [x] Operations copilot (the "manage operations" pillar): per-SKU run-rates
       from order rows, days-of-cover, campaign draw-down, costed restock plan,
       consent health + redemption champions (+4 tests, 95 total)
@@ -60,6 +60,7 @@ SUGGESTED OWNERSHIP (adjust among yourselves)
 
   OWNER A - CORE ENGINE (best for the strongest backend person)
     Owns: src/domain/, src/services/, src/lib/, scripts/, tests/
+    (incl. the operations copilot: src/domain/operations.ts + tests)
     Next tasks:
       T-A1  Review tests/approval.test.ts + idempotency.test.ts and add any
             invariant you find missing (each added test = a defended judge question).
@@ -69,6 +70,7 @@ SUGGESTED OWNERSHIP (adjust among yourselves)
 
   OWNER B - PRODUCT & UI
     Owns: src/app/**, src/components/
+    (incl. the Operations tab, registration wizard, mascot interactions)
     Next tasks:
       T-B2  Empty/error states polish: server down, failed draft, 409 banners.
       T-B4  Optional: a "thin data" moment in the pitch (load the thin demo

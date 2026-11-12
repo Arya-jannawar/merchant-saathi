@@ -78,6 +78,11 @@ UI, MOTION & SOUND
  26. Client requests self-heal a stale business selector (one 404 retry
      without the header). Do not "fix" the 404 away server-side: foreign ids
      must still be refused.
+ 27. The operations copilot is ADVISORY: it computes run-rates, cover and
+     restock plans from real rows and never mutates inventory or places
+     orders. Any automation idea goes through the owner first.
+ 28. Domain fixtures change names only - the numeric blocks are shared and
+     anchored by fixtures:verify (see file 04 golden rule).
 
 TESTING
  24. If you change money/consent/approval/idempotency logic, add or update a

@@ -1,14 +1,47 @@
 ================================================================================
 MERCHANT SAATHI - TEAM CONTEXT PACK
-04-FIXTURE-SPEC (bakery-v1)
+04-FIXTURE-SPEC (domain fixtures)
 ================================================================================
 
-Single source of truth: src/fixtures/bakery-v1.json
-Deterministic seeder:    src/lib/seed.ts (PRNG seed 20261106 - same data every time)
-Reconciliation gate:     npm run fixtures:verify  (must be ALL PASS)
+Single source of truth: src/fixtures/*.json - NINE fixture files, all sharing
+bakery-v1's audited numbers with themed names:
+  bakery-v1.json       Bakery & Sweets   (the default demo; the hero story)
+  bakery-thin-v1.json  the "insufficient evidence" demo (thin windows)
+  cafe-v1.json         Cafe & Coffee       ☕  bundle: Cappuccino + croissant
+  kirana-v1.json       Kirana & Essentials 🛒  bundle: Rice + dal family pack
+  salon-v1.json        Salon & Grooming    💈  bundle: Haircut + beard trim
+  mobile-v1.json       Mobile & Repair     📱  bundle: Screen guard + quick service
+  juice-v1.json        Juice & Refreshments 🥤 bundle: Two cold-pressed juices + fruit bowl
+  garage-v1.json       Auto Service        🔧  bundle: Engine oil top-up + wash
+  tuition-v1.json      Coaching & Tuition  📚  bundle: Two demo classes + workbook
 
-THE STORY IN NUMBERS (memorize for the demo)
-  Hero: a Pune bakery owner; "today" = Friday 6 Nov 2026, 7:00 PM IST
+THE GOLDEN RULE
+  Domain fixtures change ONLY names and the domain block
+    ("domain": { id, label, emoji, pitch })
+  Every numeric block - windows, SKU prices/costs, inventory quantities,
+  bundle shape (2 x SKU-A + 1 x SKU-B = Rs 90 normal / Rs 70 proposed /
+  Rs 40 cost), customers, consents, redemption events, policy - is IDENTICAL
+  to bakery-v1. That is why all verified numbers (42.9% margin, Rs 400
+  exposure, Rs 700-400=300) hold under every theme. fixtures:verify
+  reconciles ALL NINE fixtures against their own freshly seeded tenants on
+  every run (section 10 of the verifier).
+
+DETERMINISTIC SEEDER: src/lib/seed.ts
+  PRNG mulberry32. The DEFAULT merchant of a session uses seed 20261106.
+  Registered (variant) businesses use DEFAULT_VARIANT_SEED + k x 7919, stored
+  on the merchant row as variant_seed - so every business differs but stays
+  reproducible. Variant hero windows are trimmed deterministically (previous
+  drops 0-14 orders, current drops 25-34) so every business still shows a
+  decline >= ~30% with the same AOV shape.
+
+RECONCILIATION GATE: npm run fixtures:verify (must be ALL PASS)
+  Sections 1-9: the bakery-v1 localdev tenant (the deep-dive checks below).
+  Section 10: every DOMAIN_REGISTRY fixture seeded into its own throwaway
+  tenant, checked for orders/line-items/inventory/bundle-cost/audience, then
+  deleted.
+
+THE STORY IN NUMBERS (memorize for the demo; same for every domain)
+  Hero: a Pune merchant; "today" = Friday 6 Nov 2026, 7:00 PM IST
         (injected clock; DEMO_MODE=true).
 
   Windows compared (completed orders, 3-6 p.m., Mon-Fri):
@@ -25,35 +58,37 @@ THE STORY IN NUMBERS (memorize for the demo)
   hero weeks, ONE pending order (Fri 17:30) and ONE canceled order (Wed 16:10)
   in the current window - both must stay OUT of completed totals.
 
-MENU / SKUS (price / variable cost, in paise in the fixture)
+MENU / SKUS - bakery-v1 (price / variable cost, paise; other domains theme the
+names only - ids and prices stay identical so tests and the verifier hold)
   SKU-SAMOSA   Samosa            Rs 35 / cost Rs 15
   SKU-TEA      Tea               Rs 20 / cost Rs 10
   SKU-PASTRY   Veg pastry        Rs 40 / cost Rs 18
   SKU-SANDWICH Grilled sandwich  Rs 50 / cost Rs 22
   SKU-JUICE    Fresh lime juice  Rs 60 / cost Rs 25
+  (e.g. cafe-v1: Cappuccino / Croissant / Chocolate muffin / Club sandwich /
+   Iced latte - SAME prices, SAME costs, SAME sku ids.)
 
-THE OFFER
-  Bundle: two samosas + one tea (2 x SKU-SAMOSA + 1 x SKU-TEA)
-  Usual combined price: 2x35 + 20 = Rs 90
-  Proposed price: Rs 70  ->  discount Rs 20 (22.2%)
-  Variable cost: 2x15 + 10 = Rs 40
-  Contribution: 70 - 40 = Rs 30
-  Margin: 30/70 = 42.857%  (policy floor: 25%)
-  Inventory: 60 samosas, 25 teas (plus other SKUs) -> capacity = min(60/2, 25) = 25
-  Redemption cap: 20/day  ->  max discount exposure = 20 x 20 = Rs 400
-  At cap: revenue Rs 1,400, cost Rs 800, contribution Rs 600;
-          remaining stock: 20 samosas, 5 teas.
+THE OFFER (identical math under every domain)
+  Bundle: two SKU-A + one SKU-B (2 x Rs 35 + Rs 20)
+  Usual combined price: Rs 90 | Proposed: Rs 70 -> discount Rs 20 (22.2%)
+  Variable cost: Rs 40 | Contribution: Rs 30
+  Margin: 42.857% (policy floor: 25%)
+  Inventory: 60 A, 25 B -> capacity = min(60/2, 25) = 25
+  Redemption cap: 20/day -> max discount exposure = 20 x 20 = Rs 400
+  At cap: revenue Rs 1,400, cost Rs 800, contribution Rs 600.
 
 CUSTOMERS + CONSENT (demo CRM; never inferred from payments)
   50 synthetic customers (non-deliverable demo ids "demo-block-40xx").
-  40 active SMS consents (sources: "in-store signup card" / "QR opt-in at counter").
-  5 revoked, 5 never captured -> 40 eligible / 10 excluded.
+  40 active SMS consents; 5 revoked, 5 never captured -> 40 eligible / 10
+  excluded. Consents are per (customer, channel) with sources
+  ("in-store signup card" / "QR opt-in at counter").
 
-SIMULATED RESULTS (what the demo shows at the end)
+SIMULATED RESULTS
   10 unique redemption events (R-001..R-010), each 1 bundle @ Rs 70:
     revenue Rs 700 - variable cost Rs 400 = Rs 300 contribution
     discount given Rs 200. Cap 20 NOT reached (10 < 20).
-  R-003 replayed -> no double count (idempotent).
+  R-003 replayed -> no double count (idempotent). Replays validate cumulative
+  consumption against inventory (stock exhaustion -> business_rule).
   No open-rate, no causal lift, no acquisition claims. Ever.
 
 EVIDENCE IDS (the allowlist the AI may reference)
@@ -67,24 +102,29 @@ EVIDENCE IDS (the allowlist the AI may reference)
 OPPORTUNITY RULES (demo heuristic, not statistics)
   Both windows complete, >= 20 completed afternoon orders each, decline
   >= 10%, and inventory can physically support the bundle. Otherwise the API
-  returns items: [] with a lowDataReason string - the UI shows that honestly.
+  returns items: [] with a lowDataReason string - and since the
+  draft-opportunity guard landed, POST /api/campaigns/draft REJECTS made-up
+  opportunity ids (400 invalid_input) and any draft when no opportunity
+  qualifies (422 business_rule).
 
 CLOCK RULES
   DEMO_MODE=true (default) -> now = fixture clock. DEMO_NOW=<iso> overrides.
   DEMO_MODE=false -> real wall clock (only sensible on the right weekday/time).
   Expiry: offer valid until the NEXT weekday (Mon-Fri) 18:00 IST.
 
-THIN-DATA FIXTURE (bakery-thin-v1) - the "insufficient evidence" demo
-  Second fixture file: src/fixtures/bakery-thin-v1.json
-  Same menu, inventory, bundle, customers and events as bakery-v1, but the
-  hero windows hold only 12 (previous) and 8 (current) completed afternoon
-  orders, all Rs 80 (net Rs 960 / Rs 640).
-  Effect: eligibility requires >= 20 completed afternoon orders per window,
-  so getOpportunities returns items: [] and the UI shows:
-    "Both compared windows need at least 20 completed afternoon orders each
-     (found 12 and 8)..."
-  Load it from the dashboard: "Thin-data demo" button (seeded state) or the
-  link under "Load sample data" (empty state). POST /api/demo/reset accepts
-  { fixtureVersion: "bakery-thin-v1" | "bakery-v1" }.
-  npm run fixtures:verify still verifies ONLY bakery-v1.
+THIN-DATA FIXTURE (bakery-thin-v1)
+  Same menu/inventory/bundle/customers/events as bakery-v1, but hero windows
+  hold only 12 (previous) and 8 (current) completed afternoon orders, all
+  Rs 80 (net Rs 960 / Rs 640). Eligibility fails -> items: [] + lowDataReason,
+  and the draft guard refuses thin-domain drafting (422 business_rule).
+
+ADDING A NEW DOMAIN (the checklist)
+  1. Copy bakery-v1.json -> <domain>-v1.json; change fixtureVersion, the
+     domain block, merchant.displayName, skus[].name and bundle.name ONLY.
+  2. Add the version to FixtureVersion in src/lib/fixture.ts and to
+     DOMAIN_REGISTRY (it feeds /api/domains and the verifier loop).
+  3. Add it to the z.enum in src/lib/validation.ts (reset + merchant domain).
+  4. Run npm run fixtures:verify - section 10 picks it up automatically.
+  5. Numbers NEVER change. If a domain needs different numbers, stop and
+     discuss - that breaks the shared verifier and every anchored test.
 ================================================================================

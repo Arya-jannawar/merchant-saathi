@@ -4,62 +4,96 @@ MERCHANT SAATHI - TEAM CONTEXT PACK
 ================================================================================
 
 THE PITCH (one sentence)
-"A daily growth partner that tells a small merchant which opportunity deserves
-attention, proves the numbers behind it, and turns the owner's decision into a
-trackable campaign."
+"Merchant Saathi is an AI business copilot for every Paytm merchant: it helps
+them GROW with evidence-backed offers, MANAGE operations with restock
+intelligence, and SERVE customers with consent-first campaigns - proving every
+number on the way."
 
-THE PROBLEM (from our slide deck)
-Our hero user is a Pune bakery owner (fictional). Between the two most recent
-complete Mon-Fri windows, completed 3-6 p.m. orders fell from 100 to 70 (-30%)
-and net sales from Rs 8,000 to Rs 5,600. Average order value stayed flat at
-Rs 80 - so the problem is order COUNT, not basket size. A dashboard alone just
-shows the decline; the owner still has to figure out WHAT to do, whether it is
-affordable, what to say to customers, and whether it worked.
+THE PROBLEM STATEMENT WE ANSWER
+"Build scalable AI-led solutions that help Paytm merchants grow their
+business, manage operations, and serve customers better. Think beyond
+payments, identify opportunities where AI can become a trusted business
+copilot for millions of merchants."
 
-THE SOLUTION (our hero workflow)
-  1. Owner sees the decline with evidence (windows, counts, definitions).
-  2. Owner asks for a margin-safe idea: "two samosas + one tea" at Rs 70
-     (usual combined Rs 90), capped at 20 redemptions/day.
-  3. The app computes - in code, not AI - contribution (Rs 30/bundle),
-     margin (42.9% vs a 25% floor), stock capacity (25 bundles), and maximum
-     discount exposure (Rs 400). An unsafe price (Rs 50 -> 20% margin) is
-     visibly REJECTED before anything can be queued.
-  4. The AI drafts the explanation and the customer message FROM those
-     verified numbers only. It cannot change money, stock or consent.
-  5. Owner approves the EXACT version (hash-bound). Any later change
-     invalidates the approval.
-  6. 40 consented demo customers enter a SIMULATED outbox. Nothing is sent.
-  7. Ten simulated redemption events are applied: Rs 700 revenue
-     - Rs 400 variable cost = Rs 300 contribution toward fixed costs.
-     Every screen labels this "Simulated campaign outcomes".
+Our answer maps one-to-one onto the three verbs:
 
-WHY THIS IS DIFFERENT (USP)
-  - Evidence receipt: every number links to a metric id, definition, period
-    and source. There is a dedicated evidence drawer on the screens.
-  - The product can say "insufficient data" and REFUSES unprofitable offers.
+  PILLAR 1 - GROW (the original hero loop)
+    A Pune bakery owner's completed 3-6 p.m. orders fell from 100 to 70 (-30%)
+    between two complete Mon-Fri windows; net sales Rs 8,000 -> Rs 5,600; AOV
+    flat at Rs 80 (order COUNT, not basket size). A dashboard alone just shows
+    the decline. The copilot answers, in order:
+      1. What changed?          -> ONE opportunity with evidence receipts
+      2. What should I do?      -> a capped offer (two samosas + one tea @ 70)
+      3. Can I afford it?       -> code computes margin/capacity/exposure;
+                                   unsafe prices are visibly REJECTED
+      4. What do I tell people? -> AI drafts copy from the verified numbers
+                                   only (English/Hindi)
+      5. Did it work?           -> hash-bound approval -> SIMULATED outbox ->
+                                   10 idempotent redemption events ->
+                                   Rs 700 - Rs 400 = Rs 300 contribution
+    The loop is domain-aware: register a kirana store and the same audited
+    math prices "Rice + dal family pack" instead.
+
+  PILLAR 2 - MANAGE OPERATIONS (the "beyond payments" answer)
+    The Operations tab (/merchant/operations) computes, from real rows:
+      - Run-rate per SKU (units sold/day across the current window)
+      - Days of cover per SKU (stock / run-rate), color-coded
+        Healthy / Low / Critical / Out
+      - Campaign draw-down (a queued offer still consumes bundle components;
+        projected stock after the campaign is pre-computed)
+      - A costed restock plan targeting 14 days of cover
+    Advisory by design: the copilot computes and narrates; it NEVER mutates
+    inventory or orders stock automatically. The owner decides.
+
+  PILLAR 3 - SERVE CUSTOMERS BETTER
+    Consent health at a glance (active / revoked / never captured) plus
+    redemption champions - which consented customers actually showed up.
+    Serving better = serving only what customers agreed to, then rewarding
+    the regulars. Campaigns reach only active-consent customers, always.
+
+WHY JUDGES BELIEVE IT (the USP)
+  - Evidence receipts: every number links to a metric id, definition, window
+    and source. There is a dedicated evidence drawer.
+  - The platform can say "insufficient evidence" and REFUSES unprofitable
+    offers - visibly, with the approve button disabled.
   - Honest labels everywhere: synthetic data, injected clock, AI mode
     (fixture/live/fallback), simulated outcomes. Judges can trust the demo.
 
 WHAT IS REAL VS SIMULATED (memorize this for the demo)
-  REAL (computed in code):   sales metrics, offer economics, capacity,
-                             consent filtering, approval binding, idempotency,
-                             cap enforcement, results arithmetic.
-  SIMULATED (labeled):       the bakery dataset (fixture bakery-v1),
-                             the customer list and consents (50 fake IDs),
-                             message delivery (outbox, never sends),
-                             redemptions (10 fixed fixture events),
-                             the clock (pinned to Fri 6 Nov 2026, 7:00 PM IST).
-  AI:                        drafts explanation + copy only, from verified
-                             facts; can be fixture (default) or live Z.ai.
+  REAL (computed in tested code):   sales metrics, offer economics, capacity,
+                                    consent filtering, approval binding,
+                                    idempotency, cap enforcement, results
+                                    arithmetic, run-rates, restock plan
+  SIMULATED (labeled):              the domain datasets (fixtures), the
+                                    customer list and consents, message
+                                    delivery (outbox, never sends), the
+                                    redemption events, the clock (pinned to
+                                    Fri 6 Nov 2026, 7:00 PM IST)
+  AI:                               drafts explanation + customer copy only,
+                                    from verified facts - fixture mode
+                                    (default, no credentials) or live Z.ai.
+                                    Chat answers come from a "fact book"
+                                    built from the same verified numbers.
+
+THE PLATFORM (how users arrive)
+  New sessions land on a registration hero: pick a business name, a domain
+  (Bakery / Cafe / Kirana / Salon / Mobile / Juice / Auto / Coaching), and a
+  mascot buddy (Byte, Firewall, Java, Crypto, Pixel, Glitch). Every domain
+  ships themed SKUs/bundles over the SAME audited economics. Up to 6
+  businesses per session; the mascot buddy interacts (hover emotions, petting,
+  signature-move showcase, sleep cycle) and guides a spotlight tour.
 
 BUSINESS MODEL HYPOTHESIS (to validate, not to claim)
-Monthly subscription per active shop covering recurring sales reviews, offer
-preparation with evidence checks, and campaign reporting. Pricing stays open
-until 3-5 Pune bakery owners have tried the workflow (our proposed pilot).
+  Monthly subscription per active shop covering recurring sales reviews, offer
+  preparation with evidence checks, campaign reporting, and operations
+  intelligence. Pricing stays open until 3-5 Pune merchants have tried the
+  workflow (our proposed pilot).
 
 ONE-LINE TECH SUMMARY
-Next.js + TypeScript + Tailwind app; SQLite database; deterministic business
-logic in tested pure functions; a bounded AI adapter (fixture or live Z.ai);
-Vitest + Playwright tests. Single-process prototype - local judging is the
-guaranteed deployment path.
+  Next.js 14 + TypeScript strict + Tailwind; SQLite via better-sqlite3;
+  deterministic business logic in tested pure functions (95 tests); a bounded
+  AI adapter (fixture or live Z.ai); hand-rolled SVG/CSS visualizations and a
+  synthesized Web Audio sound kit (zero chart/animation/audio dependencies);
+  Vitest + Playwright. Single-process prototype - local judging is the
+  guaranteed deployment path.
 ================================================================================

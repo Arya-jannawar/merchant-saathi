@@ -46,6 +46,9 @@ KEY FILES (start reading here)
   src/lib/fixture.ts       Loads src/fixtures/bakery-v1.json (single source of truth)
   src/domain/metrics.ts    Window totals (5 daily 3-6pm bands!), delta, AOV,
                            opportunity + evidence entries
+  src/domain/operations.ts The operations copilot: run-rates per SKU,
+                           days-of-cover, campaign draw-down, restock plan
+                           (advisory only - never mutates inventory)
   src/domain/offers.ts     computeOffer(): cost/margin/capacity/exposure checks
   src/domain/consent.ts    Eligible audience + audience hash (sha256 of sorted ids)
   src/services/campaigns.ts  draft -> approve -> execute -> redeem -> results
@@ -73,7 +76,8 @@ KEY FILES (start reading here)
                            prefers-reduced-motion disables the whole system
   src/app/merchant/*       Dashboard, opportunity, offer workspace pages
   src/app/campaigns/[id]/  Activity / simulated outbox / results page
-  src/app/api/**           12 route handlers (incl. /api/assistant/*, /api/merchants/*, /api/demo/insights)
+  src/app/api/**           15 route handlers (incl. /api/assistant/*, /api/merchants/*,
+                           /api/domains, /api/demo/insights, /api/operations)
   scripts/verify-fixtures.ts  Reconciles every fixture number; CI-style gate
 
 SESSIONS AND TENANTS (important!)
