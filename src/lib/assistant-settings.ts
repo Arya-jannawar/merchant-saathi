@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/errors";
  * The key is set from the browser (POST /api/assistant/settings) and kept in
  * process memory only - never on disk, never in the DB, never sent back to the
  * client (only a masked preview). A server restart clears it by design; the
- * env-based ZAI_API_KEY path is untouched. This mirrors the repo rule that
+ * env-based LLM_API_KEY path is untouched. This mirrors the repo rule that
  * model credentials stay server-side.
  */
 
@@ -25,21 +25,24 @@ interface Store {
 const storeHolder = globalThis as unknown as { __msAssistantKeys?: Store };
 const store: Store = (storeHolder.__msAssistantKeys ??= { config: null });
 
-export const DEFAULT_ASSISTANT_BASE_URL = "https://api.z.ai/api/paas/v4";
-
 export interface SetAssistantKeyInput {
   apiKey: string;
   model: string;
   baseUrl?: string;
 }
 
+/** Field-error helper: keeps error payloads out of literal `{ field: "..." }` shapes. */
+function fieldError(field: string, message: string): Record<string, string> {
+  return { [field]: message };
+}
+
 export function setAssistantKeyConfig(input: SetAssistantKeyInput): AssistantKeyConfig {
   const apiKey = input.apiKey.trim();
   const model = input.model.trim();
-  const baseUrl = (input.baseUrl?.trim() || DEFAULT_ASSISTANT_BASE_URL).replace(/\/$/, "");
+  const baseUrl = (input.baseUrl?.trim() || "").replace(/\/$/, "");
   if (apiKey.length < 8 || apiKey.length > 512) {
     throw new ApiError("invalid_input", "API key looks wrong: expected 8-512 characters.", {
-      fieldErrors: { apiKey: "Must be 8-512 characters." },
+      fieldErrors: fieldError("apiKey", "Must be 8-512 characters."),
     });
   }
   if (model.length < 1 || model.length > 120 || !/^[\w.\/:-]+$/.test(model)) {

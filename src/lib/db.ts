@@ -18,149 +18,164 @@ export interface RunResult {
   lastInsertRowid: number | bigint;
 }
 
-const SCHEMA_SQL = `
-CREATE TABLE IF NOT EXISTS merchants (
-  id TEXT PRIMARY KEY,
-  demo_session_id TEXT NOT NULL,
-  variant_seed INTEGER NOT NULL DEFAULT 20261106,
-  display_name TEXT NOT NULL,
-  timezone TEXT NOT NULL,
-  currency TEXT NOT NULL,
-  fixture_version TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id);
+/** Static schema statements, run in order on first open. Never interpolated. */
+const SCHEMA_STATEMENTS: string[] = [
+  `CREATE TABLE IF NOT EXISTS merchants (
+    id TEXT PRIMARY KEY,
+    demo_session_id TEXT NOT NULL,
+    variant_seed INTEGER NOT NULL DEFAULT 20261106,
+    display_name TEXT NOT NULL,
+    timezone TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    fixture_version TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id)`,
+  `CREATE TABLE IF NOT EXISTS orders (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    external_id TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('completed','pending','canceled')),
+    total_paise INTEGER NOT NULL,
+    UNIQUE (merchant_id, external_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_orders_merchant_time ON orders (merchant_id, occurred_at, status)`,
+  `CREATE TABLE IF NOT EXISTS order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    sku_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    unit_price_paise INTEGER NOT NULL,
+    unit_discount_paise INTEGER NOT NULL DEFAULT 0
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id)`,
+  `CREATE TABLE IF NOT EXISTS inventory (
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    sku_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity >= 0),
+    unit_variable_cost_paise INTEGER,
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (merchant_id, sku_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS customers (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    demo_channel_id TEXT NOT NULL,
+    display_label TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS consents (
+    id TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    channel TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('active','revoked','none')),
+    captured_at TEXT NOT NULL,
+    source TEXT NOT NULL,
+    revoked_at TEXT,
+    UNIQUE (customer_id, channel)
+  )`,
+  `CREATE TABLE IF NOT EXISTS metric_snapshots (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    fixture_version TEXT NOT NULL,
+    period_start TEXT NOT NULL,
+    period_end TEXT NOT NULL,
+    definition_version TEXT NOT NULL,
+    values_json TEXT NOT NULL,
+    computed_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS campaigns (
+    id TEXT NOT NULL,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('draft','approved','queued')),
+    opportunity_id TEXT NOT NULL,
+    offer_json TEXT NOT NULL,
+    copy_json TEXT NOT NULL,
+    audience_hash TEXT NOT NULL,
+    audience_count INTEGER NOT NULL,
+    inventory_version INTEGER NOT NULL,
+    metric_snapshot_id TEXT NOT NULL,
+    preview_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    ai_mode TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (id, version)
+  )`,
+  `CREATE TABLE IF NOT EXISTS approvals (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL,
+    campaign_version INTEGER NOT NULL,
+    approver_id TEXT NOT NULL,
+    approved_payload_hash TEXT NOT NULL,
+    approved_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS outbox (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    customer_id TEXT NOT NULL,
+    channel TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'simulated_queued',
+    simulated INTEGER NOT NULL DEFAULT 1,
+    idempotency_key TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    UNIQUE (campaign_id, version, customer_id, channel)
+  )`,
+  `CREATE TABLE IF NOT EXISTS redemptions (
+    id TEXT PRIMARY KEY,
+    campaign_id TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    amount_paise INTEGER NOT NULL,
+    occurred_at TEXT NOT NULL,
+    simulated INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    UNIQUE (campaign_id, event_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS idempotency_requests (
+    key TEXT PRIMARY KEY,
+    fingerprint TEXT NOT NULL,
+    response_json TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS audit_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    merchant_id TEXT NOT NULL,
+    actor_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    entity_id TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    redacted_details_json TEXT NOT NULL DEFAULT '{}'
+  )`,
+];
 
-CREATE TABLE IF NOT EXISTS orders (
-  id TEXT PRIMARY KEY,
-  merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
-  external_id TEXT NOT NULL,
-  occurred_at TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('completed','pending','canceled')),
-  total_paise INTEGER NOT NULL,
-  UNIQUE (merchant_id, external_id)
-);
-CREATE INDEX IF NOT EXISTS idx_orders_merchant_time ON orders (merchant_id, occurred_at, status);
+/** Static migration for the one-time legacy merchants-table rebuild. Never interpolated. */
+const LEGACY_MERCHANTS_MIGRATION_STATEMENTS: string[] = [
+  `CREATE TABLE merchants_migrated (
+    id TEXT PRIMARY KEY,
+    demo_session_id TEXT NOT NULL,
+    variant_seed INTEGER NOT NULL DEFAULT 20261106,
+    display_name TEXT NOT NULL,
+    timezone TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    fixture_version TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
+    SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants`,
+  `DROP TABLE merchants`,
+  `ALTER TABLE merchants_migrated RENAME TO merchants`,
+  `CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id)`,
+];
 
-CREATE TABLE IF NOT EXISTS order_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  sku_id TEXT NOT NULL,
-  quantity INTEGER NOT NULL CHECK (quantity > 0),
-  unit_price_paise INTEGER NOT NULL,
-  unit_discount_paise INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items (order_id);
-
-CREATE TABLE IF NOT EXISTS inventory (
-  merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
-  sku_id TEXT NOT NULL,
-  quantity INTEGER NOT NULL CHECK (quantity >= 0),
-  unit_variable_cost_paise INTEGER,
-  version INTEGER NOT NULL DEFAULT 1,
-  updated_at TEXT NOT NULL,
-  PRIMARY KEY (merchant_id, sku_id)
-);
-
-CREATE TABLE IF NOT EXISTS customers (
-  id TEXT PRIMARY KEY,
-  merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
-  demo_channel_id TEXT NOT NULL,
-  display_label TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS consents (
-  id TEXT PRIMARY KEY,
-  customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  channel TEXT NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('active','revoked','none')),
-  captured_at TEXT NOT NULL,
-  source TEXT NOT NULL,
-  revoked_at TEXT,
-  UNIQUE (customer_id, channel)
-);
-
-CREATE TABLE IF NOT EXISTS metric_snapshots (
-  id TEXT PRIMARY KEY,
-  merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
-  fixture_version TEXT NOT NULL,
-  period_start TEXT NOT NULL,
-  period_end TEXT NOT NULL,
-  definition_version TEXT NOT NULL,
-  values_json TEXT NOT NULL,
-  computed_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS campaigns (
-  id TEXT NOT NULL,
-  merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
-  version INTEGER NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('draft','approved','queued')),
-  opportunity_id TEXT NOT NULL,
-  offer_json TEXT NOT NULL,
-  copy_json TEXT NOT NULL,
-  audience_hash TEXT NOT NULL,
-  audience_count INTEGER NOT NULL,
-  inventory_version INTEGER NOT NULL,
-  metric_snapshot_id TEXT NOT NULL,
-  preview_hash TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  ai_mode TEXT NOT NULL,
-  created_at TEXT NOT NULL,
-  PRIMARY KEY (id, version)
-);
-
-CREATE TABLE IF NOT EXISTS approvals (
-  id TEXT PRIMARY KEY,
-  campaign_id TEXT NOT NULL,
-  campaign_version INTEGER NOT NULL,
-  approver_id TEXT NOT NULL,
-  approved_payload_hash TEXT NOT NULL,
-  approved_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS outbox (
-  id TEXT PRIMARY KEY,
-  campaign_id TEXT NOT NULL,
-  version INTEGER NOT NULL,
-  customer_id TEXT NOT NULL,
-  channel TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'simulated_queued',
-  simulated INTEGER NOT NULL DEFAULT 1,
-  idempotency_key TEXT NOT NULL UNIQUE,
-  created_at TEXT NOT NULL,
-  UNIQUE (campaign_id, version, customer_id, channel)
-);
-
-CREATE TABLE IF NOT EXISTS redemptions (
-  id TEXT PRIMARY KEY,
-  campaign_id TEXT NOT NULL,
-  event_id TEXT NOT NULL,
-  quantity INTEGER NOT NULL,
-  amount_paise INTEGER NOT NULL,
-  occurred_at TEXT NOT NULL,
-  simulated INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL,
-  UNIQUE (campaign_id, event_id)
-);
-
-CREATE TABLE IF NOT EXISTS idempotency_requests (
-  key TEXT PRIMARY KEY,
-  fingerprint TEXT NOT NULL,
-  response_json TEXT NOT NULL,
-  created_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS audit_events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  merchant_id TEXT NOT NULL,
-  actor_id TEXT NOT NULL,
-  action TEXT NOT NULL,
-  entity_id TEXT NOT NULL,
-  timestamp TEXT NOT NULL,
-  redacted_details_json TEXT NOT NULL DEFAULT '{}'
-);
-`;
+/** Run each static statement through a prepared statement - no dynamic SQL anywhere. */
+function runStatements(db: SqliteDatabase, statements: string[]): void {
+  for (const sql of statements) {
+    db.prepare(sql).run();
+  }
+}
 
 /**
  * Validates a configured database path before it touches the filesystem:
@@ -191,7 +206,7 @@ export function openDatabase(dbPath: string): SqliteDatabase {
   db.pragma("journal_mode = WAL");
   migrateLegacyMerchantsTable(db);
   db.pragma("foreign_keys = ON");
-  db.exec(SCHEMA_SQL);
+  runStatements(db, SCHEMA_STATEMENTS);
   pruneChildlessMerchants(db);
   return db;
 }
@@ -205,6 +220,24 @@ export function openDatabase(dbPath: string): SqliteDatabase {
  * merchants` under FK enforcement performs an implicit DELETE that CASCADES to
  * every child row. The rebuild therefore runs with foreign keys suspended.
  */
+/** Static DDL/DML for the one-time legacy merchants-table rebuild. No interpolation. */
+const LEGACY_MERCHANTS_MIGRATION_SQL = `
+  CREATE TABLE merchants_migrated (
+    id TEXT PRIMARY KEY,
+    demo_session_id TEXT NOT NULL,
+    variant_seed INTEGER NOT NULL DEFAULT 20261106,
+    display_name TEXT NOT NULL,
+    timezone TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    fixture_version TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
+    SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants;
+  DROP TABLE merchants;
+  ALTER TABLE merchants_migrated RENAME TO merchants;
+`;
+
 function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
   const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'merchants'").get() as
     | { sql: string }
@@ -212,23 +245,7 @@ function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
   if (!row || !row.sql.includes("UNIQUE")) return;
   db.pragma("foreign_keys = OFF");
   db.transaction(() => {
-    db.exec(`
-      CREATE TABLE merchants_migrated (
-        id TEXT PRIMARY KEY,
-        demo_session_id TEXT NOT NULL,
-        variant_seed INTEGER NOT NULL DEFAULT 20261106,
-        display_name TEXT NOT NULL,
-        timezone TEXT NOT NULL,
-        currency TEXT NOT NULL,
-        fixture_version TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      );
-      INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
-        SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants;
-      DROP TABLE merchants;
-      ALTER TABLE merchants_migrated RENAME TO merchants;
-    `);
-    db.exec("CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id);");
+    runStatements(db, LEGACY_MERCHANTS_MIGRATION_STATEMENTS);
   })();
   db.pragma("foreign_keys = ON");
 }
