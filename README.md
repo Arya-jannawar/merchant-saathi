@@ -16,20 +16,27 @@
 
 <h1 align="center">Merchant Saathi 🧁</h1>
 
-<p align="center"><b>An AI business copilot for every Paytm merchant.</b><br/>
-One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b> (inventory and restock intelligence), <b>Serve</b> (consent-first customer campaigns). A dashboard alone shows a merchant that orders are down; the copilot answers <b>what to do</b>, <b>whether it is affordable</b>, <b>what to say</b>, <b>whether it worked</b> - and <b>when the stockroom will run dry</b>. Every single number is proven on the way.</p>
+## 🎬 Watch the video walkthrough (narrated, pick your pace)
+
+> **▶ Short tour (3 min 47 s) — [docs/media/merchant-saathi-walkthrough.mp4](docs/media/merchant-saathi-walkthrough.mp4)** — Muffin 🧁 narrates the whole loop end to end: the evidence-backed dashboard (100 → 70 orders, −30%), evidence receipts, the offer workspace guardrails (the ₹50 rejection and the safe ₹54 suggestion), the hash-bound approval, the simulated campaign with the ₹700 − ₹400 = ₹300 money waterfall and PDF export, statement imports with duplicate protection and one-click reversal, the ridge forecast with an honest error bar, My Year, the festival planner, the deposit payment-link simulator, the mascot cast, ambient music and the verified services directory — **closing with the team credits and a thank-you to Paytm**.
+>
+> **▶ Deep dive (6 min) — [docs/media/merchant-saathi-walkthrough-voice.mp4](docs/media/merchant-saathi-walkthrough-voice.mp4)** — a second, slower narrated tour with the operations copilot, multi-business registration and the thin-data honesty demo; regenerate it with `node scripts/make-walkthrough-audio.mjs && node scripts/assemble-walkthrough.mjs`.
 
 <p align="center">
-  🎥 <b>Fully narrated walkthrough (6 min, female voice - every feature explained):</b><br/>
-  <a href="docs/media/merchant-saathi-walkthrough-voice.mp4">docs/media/merchant-saathi-walkthrough-voice.mp4</a>
-  &nbsp;·&nbsp; regenerate it: <code>node scripts/make-walkthrough-audio.mjs &amp;&amp; node scripts/assemble-walkthrough.mjs</code>
+  <a href="docs/media/merchant-saathi-walkthrough.mp4"><img src="docs/media/walkthrough-poster.png" width="60%" alt="Merchant Saathi video walkthrough poster — Team FinnovateX"/></a>
 </p>
+
+*Both videos are recorded from the running build — nothing is edited in; every screen is real. Prefer the live app? Follow [Run it in 10 minutes](#-run-it-in-10-minutes) instead.*
+
+<p align="center"><b>An AI business copilot for every Paytm merchant.</b><br/>
+One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b> (inventory and restock intelligence), <b>Serve</b> (consent-first customer campaigns). A dashboard alone shows a merchant that orders are down; the copilot answers <b>what to do</b>, <b>whether it is affordable</b>, <b>what to say</b>, <b>whether it worked</b> - and <b>when the stockroom will run dry</b>. Every single number is proven on the way.</p>
 
 <p align="center">
   <img src="docs/animations/mascot-moods.svg" width="100%" alt="Six mascot buddies with signature animations"/>
 </p>
 
 <p align="center">
+  <a href="#-watch-the-video-walkthrough-narrated-pick-your-pace">🎬 Video Walkthrough</a> •
   <a href="#-the-problem-in-real-numbers">The Problem</a> •
   <a href="#-the-solution-one-honest-loop">The Solution</a> •
   <a href="#-feature-deep-dive">Features</a> •
@@ -51,6 +58,7 @@ Everything on this page — and more — is packaged for sharing and presenting:
 
 | Deliverable | File | What is inside |
 | --- | --- | --- |
+| 🎬 **Narrated video walkthrough** (3 min 47 s + a 6 min deep dive) | [`docs/media/merchant-saathi-walkthrough.mp4`](docs/media/merchant-saathi-walkthrough.mp4) · [`merchant-saathi-walkthrough-voice.mp4`](docs/media/merchant-saathi-walkthrough-voice.mp4) | A friendly narrator (Muffin's voice) tours the entire build feature by feature on the running app — problem in numbers, evidence, offer math, approval, campaign waterfall + PDF, imports, forecast, My Year, festivals, deposits, mascots and services — ending with the team credits (Arya Jannawar, Siddhant Pardeshi, Avani Jannawar — **Team FinnovateX**) and a thank-you to Paytm for shortlisting the team's presentation. The second video adds the operations copilot, multi-business registration and the thin-data demo |
 | 🎞️ **Feature deck** (22 slides) | [`docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx`](docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx) | The full story as slides: problem in numbers, the control loop, every feature with real product screenshots, architecture, honesty ledger, testing, roadmap and the team |
 | 📕 **In-depth feature guide** (15 pages, PDF) | [`docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf`](docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf) | A written deep-dive: each pillar and feature explained in detail — how it works inside, the design rule behind it, and the exact demo numbers |
 

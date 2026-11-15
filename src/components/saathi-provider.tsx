@@ -72,14 +72,14 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thinking, setThinking] = useState(false);
   const [input, setInput] = useState("");
-  const [soundOn, setSoundOn] = useState(soundKit.enabled);
+  // Start from constants and sync stored preferences after mount - reading
+  // localStorage during the first render causes a server/client hydration
+  // mismatch (the mute icon rendered differently on each side).
+  const [soundOn, setSoundOn] = useState(true);
   const [musicOn, setMusicOn] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
-  const [mascotId, setMascotId] = useState<MascotId>(() => {
-    if (typeof window === "undefined") return "mithu";
-    return getMascot(window.localStorage.getItem("ms_mascot")).id;
-  });
+  const [mascotId, setMascotId] = useState<MascotId>("mithu");
   const [pickerOpen, setPickerOpen] = useState(false);
   const lastActiveRef = useRef<number>(Date.now());
   const sleepingRef = useRef(false);
@@ -96,6 +96,13 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => soundKit.subscribe(setSoundOn), []);
   useEffect(() => ambientMusic.subscribe(setMusicOn), []);
+  // Sync the persisted preferences after mount so the first client render
+  // matches the server HTML (no hydration warning).
+  useEffect(() => {
+    setSoundOn(soundKit.enabled);
+    const storedMascot = window.localStorage.getItem("ms_mascot");
+    if (storedMascot) setMascotId(getMascot(storedMascot).id);
+  }, []);
   // Honor a persisted music-on preference, but start the pad only after the
   // visitor's first interaction (browser autoplay policy + politeness).
   useEffect(() => {
