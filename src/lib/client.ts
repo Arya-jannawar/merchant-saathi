@@ -355,3 +355,148 @@ export interface AssistantSettingsDto {
   baseUrl: string | null;
   setAtIso: string | null;
 }
+
+// ---------------------------------------------------------------- planning
+
+export interface ImportPreviewDto {
+  batchToken: string;
+  filename: string;
+  checksum: string;
+  delimiter: string;
+  rowsTotal: number;
+  rowsImported: number;
+  rowsSkipped: number;
+  rowsConflicting: number;
+  alreadyImportedBefore: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  unsupportedReason: string | null;
+  rows: {
+    rowNumber: number;
+    occurredAt: string;
+    eventType: string;
+    amountPaise: number;
+    method: string | null;
+    note: string | null;
+    status: "import" | "skip-duplicate" | "skip-cancelled" | "conflict";
+    reason: string | null;
+  }[];
+}
+
+export interface ImportReceiptDto {
+  batchId: string;
+  filename: string;
+  rowsTotal: number;
+  rowsImported: number;
+  rowsSkipped: number;
+  rowsConflicting: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  duplicateBatch: boolean;
+}
+
+export interface ImportBatchDto {
+  id: string;
+  filename: string;
+  rowsTotal: number;
+  rowsImported: number;
+  rowsSkipped: number;
+  rowsConflicting: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  createdAt: string;
+  reversedAt: string | null;
+}
+
+export interface MonthBucketDto {
+  month: string;
+  label: string;
+  netSalesPaise: number;
+  grossProfitPaise: number;
+  grossMarginPct: number | null;
+  tradingDays: number;
+}
+
+export interface YearReportDto {
+  scope: "calendar" | "financial";
+  yearLabel: string;
+  months: MonthBucketDto[];
+  highestSalesMonth: { month: string; label: string; netSalesPaise: number } | null;
+  highestProfitMonth: { month: string; label: string; grossProfitPaise: number } | null;
+  coverageNote: string | null;
+  tieNote: string | null;
+  totalNetSalesPaise: number;
+  totalGrossProfitPaise: number;
+}
+
+export interface ForecastCandidateDto {
+  model: "ridge" | "seasonal-naive";
+  maeRupees: number;
+  wapePct: number | null;
+}
+
+export interface TomorrowForecastDto {
+  usable: boolean;
+  reason: string | null;
+  tomorrowDate: string;
+  selectedModel: "ridge" | "seasonal-naive" | null;
+  predictedRupees: number | null;
+  baseline: ForecastCandidateDto | null;
+  ridge: ForecastCandidateDto | null;
+  trainingDays: number;
+  lastTrainingDate: string | null;
+  coverageDays: number;
+  explanation: string[];
+}
+
+export interface FestivalOpportunityDto {
+  festival: { id: string; name: string; date: string; region: string; source: string; status: string; checkedOn: string };
+  daysAway: number;
+  leadTimeDays: number;
+  deadlinePassed: boolean;
+  deadlineLabel: string;
+  historical: {
+    comparableWeeks: number;
+    comparableAvgNetPaise: number;
+    festivalWeekNetPaise: number;
+    salesChangePct: number | null;
+    comparableAvgProfitPaise: number;
+    festivalWeekProfitPaise: number;
+    profitChangePaise: number | null;
+    confidence: string;
+  } | null;
+  suggestion: string;
+  estimatedContributionPaise: number | null;
+}
+
+export interface FestivalPlanDto {
+  asOf: string;
+  region: string;
+  opportunities: FestivalOpportunityDto[];
+}
+
+export interface DepositRequestDto {
+  id: string;
+  orderRef: string;
+  description: string;
+  orderPaise: number;
+  depositPaise: number;
+  remainingPaise: number;
+  status: "pending" | "collected";
+  linkId: string;
+  createdAt: string;
+  collectedAt: string | null;
+}
+
+export interface ServiceCatalogueDto {
+  id: string;
+  title: string;
+  category: string;
+  summary: string;
+  merchantJob: string;
+  paytmHypothesis: string;
+  sourceUrl: string;
+  sourceEstablishes: string;
+  checkedOn: string;
+  verification: string;
+}

@@ -145,6 +145,40 @@ export default function MerchantDashboard() {
 
       {error ? <Alert tone="error" title={error} /> : null}
 
+      {/* plan-my-next-sale + services entries */}
+      {state.seeded ? (
+        <div className="ms-stagger grid gap-3 sm:grid-cols-2">
+          <a
+            href="/merchant/planning"
+            className="rounded-2xl border-2 border-brand/40 bg-gradient-to-br from-brand-light to-white p-4 transition hover:scale-[1.02] hover:shadow-card"
+            data-testid="plan-next-sale"
+          >
+            <p className="flex items-center gap-2 text-sm font-extrabold text-navy">
+              <span className="text-lg" aria-hidden>🧭</span>
+              Plan my next sale
+              <span aria-hidden className="ml-auto text-slate-400">→</span>
+            </p>
+            <p className="mt-1 text-xs leading-snug text-slate-600">
+              Import a statement, see tomorrow&apos;s expected sales, compare your year and plan the next festival.
+            </p>
+          </a>
+          <a
+            href="/merchant/services"
+            className="rounded-2xl border bg-white p-4 transition hover:scale-[1.02] hover:shadow-card"
+            data-testid="explore-services"
+          >
+            <p className="flex items-center gap-2 text-sm font-extrabold text-navy">
+              <span className="text-lg" aria-hidden>🧭</span>
+              Explore business services
+              <span aria-hidden className="ml-auto text-slate-400">→</span>
+            </p>
+            <p className="mt-1 text-xs leading-snug text-slate-600">
+              A verified directory - Payment Links, Soundbox, insurance, loans - with sources and check dates.
+            </p>
+          </a>
+        </div>
+      ) : null}
+
       {/* three-pillar copilot nav */}
       {state.seeded ? (
         <div className="ms-stagger grid gap-3 sm:grid-cols-3">

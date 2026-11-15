@@ -149,6 +149,55 @@ const SCHEMA_STATEMENTS: string[] = [
     timestamp TEXT NOT NULL,
     redacted_details_json TEXT NOT NULL DEFAULT '{}'
   )`,
+  // Normalized transaction ledger for imported files ("Plan my next sale").
+  // One row per classified event; amounts in integer paise; provenance kept.
+  `CREATE TABLE IF NOT EXISTS ledger_events (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    batch_id TEXT NOT NULL,
+    external_id TEXT,
+    event_type TEXT NOT NULL CHECK (event_type IN ('sale','payment','refund','fee','settlement','transfer','deposit')),
+    occurred_on TEXT NOT NULL,
+    amount_paise INTEGER NOT NULL,
+    method TEXT,
+    note TEXT,
+    sku_id TEXT,
+    units INTEGER,
+    unit_cost_paise INTEGER,
+    source TEXT NOT NULL DEFAULT 'import',
+    fingerprint TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_ledger_merchant_date ON ledger_events (merchant_id, occurred_on, event_type)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_ledger_fingerprint ON ledger_events (merchant_id, fingerprint)`,
+  `CREATE TABLE IF NOT EXISTS import_batches (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    checksum TEXT NOT NULL,
+    rows_total INTEGER NOT NULL,
+    rows_imported INTEGER NOT NULL,
+    rows_skipped INTEGER NOT NULL,
+    rows_conflicting INTEGER NOT NULL,
+    period_start TEXT,
+    period_end TEXT,
+    created_at TEXT NOT NULL,
+    reversed_at TEXT
+  )`,
+  // Deposit requests ("collect a deposit for a phone order"): one collection
+  // per order; replays of the same simulated success cannot double-collect.
+  `CREATE TABLE IF NOT EXISTS deposit_requests (
+    id TEXT PRIMARY KEY,
+    merchant_id TEXT NOT NULL REFERENCES merchants(id) ON DELETE CASCADE,
+    order_ref TEXT NOT NULL,
+    description TEXT NOT NULL,
+    order_paise INTEGER NOT NULL,
+    deposit_paise INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending','collected')),
+    link_id TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    collected_at TEXT
+  )`,
 ];
 
 /** Static migration for the one-time legacy merchants-table rebuild. Never interpolated. */
@@ -188,11 +237,15 @@ export function resolveDatabasePath(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) throw new Error("Database path is empty.");
   if (/[\0\r\n]/.test(trimmed)) throw new Error("Database path contains control characters.");
-  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+  // Windows drive letters ("C:\data\app.sqlite") are legitimate absolute
+  // filesystem paths - check them BEFORE the URL-scheme pattern, which would
+  // otherwise misread "C:" as a scheme.
+  const isWindowsAbsolute = /^[a-zA-Z]:[\\/]/.test(trimmed);
+  if (!isWindowsAbsolute && /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
     throw new Error(`Database path must be a filesystem path, not a URL: ${trimmed}`);
   }
   const root = process.cwd();
-  const resolved = path.resolve(root, trimmed);
+  const resolved = path.isAbsolute(trimmed) ? path.normalize(trimmed) : path.resolve(root, trimmed);
   if (resolved === root || !resolved.startsWith(root + path.sep)) {
     throw new Error(`Database path must stay inside the project directory (got ${resolved}).`);
   }

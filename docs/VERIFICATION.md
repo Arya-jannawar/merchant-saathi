@@ -313,3 +313,35 @@ Observed from an actual run (dev + production build, Node 22, Windows 11):
 - Concurrency is guarded by `BEGIN IMMEDIATE` transactions; a multi-process load test was not run.
 - Single-process prototype: SQLite requires a writable durable directory; no real auth
   (demo session cookie only), no rate limiting, no real messaging.
+
+## 7. Feature round: imports, year, forecast, festivals, deposits
+
+Observed from an actual run (dev + production build, Node 22, Windows 11):
+
+- **Statement import** (CSV/TSV/JSON; XLSX and scanned-PDF OCR are next):
+  - Acceptance replay: `₹125.50 @ 15:00 + ₹74.50 @ 17:59 + ₹80 @ 18:00, cancelled ₹50` → day total ₹280,
+    afternoon window (15:00 inclusive, 18:00 exclusive) ₹200 across 2 sales, cancelled row zero effect.
+  - Exact-file retry: duplicate batch receipt, 0 imported, nothing double-counted. A second business importing
+    the same rows keeps its own ledger (tenant scoping).
+  - Amounts: `1,25,000.50` / `₹125.50` / `Rs 74.5` / `-50` / `(125.50)` all parse to integer paise.
+  - Bug fixed during testing: parseAmountToPaise stripped the decimal point with the currency prefix (bad char
+    class) - caught by the acceptance test, fixed, and the paise math now round-trips.
+- **My year**: deterministic 12-month ledger (Nov 2025 → Oct 2026) → highest sales month October (₹80,000 net),
+  highest gross-profit month September (₹25,000 = ₹65,000 − ₹40,000); coverage note distinguishes costed lines;
+  calendar and April–March views.
+- **Tomorrow**: weekly seasonal naive baseline vs ridge (λ=1, weekday one-hot + trend + lag1/lag7/MA7), 14-day
+  walk-forward backtest. Plan acceptance verified: actual [100,120,80], ridge [90,130,80], seasonal [80,100,80]
+  → MAE ₹6.67 vs ₹13.33, WAPE 6.67% vs 13.33% (WAPE = MAE / mean(|actual|)). Gate: 42 consecutive days;
+  sparse history gets the honest refusal. A statement ending Oct 31 imported on Nov 6 forecasts the next expected
+  trading day (Nov 1) with a history-gap note - the gap is never filled with zeros.
+- **Festival planner**: kiosk sample (ordinary weeks exactly 200 units @ ₹50, cost ₹30; tagged Diwali week 300
+  units @ ₹45, cost ₹32) → +35% sales, −₹100 gross profit vs matched comparable weeks. Upcoming shortlist uses
+  the Maharashtra government notification for Diwali Amavasya 2026 (source stored, checked date recorded); a
+  5-day-prep merchant on the Nov 6 clock sees the Diwali deadline as passed. Past festivals never rank.
+- **Deposits**: payment-link simulator - ₹300 deposit on a ₹1,000 cake order; first collect persists one ledger
+  payment event; the replay returns the same receipt (duplicate: true); remaining ₹700 stays due.
+- Tests +11 (117 total): import acceptance/dedupe/tenant scoping, amount parsing, annual peaks + coverage,
+  forecast MAE/WAPE acceptance + weekly-pattern selection + thin-history refusal, festival comparison + lead
+  times + past-event exclusion.
+- Config bug fixed: `outputFileTracingIncludes` was misplaced in next.config.mjs (invalid on Next 14) and had
+  been silently ignored - moved under `experimental` so the PDF fonts survive a serverless bundle.

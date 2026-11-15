@@ -7,7 +7,7 @@
   &nbsp;
   <img src="https://img.shields.io/badge/Next.js%2014-TypeScript%20strict-000000?style=for-the-badge&logo=next.js" alt="Next.js 14 TypeScript"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-106%20passing-10b981?style=for-the-badge&logo=vitest" alt="106 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-117%20passing-10b981?style=for-the-badge&logo=vitest" alt="117 tests passing"/>
   &nbsp;
   <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20model%20API-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
   &nbsp;
@@ -143,7 +143,20 @@ Every mascot × mood pair has its **own synthesized tune** — the same melody i
 ### 💬 8. Muffin's chat — grounded answers, optional live brain
 Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"* — the built-in **fact book** answers from the session's verified numbers with a *How I reasoned* trace. Paste a provider API key + model in the 🧠 dialog and answers become generative with deeper reasoning — still guarded: any rupee amount the model invents that isn't in the computed facts makes the reply fall back to the fact book with a labeled note. The key lives in **server memory only** (never disk, masked to the browser, public-host validated).
 
-### 🏪 9. A platform for every Paytm merchant - register, don't configure
+### 🧭 9. Plan my next sale — imports, forecast, festivals, deposits
+<p align="center"><img src="docs/screenshots/13-credits-footer.png" width="100%" alt="Planning entry points on the dashboard"/></p>
+
+**"Plan my next sale"** is one entry that carries a merchant from raw records to a decision:
+
+1. **Import transactions** — CSV, TSV or JSON statements with auto column-mapping (common Paytm-style headers), Indian digit grouping (₹, `1,25,000.50`), explicit date-order handling, cancelled-order exclusion, and fingerprint dedupe across batches. Preview shows exactly which rows will post before anything is recorded; confirmed batches can be reversed with an audit trail.
+2. **Tomorrow's expected sales** — a weekly seasonal naive baseline vs a small ridge regression, evaluated by a 14-day walk-forward backtest (MAE in ₹ + WAPE); the simpler baseline wins ties. Needs 42 consecutive recorded days; sparse history gets an honest refusal, never a guess.
+3. **My year** — month-by-month net sales, gross profit (costed lines only — uncosted lines never count as zero cost) and margin, in calendar or April–March views, with explicit peak months and tie handling.
+4. **Festival planner** — a regional calendar with stored sources and check dates (Diwali Amavasya 2026 from the Maharashtra government notification), lead-time deadlines (a 5-day-prep merchant sees the Diwali deadline as passed on Nov 6), historical festival-vs-comparable-week comparisons (+35% sales, −₹100 gross profit in the worked kiosk sample), and conservative contribution estimates labeled as assumptions.
+5. **Deposit collection** — create a labeled payment link for a phone order (₹300 deposit on a ₹1,000 cake), collect the simulated success once (replays are idempotent), and see the remaining ₹700 stay due.
+
+**"Explore business services"** is a directory — Payment Links, Soundbox, insurance, loans, report downloads — each entry naming the provider, what the public source establishes, and the date checked. "Category guide" entries say so; no rates or partnerships are invented, and a sales decline never triggers a loan suggestion.
+
+### 🏪 10. A platform for every Paytm merchant - register, don't configure
 
 <p align="center"><img src="docs/screenshots/11-registration.png" width="100%" alt="The registration wizard with the domain grid"/></p>
 
@@ -212,7 +225,7 @@ src/
                            saathi-brain (fact book + live prompts + rupee guard), mascots-config, sound
   fixtures/bakery-v1.json  single source of truth for every demo number
 scripts/                   seed CLI + fixture verifier
-tests/                     vitest suites (106) + playwright e2e hero flow
+tests/                     vitest suites (117) + playwright e2e hero flow
 docs/                      screenshots of every stage + animations + team context pack
 ```
 </details>
@@ -253,7 +266,7 @@ AI: drafts explanation + customer copy only, from verified facts — fixture mod
 
 ## 🧪 Testing & verification
 
-- **106 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails (including the action-plan grounding guard), thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard, campaign summary PDF rendering.
+- **117 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails (including the action-plan grounding guard), thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard, campaign summary PDF rendering, statement import (₹280-day acceptance, dedupe/replay, tenant scoping), annual peaks (Oct sales / Sep profit), forecast MAE/WAPE acceptance, festival-window comparison (+35% / −₹100).
 - **1 Playwright e2e**: the full hero path — load → −30% → draft → ₹50 rejected → restore → approve → queue → 10 events → ₹300 → idempotent replay.
 - **`npm run fixtures:verify`**: reconciles every fixture number against the database — the pre-demo gate. It once caught a real data-loss bug in our own migration; that fix (FK-suspended table rebuild + husk self-heal) is now permanent.
 

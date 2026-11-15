@@ -1,0 +1,8 @@
+Date,Time,Type,Amount,Method,Note,Units,Unit Cost
+2026-11-06,15:00,Sale,125.5,UPI,counter sale,1,0
+2026-11-06,17:59,Sale,74.5,Cash,counter sale,1,0
+2026-11-06,18:00,Sale,80,UPI,after-hours order,1,0
+2026-11-06,16:10,Cancelled,-50,UPI,customer cancelled,1,0
+2026-11-06,19:05,Payment,300,UPI,deposit for cake order,,
+2026-11-07,10:00,Refund,-60,UPI,refund for stale stock,,
+2026-11-07,10:05,Fee,12.3,,platform fee,,
