@@ -191,7 +191,7 @@ function Particles({ accent }: { accent: string }) {
         <path d="M50 22 q6-9 0-16" />
         <path d="M66 24 q-6-9 0-16" />
       </g>
-      <g className="ms-p-zzz" fill="#8fd8ff" font-family="Segoe UI, Arial" font-weight="800">
+      <g className="ms-p-zzz" fill="#8fd8ff" fontFamily="Segoe UI, Arial" fontWeight={800}>
         <text x="88" y="40" fontSize="13">z</text>
         <text x="98" y="28" fontSize="17">Z</text>
         <text x="108" y="16" fontSize="21">Z</text>

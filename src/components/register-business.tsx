@@ -126,6 +126,7 @@ export function RegisterBusinessModal({
                     <button
                       key={d.id}
                       type="button"
+                      data-testid={`domain-option-${d.id}`}
                       onClick={() => {
                         setDomain(d);
                         soundKit.play("tap");
@@ -201,6 +202,7 @@ export function RegisterBusinessModal({
             {step === 1 ? (
               <button
                 type="button"
+                data-testid="registration-continue"
                 onClick={() => {
                   setStep(2);
                   soundKit.play("open");
@@ -211,7 +213,13 @@ export function RegisterBusinessModal({
                 Continue →
               </button>
             ) : (
-              <button type="button" onClick={() => void register()} disabled={busy} className="btn-primary !px-5">
+              <button
+                type="button"
+                data-testid="registration-register"
+                onClick={() => void register()}
+                disabled={busy}
+                className="btn-primary !px-5"
+              >
                 {busy ? "Registering…" : `Register ${domain?.emoji ?? ""}`}
               </button>
             )}

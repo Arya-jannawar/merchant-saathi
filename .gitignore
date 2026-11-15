@@ -30,3 +30,7 @@ out/
 playwright-report/
 test-results/
 .mimosa
+
+# walkthrough intermediates (regenerable via scripts/make-walkthrough-audio.mjs + assemble-walkthrough.mjs)
+docs/media/walkthrough-clips/
+docs/media/voiceover/

@@ -126,6 +126,7 @@ export default function MerchantDashboard() {
               type="button"
               onClick={() => loadSampleData("bakery-thin-v1")}
               disabled={busy}
+              data-testid="thin-demo"
               className="btn-secondary !py-1.5 text-xs"
             >
               Thin-data demo

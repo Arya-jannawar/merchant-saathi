@@ -20,6 +20,12 @@
 One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b> (inventory and restock intelligence), <b>Serve</b> (consent-first customer campaigns). A dashboard alone shows a merchant that orders are down; the copilot answers <b>what to do</b>, <b>whether it is affordable</b>, <b>what to say</b>, <b>whether it worked</b> - and <b>when the stockroom will run dry</b>. Every single number is proven on the way.</p>
 
 <p align="center">
+  🎥 <b>Fully narrated walkthrough (6 min, female voice - every feature explained):</b><br/>
+  <a href="docs/media/merchant-saathi-walkthrough-voice.mp4">docs/media/merchant-saathi-walkthrough-voice.mp4</a>
+  &nbsp;·&nbsp; regenerate it: <code>node scripts/make-walkthrough-audio.mjs &amp;&amp; node scripts/assemble-walkthrough.mjs</code>
+</p>
+
+<p align="center">
   <img src="docs/animations/mascot-moods.svg" width="100%" alt="Six mascot buddies with signature animations"/>
 </p>
 

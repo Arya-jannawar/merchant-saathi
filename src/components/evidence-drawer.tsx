@@ -14,6 +14,7 @@ export default function EvidenceDrawer({ evidence }: { evidence: EvidenceEntryDt
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between px-4 py-3 text-left"
         aria-expanded={open}
+        data-testid="evidence-toggle"
       >
         <span className="text-sm font-semibold text-navy">
           Evidence ({evidence.length} checks) - where every number comes from
