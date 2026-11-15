@@ -16,6 +16,13 @@
 
 <h1 align="center">Merchant Saathi 🧁</h1>
 
+## 🌐 Try it live — no install needed
+
+> **▶ Open the live demo: [https://eye-under-dublin-oclc.trycloudflare.com](https://eye-under-dublin-oclc.trycloudflare.com/merchant)**
+> Click **Load sample data**, then walk the loop exactly as the video shows: dashboard → evidence → offer workspace → approve → simulated campaign → the ₹300 waterfall. Every visitor gets their own isolated demo session.
+
+*How this is hosted: the production build (`npm run build && npm start`) runs as a real Node process with a durable SQLite file — the "persistent-disk host" path in [DEPLOY.md](DEPLOY.md) — and a Cloudflare tunnel publishes it over HTTPS. The URL changes if the tunnel restarts (one command re-publishes it); the durable serverless path (Vercel + a hosted Postgres port) is documented in the same file as the long-term option. AI is in live mode with the labeled fixture fallback active until the organizer-published model endpoint is filled in — the app says so on screen.*
+
 ## 🎬 Watch the video walkthrough (narrated, pick your pace)
 
 > **▶ Short tour (3 min 47 s) — [docs/media/merchant-saathi-walkthrough.mp4](docs/media/merchant-saathi-walkthrough.mp4)** — Muffin 🧁 narrates the whole loop end to end: the evidence-backed dashboard (100 → 70 orders, −30%), evidence receipts, the offer workspace guardrails (the ₹50 rejection and the safe ₹54 suggestion), the hash-bound approval, the simulated campaign with the ₹700 − ₹400 = ₹300 money waterfall and PDF export, statement imports with duplicate protection and one-click reversal, the ridge forecast with an honest error bar, My Year, the festival planner, the deposit payment-link simulator, the mascot cast, ambient music and the verified services directory — **closing with the team credits and a thank-you to Paytm**.
@@ -36,6 +43,7 @@ One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b>
 </p>
 
 <p align="center">
+  <a href="#-try-it-live--no-install-needed">🌐 Live Demo</a> •
   <a href="#-watch-the-video-walkthrough-narrated-pick-your-pace">🎬 Video Walkthrough</a> •
   <a href="#-pitch-deck--feature-guide-download-read-present">🎞️ Deck & Guide</a> •
   <a href="#-the-problem-in-real-numbers">The Problem</a> •

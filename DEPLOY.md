@@ -6,6 +6,33 @@ long-running Node process (a small VM, Render/Railway/Fly with a persistent
 volume, or your own box). It is NOT yet deployable as-is on Vercel**, because
 the data layer is SQLite.
 
+## What is live right now (executed 2026-11-15)
+
+The production build is published over a Cloudflare tunnel from the team's
+machine — Option A below, executed exactly as documented:
+
+```bash
+npm run build && npm start            # Node 20, production server on :3000
+cloudflared tunnel --url http://localhost:3000
+```
+
+- **Live URL:** https://eye-under-dublin-oclc.trycloudflare.com/merchant
+  (a quick-tunnel URL — it changes if the tunnel restarts; re-running the one
+  command above publishes a fresh one)
+- **Verified through the public URL:** session-scoped seed, offer draft ->
+  hash-bound approval -> queue -> 40-recipient outbox -> apply-all events ->
+  Rs 700 - Rs 400 = Rs 300 results, and the state **persists across reloads**
+  (the durability this deployment protects).
+- **Why the tunnel and not serverless tonight:** the authed serverless options
+  (Vercel, Cloudflare Workers) both require the async data-layer port below.
+  That port touches 35 files plus the test suite and is deliberately not
+  attempted hours before judging - the tunnel serves the unchanged,
+  test-verified build instead.
+- **To make the hostname stable:** create a named tunnel
+  (`cloudflared tunnel create merchant-saathi` + DNS route) — requires a domain
+  zone on the Cloudflare account. Until then, re-run the quick tunnel command
+  and update the link wherever it is shared.
+
 ## Why not Vercel today
 
 The inspected app keeps state in **better-sqlite3** — a synchronous, local file
