@@ -255,6 +255,51 @@ The operations copilot round (the "manage operations" pillar):
   the assistant handles "should I restock?" style questions with grounded
   numbers. Advisory only: nothing mutates inventory.
 
+## 6. Feature round: header business control, action plan, PDF summary
+
+Observed from an actual run (dev + production build, Node 22, Windows 11):
+
+- **Header business control**: the active-business switcher and a labeled
+  "+ Add business" action moved from the floating bottom-left strip into the
+  shared header on every screen. At a 360 px viewport both sit in the first
+  header row, top edge 12 px (measured via getBoundingClientRect) - above the
+  fold before any scrolling. Creating a business selects it, announces it, and
+  reloads after 550 ms so no stale campaign data flashes through. The dropdown
+  closes on outside click and Escape.
+- **Action plan** (server-computed, grounded):
+  - Draft at ₹70 → 3 steps: "Offer Two samosas + one tea at ₹70 (usual ₹90).",
+    "Cap redemptions at 20 bundles per day.", "Review the 40 opted-in
+    recipients, then approve this exact version." No correction actions.
+  - Draft at ₹50 → first step "Set the price to ₹54 - after the ₹40 cost that
+    clears the 25% floor." with a "Use ₹54" button bound to the server-computed
+    suggestion (4000 / 0.75 = 5333.3 → ₹54 whole rupees; margin at ₹54 = 25.9%
+    ≥ floor). Longer reasoning moved behind "Why these steps?".
+  - Live-model guard `actionPlanGrounded`: rupee tokens in plan steps must be
+    computed facts (offer price, usual price, bundle cost, server-suggested
+    price); correction actions must carry the exact suggested values - anything
+    else falls back to the labeled fixture plan.
+- **PDF summary** (`GET /api/campaigns/{id}/summary-pdf`): full journey via
+  HTTP - reset → draft ₹70 → approve → execute (40 outbox rows) → 10 redemptions
+  → 200 with `Content-Type: application/pdf`, body begins `%PDF-`. Renderer
+  unit tests cover the canonical replay report (₹700 − ₹400 = ₹300), the
+  zero-redemption empty state, a Hindi customer message (Noto Sans Devanagari
+  run), and a long business name. Fonts: Noto Sans Regular/Bold + Noto Sans
+  Devanagari (OFL, committed under assets/fonts/ with the license; glyph
+  coverage verified with fontkit: Latin+₹ in Noto Sans, Devanagari+₹+digits in
+  the Devanagari face). `outputFileTracingIncludes` keeps the fonts in the
+  route bundle for serverless targets.
+- **Mascot renames**: Byte→Muffin, Firewall→Chutku, Java→Chai Chai,
+  Crypto→Ginni, Pixel→Laddoo, Glitch→Jiji. IDs unchanged - saved mascot
+  selections and sound preferences keep working. Picker, chat header,
+  accessibility labels and README updated.
+- **Playwright e2e** hero path passes unchanged against the new header
+  (locators were role-based; the tour anchor `data-tour="merchant-strip"` moved
+  with the control).
+- Tests +11 (106 total): action-plan grounding (invented rupee amounts,
+  mismatched corrections, out-of-range plan shapes), suggested-price
+  arithmetic (₹50 → ₹54, passing → null, missing cost → null), PDF rendering
+  (4 cases).
+
 ## Known limitations (honest list)
 
 - Live AI path is implemented but **not smoke-tested with real credentials** in this run

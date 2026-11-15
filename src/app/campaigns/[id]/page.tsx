@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { api, ApiClientError, type CampaignResultsDto, type RedeemResponseDto } from "@/lib/client";
+import { api, apiBlob, ApiClientError, type CampaignResultsDto, type RedeemResponseDto } from "@/lib/client";
 import { formatDateTime, formatINR } from "@/lib/format";
 import { Alert, Badge, Card, Stat } from "@/components/ui";
 import { CountUp, Meter, WaterfallChart } from "@/components/charts";
@@ -93,12 +93,26 @@ export default function CampaignPage() {
     await load();
   }
 
+  function slug(text: string): string {
+    return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "business";
+  }
+
+  function triggerDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function downloadSummary() {
     if (!results) return;
     const r = results.redemptions;
     const lines = [
       "MERCHANT SAATHI - CAMPAIGN SUMMARY (SIMULATED DEMO)",
       "===================================================",
+      `Business: ${results.merchantName}`,
       `Campaign: ${results.campaign.id} v${results.campaign.version}`,
       `Status: ${results.campaign.status}`,
       `Offer: ${results.campaign.offer.bundleName} at ${formatINR(results.campaign.offer.pricePaise)} (usual ${formatINR(
@@ -118,13 +132,32 @@ export default function CampaignPage() {
       "CAVEATS",
       ...results.caveats.map((c) => `- ${c}`),
     ].join("\n");
-    const blob = new Blob([lines], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `campaign-${results.campaign.id}-summary.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    triggerDownload(new Blob([lines], { type: "text/plain" }), `campaign-${results.campaign.id}-summary.txt`);
+  }
+
+  async function downloadPdf() {
+    if (!campaignId) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const blob = await apiBlob(`/api/campaigns/${campaignId}/summary-pdf`);
+      triggerDownload(
+        blob,
+        `${slug(results?.merchantName ?? "business")}-campaign-${campaignId}-summary.pdf`
+      );
+      saathi.say("PDF saved - the same verified numbers as the screen and the TXT, now in your downloads. 📄", {
+        mood: "happy",
+        sound: "reply",
+      });
+    } catch (err) {
+      setNotice({
+        tone: "error",
+        text: err instanceof ApiClientError ? `${err.message} (${err.code})` : "PDF download failed.",
+      });
+      saathi.react("sad", "error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!results) {
@@ -332,9 +365,14 @@ export default function CampaignPage() {
             <Stat label="Unique redemptions">{`${r.redemptions} of cap ${r.cap}`}</Stat>
             <Stat label="Discount given">{formatINR(r.discountPaise)}</Stat>
           </div>
-          <button type="button" onClick={downloadSummary} className="btn-secondary mt-4 w-full">
-            Download summary (.txt)
-          </button>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button type="button" onClick={downloadPdf} disabled={busy} data-testid="download-pdf" className="btn-primary">
+              {busy ? "Preparing..." : "Download PDF"}
+            </button>
+            <button type="button" onClick={downloadSummary} disabled={busy} data-testid="download-txt" className="btn-secondary">
+              Download text (.txt)
+            </button>
+          </div>
         </Card>
       </div>
 

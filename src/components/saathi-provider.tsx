@@ -4,9 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { MascotById } from "@/components/mascot";
 import { getMascot, INTERACTION_MOODS, MASCOTS, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
 import { soundKit, type SoundName } from "@/lib/sound";
-import { api, ApiClientError, getActiveMerchantId, setActiveMerchantId, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto, type MerchantDto } from "@/lib/client";
+import { api, ApiClientError, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
-import { RegisterBusinessModal } from "@/components/register-business";
 import { SaathiTour } from "@/components/saathi-tour";
 import { MascotPicker } from "@/components/mascot-picker";
 
@@ -273,26 +272,6 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   return (
     <SaathiContext.Provider value={apiValue}>
       {children}
-
-      {/* active business strip */}
-      <MerchantStrip
-        onSwitched={(m, prevName) => {
-          soundKit.play("switch");
-          say(`Now viewing ${m.name}${prevName ? ` (was ${prevName})` : ""} - every number on screen is ${m.name}'s.`, {
-            mood: "curious",
-          });
-        }}
-        onAdded={(m) => {
-          soundKit.play("addBusiness");
-          say(`${m.name} joined the shelf! Their numbers are seeded and ready - take a look around.`, {
-            mood: "enthusiastic",
-          });
-        }}
-        onRemoved={(name) => {
-          soundKit.play("removeBusiness");
-          say(`${name} is gone - their rows were deleted for good.`, { mood: "sad" });
-        }}
-      />
 
       {/* floating sound toggle */}
       <button
@@ -628,157 +607,5 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         />
       ) : null}
     </SaathiContext.Provider>
-  );
-}
-
-/**
- * Active-business strip: switch between the session's businesses, add a new
- * one, or remove one. Switching persists the id (client module var + header)
- * and reloads so every screen refetches with the new scope.
- */
-function MerchantStrip({
-  onSwitched,
-  onAdded,
-  onRemoved,
-}: {
-  onSwitched: (m: MerchantDto, prevName: string | null) => void;
-  onAdded: (m: MerchantDto) => void;
-  onRemoved: (name: string) => void;
-}) {
-  const [merchants, setMerchants] = useState<MerchantDto[]>([]);
-  const [active, setActive] = useState<string | null>(getActiveMerchantId());
-  const [open, setOpen] = useState(false);
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const current = merchants.find((m) => m.id === active) ?? null;
-
-  useEffect(() => {
-    let cancelled = false;
-    api<{ merchants: MerchantDto[] }>("/api/merchants")
-      .then((res) => {
-        if (cancelled) return;
-        setMerchants(res.merchants);
-        const stored = getActiveMerchantId();
-        const valid = res.merchants.some((m) => m.id === stored);
-        if (!valid) {
-          setActiveMerchantId(res.merchants[0]?.id ?? null);
-          setActive(res.merchants[0]?.id ?? null);
-        }
-      })
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  if (merchants.length === 0) return null;
-
-  async function switchTo(m: MerchantDto) {
-    if (m.id === active) {
-      setOpen(false);
-      return;
-    }
-    const prevName = current?.name ?? null;
-    setActiveMerchantId(m.id);
-    setActive(m.id);
-    setOpen(false);
-    onSwitched(m, prevName);
-    // Reload so every screen refetches with the new merchant scope.
-    setTimeout(() => window.location.reload(), 550);
-  }
-
-  async function remove(m: MerchantDto) {
-    if (!window.confirm(`Remove ${m.name}? All of its demo rows are deleted for good.`)) return;
-    setBusy(true);
-    try {
-      await api(`/api/merchants/${m.id}`, { method: "DELETE" });
-      const rest = merchants.filter((x) => x.id !== m.id);
-      setMerchants(rest);
-      onRemoved(m.name);
-      if (m.id === active) {
-        setActiveMerchantId(rest[0]?.id ?? null);
-        setActive(rest[0]?.id ?? null);
-        setTimeout(() => window.location.reload(), 550);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="fixed bottom-[104px] left-4 z-40" data-tour="merchant-strip">
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => {
-            setOpen((v) => !v);
-            soundKit.play(open ? "close" : "open");
-          }}
-          className="ms-pop flex max-w-[260px] items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-navy shadow-card transition hover:border-brand"
-          aria-expanded={open}
-          aria-label="Switch business"
-        >
-          <span aria-hidden>🏪</span>
-          <span className="truncate">{current ? current.name : "Businesses"}</span>
-          <span aria-hidden className="text-slate-400">{open ? "▴" : "▾"}</span>
-        </button>
-        {open ? (
-          <div className="ms-pop absolute left-0 top-9 w-72 rounded-2xl border border-slate-200 bg-white p-2 shadow-card">
-            <ul className="space-y-0.5">
-              {merchants.map((m) => (
-                <li key={m.id} className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => void switchTo(m)}
-                    disabled={busy}
-                    className={`flex-1 truncate rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${
-                      m.id === active ? "bg-accent-soft text-brand" : "text-slate-600 hover:bg-brand-light hover:text-brand"
-                    }`}
-                  >
-                    <span aria-hidden className="mr-1">{m.domain.emoji}</span>
-                    {m.name}
-                    <span className="ml-1.5 text-[10px] font-normal text-slate-400">{m.domain.label}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void remove(m)}
-                    disabled={busy}
-                    className="rounded-lg px-1.5 py-1 text-xs text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-                    aria-label={`Remove ${m.name}`}
-                    title={`Remove ${m.name}`}
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="button"
-              onClick={() => {
-                setWizardOpen(true);
-                soundKit.play("open");
-              }}
-              disabled={busy}
-              className="mt-1 w-full rounded-xl border border-dashed border-brand/40 px-3 py-2 text-xs font-bold text-brand transition hover:bg-brand-light"
-            >
-              + Register a business
-            </button>
-            <p className="mt-1.5 px-1 text-[10px] leading-snug text-slate-400">
-              Each business gets its own seeded numbers, offer and campaigns. Data stays in this browser session.
-            </p>
-          </div>
-        ) : null}
-      </div>
-      <RegisterBusinessModal
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        onRegistered={(m) => {
-          setMerchants((list) => [...list, m]);
-          setActiveMerchantId(m.id);
-          setActive(m.id);
-          onAdded(m);
-        }}
-      />
-    </div>
   );
 }

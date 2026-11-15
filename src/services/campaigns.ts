@@ -7,7 +7,7 @@ import type { Fixture } from "@/lib/fixture";
 import { computeOffer, type OfferComputation } from "@/domain/offers";
 import { getAudience } from "@/domain/consent";
 import { getOpportunities, type EvidenceEntry } from "@/domain/metrics";
-import { generateDraft } from "@/adapters/ai";
+import { generateDraft, type AiActionPlanItem } from "@/adapters/ai";
 
 /**
  * Campaign lifecycle: draft -> approve -> queue (simulated) -> redeem (simulated) -> results.
@@ -89,6 +89,19 @@ function currentInventoryVersion(db: SqliteDatabase, merchantId: string): number
   return row.v;
 }
 
+/**
+ * Smallest whole-rupee price that clears the margin floor for the bundle cost,
+ * in paise - or null when the current offer already passes (or cost is unknown).
+ * Code computes it; the AI action plan may only reference it verbatim.
+ */
+export function computeSuggestedPrice(computed: OfferComputation): number | null {
+  if (computed.passes || computed.bundleCostPaise === null || computed.bundleCostPaise <= 0) return null;
+  if (computed.floorPct <= 0 || computed.floorPct >= 100) return null;
+  const exact = computed.bundleCostPaise / (1 - computed.floorPct / 100);
+  const wholeRupees = Math.ceil(exact / 100) * 100;
+  return Math.max(wholeRupees, computed.pricePaise);
+}
+
 /** End of the NEXT weekday (Mon-Fri) at 18:00 IST, strictly after `now`. */
 export function nextWeekdayEveningIso(now: Date): string {
   const p = istParts(now);
@@ -135,6 +148,7 @@ export interface DraftResult {
   computed: OfferComputation;
   headline: string;
   explanation: string;
+  actionPlan: AiActionPlanItem[];
   assumptions: string[];
   copy: StoredCopy;
   copyLocale: "en" | "hi";
@@ -210,6 +224,17 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
         maxDiscountExposurePaise: offer.maxDiscountExposurePaise,
         discountPct: offer.discountPct,
       },
+      // Suggested corrections are computed here, in code - the adapter only
+      // formats them into the action plan, never invents them.
+      corrections: {
+        suggestedPricePaise: computeSuggestedPrice(computed),
+        suggestedCap: computed.capWithinCapacity ? null : Math.max(computed.capacity, 0),
+      },
+      audience: {
+        eligibleCount: audience.eligibleIds.length,
+        excludedCount: audience.excluded.length,
+        channel: fixture.customers.channel,
+      },
       locale: input.locale,
     },
     [...EVIDENCE_IDS]
@@ -283,6 +308,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
     computed,
     headline: ai.draft.headline,
     explanation: ai.draft.explanation,
+    actionPlan: ai.draft.actionPlan,
     assumptions: ai.draft.assumptions,
     copy,
     copyLocale: input.locale,
@@ -624,6 +650,7 @@ function redemptionTotals(
 // ---------------------------------------------------------------- results
 
 export interface CampaignResults {
+  merchantName: string;
   campaign: {
     id: string;
     version: number;
@@ -686,7 +713,12 @@ export function getCampaignResults(db: SqliteDatabase, merchantId: string, fixtu
     .prepare("SELECT action, entity_id, timestamp, actor_id FROM audit_events WHERE merchant_id = ? AND entity_id LIKE ? ORDER BY id DESC LIMIT 12")
     .all(merchantId, `${campaignId}%`) as { action: string; entity_id: string; timestamp: string; actor_id: string }[];
 
+  const merchantName = (
+    db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as { display_name: string } | undefined
+  )?.display_name ?? "Your business";
+
   return {
+    merchantName,
     campaign: {
       id: campaignId,
       version,

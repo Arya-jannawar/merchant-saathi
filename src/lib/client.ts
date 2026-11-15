@@ -60,6 +60,18 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+/** Same session/selector headers as api(), but returns the raw body (e.g. a PDF). */
+export async function apiBlob(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  if (activeMerchantId) headers["x-merchant-id"] = activeMerchantId;
+  const res = await fetch(path, { headers, cache: "no-store" });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as ApiErrorBody | null;
+    throw new ApiClientError(res.status, body?.error ?? { code: "unknown", message: `Request failed (${res.status})` });
+  }
+  return await res.blob();
+}
+
 async function rawApi<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (activeMerchantId) headers["x-merchant-id"] = activeMerchantId;
@@ -222,6 +234,10 @@ export interface DraftResponseDto {
   computed: OfferComputationDto;
   headline: string;
   explanation: string;
+  actionPlan: {
+    text: string;
+    action?: { kind: "set-price"; valuePaise: number } | { kind: "set-cap"; value: number };
+  }[];
   assumptions: string[];
   copy: { title: string; body: string };
   copyLocale: "en" | "hi";
@@ -253,6 +269,7 @@ export interface ExecuteResponseDto {
 }
 
 export interface CampaignResultsDto {
+  merchantName: string;
   campaign: {
     id: string;
     version: number;

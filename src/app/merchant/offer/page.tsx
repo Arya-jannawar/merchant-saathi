@@ -311,7 +311,44 @@ export default function OfferWorkspacePage() {
                   </div>
                 ) : null}
                 <h3 className="mt-4 text-sm font-bold text-navy">{draft.headline}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-700">{draft.explanation}</p>
+                {draft.actionPlan?.length ? (
+                  <div className="mt-3" data-testid="action-plan">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Action plan</p>
+                    <ol className="mt-1.5 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-slate-700">
+                      {draft.actionPlan.map((item, i) => (
+                        <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span>{item.text}</span>
+                          {item.action?.kind === "set-price" ? (
+                            <button
+                              type="button"
+                              data-testid="apply-suggested-price"
+                              disabled={busy !== ""}
+                              onClick={() => setPriceInput(String(Math.round((item.action as { valuePaise: number }).valuePaise / 100)))}
+                              className="rounded-lg border border-brand px-2 py-0.5 text-xs font-bold text-brand transition hover:bg-brand-light"
+                            >
+                              Use {formatINR(item.action.valuePaise)}
+                            </button>
+                          ) : null}
+                          {item.action?.kind === "set-cap" ? (
+                            <button
+                              type="button"
+                              data-testid="apply-suggested-cap"
+                              disabled={busy !== ""}
+                              onClick={() => setCapInput(String((item.action as { value: number }).value))}
+                              className="rounded-lg border border-brand px-2 py-0.5 text-xs font-bold text-brand transition hover:bg-brand-light"
+                            >
+                              Use cap {item.action.value}
+                            </button>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
+                <details className="mt-3 rounded-xl border border-slate-100 px-3 py-2">
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-500">Why these steps?</summary>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-600">{draft.explanation}</p>
+                </details>
                 <div className="mt-4 space-y-3">
                   <label className="block">
                     <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Copy title (editable)</span>

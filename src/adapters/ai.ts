@@ -32,12 +32,24 @@ export interface AiDraftContext {
     maxDiscountExposurePaise: number;
     discountPct: number;
   };
+  /** Server-computed corrections the action plan may reference verbatim - never model-invented. */
+  corrections: {
+    suggestedPricePaise: number | null;
+    suggestedCap: number | null;
+  };
+  audience: { eligibleCount: number; excludedCount: number; channel: string };
   locale: "en" | "hi";
 }
+
+export type AiActionPlanItem = {
+  text: string;
+  action?: { kind: "set-price"; valuePaise: number } | { kind: "set-cap"; value: number };
+};
 
 export interface AiDraft {
   headline: string;
   explanation: string;
+  actionPlan: AiActionPlanItem[];
   evidenceIds: string[];
   assumptions: string[];
   copy: { title: string; body: string };
@@ -152,6 +164,20 @@ function isPublicIpv6(ip: string): boolean {
 const LiveDraftSchema = z.object({
   headline: z.string().min(4).max(120),
   explanation: z.string().min(20).max(900),
+  actionPlan: z
+    .array(
+      z.object({
+        text: z.string().min(4).max(160),
+        action: z
+          .union([
+            z.object({ kind: z.literal("set-price"), valuePaise: z.number().int().positive() }),
+            z.object({ kind: z.literal("set-cap"), value: z.number().int().min(0) }),
+          ])
+          .optional(),
+      })
+    )
+    .min(2)
+    .max(4),
   evidenceIds: z.array(z.string()).min(1).max(12),
   assumptions: z.array(z.string()).max(8),
   copy: z.object({
@@ -210,6 +236,7 @@ export function fixtureDraft(ctx: AiDraftContext, allowedEvidenceIds: string[]):
       `Stock supports ${ctx.offer.capacity} bundles, so the cap is feasible, and the maximum discount exposure is ${formatINR(
         ctx.offer.maxDiscountExposurePaise
       )}. Demand response is not guaranteed; treat this as a small, affordable test.`,
+    actionPlan: buildActionPlan(ctx),
     evidenceIds,
     assumptions: [
       "Customer demand response is not guaranteed; outcomes shown in this demo are simulated.",
@@ -221,6 +248,79 @@ export function fixtureDraft(ctx: AiDraftContext, allowedEvidenceIds: string[]):
   };
 }
 
+/**
+ * Deterministic, verb-led action plan grounded in the computed offer state.
+ * Correction steps appear only with the server-computed suggested values, so
+ * the plan can never propose a price or cap the economics engine did not clear.
+ */
+export function buildActionPlan(ctx: AiDraftContext): AiActionPlanItem[] {
+  const marginOk = ctx.offer.marginPct !== null && ctx.offer.marginPct >= ctx.offer.floorPct;
+  const capOk = ctx.offer.cap <= ctx.offer.capacity;
+  const price = formatINR(ctx.offer.pricePaise);
+  const plan: AiActionPlanItem[] = [];
+
+  if (ctx.locale === "hi") {
+    if (!marginOk) {
+      if (ctx.corrections.suggestedPricePaise !== null && ctx.offer.bundleCostPaise !== null) {
+        plan.push({
+          text: `${formatINR(ctx.corrections.suggestedPricePaise)} तय करें - ${formatINR(ctx.offer.bundleCostPaise)} लागत के बाद ${ctx.offer.floorPct}% मार्जिन फ्लोर पूरा होता है।`,
+          action: { kind: "set-price", valuePaise: ctx.corrections.suggestedPricePaise },
+        });
+        plan.push({ text: "नए दाम पर ड्राफ्ट अपडेट करें और लाइव गणित दोबारा देखें।" });
+      } else {
+        plan.push({ text: `कीमत बढ़ाइए ताकि ${ctx.offer.floorPct}% मार्जिन फ्लोर पूरा हो।` });
+      }
+    }
+    if (!capOk && ctx.corrections.suggestedCap !== null) {
+      plan.push({
+        text: `रेडेम्पशन कैप ${ctx.corrections.suggestedCap} पर लाइए - स्टॉक ${ctx.corrections.suggestedCap} बंडल तक सहता है।`,
+        action: { kind: "set-cap", value: ctx.corrections.suggestedCap },
+      });
+    }
+    if (marginOk && capOk) {
+      plan.push({ text: `${ctx.offer.bundleName} ${price} में बेचिए (सामान्य ${formatINR(ctx.offer.normalPricePaise)})।` });
+      plan.push({ text: `रेडेम्पशन सीमा रोज़ ${ctx.offer.cap} कॉम्बो रखिए।` });
+      plan.push({ text: `मंज़ूरी से पहले ${ctx.audience.eligibleCount} सहमत ग्राहकों की सूची देख लीजिए।` });
+    } else if (!plan.some((p) => p.text.includes("ड्राफ्ट अपडेट"))) {
+      plan.push({ text: "ड्राफ्ट अपडेट करें - मंज़ूरी तभी खुलती है जब सारी जाँचें हरी हों।" });
+    }
+    return plan.slice(0, 4);
+  }
+
+  if (!marginOk) {
+    if (ctx.corrections.suggestedPricePaise !== null && ctx.offer.bundleCostPaise !== null) {
+      plan.push({
+        text: `Set the price to ${formatINR(ctx.corrections.suggestedPricePaise)} - after the ${formatINR(
+          ctx.offer.bundleCostPaise
+        )} cost that clears the ${ctx.offer.floorPct}% floor.`,
+        action: { kind: "set-price", valuePaise: ctx.corrections.suggestedPricePaise },
+      });
+      plan.push({ text: "Update the draft at the new price and re-check the live math." });
+    } else {
+      plan.push({ text: `Raise the price until the ${ctx.offer.floorPct}% margin floor is met.` });
+    }
+  }
+  if (!capOk && ctx.corrections.suggestedCap !== null) {
+    plan.push({
+      text:
+        ctx.corrections.suggestedCap === 0
+          ? "Restock the bundle ingredients first - current stock supports 0 bundles."
+          : `Lower the redemption cap to ${ctx.corrections.suggestedCap} - stock supports ${ctx.corrections.suggestedCap} bundles.`,
+      action: ctx.corrections.suggestedCap === 0 ? undefined : { kind: "set-cap", value: ctx.corrections.suggestedCap },
+    });
+  }
+  if (marginOk && capOk) {
+    plan.push({ text: `Offer ${ctx.offer.bundleName} at ${price} (usual ${formatINR(ctx.offer.normalPricePaise)}).` });
+    plan.push({ text: `Cap redemptions at ${ctx.offer.cap} bundles per day.` });
+    plan.push({
+      text: `Review the ${ctx.audience.eligibleCount} opted-in recipients, then approve this exact version.`,
+    });
+  } else if (!plan.some((p) => p.text.startsWith("Update the draft"))) {
+    plan.push({ text: "Approval unlocks only when every check turns green." });
+  }
+  return plan.slice(0, 4);
+}
+
 function buildSystemPrompt(): string {
   return [
     "You are Merchant Saathi, an evidence-backed assistant for a small merchant.",
@@ -229,7 +329,8 @@ function buildSystemPrompt(): string {
     "Do not invent causes, sales lift, identities, claims of Paytm endorsement, or delivery status.",
     "Do not change prices, caps, dates, or eligibility.",
     "Reference only supplied evidence IDs.",
-    'Return the requested JSON object with keys: headline, explanation, evidenceIds, assumptions, copy {title, body}, locale.',
+    'Return the requested JSON object with keys: headline, explanation, actionPlan, evidenceIds, assumptions, copy {title, body}, locale.',
+    "actionPlan: 2-4 short, verb-led steps grounded in the computed terms and suggested corrections; use a correction action only with the exact suggested values supplied.",
     "If evidence is insufficient, say so.",
     "Produce concise, accessible copy in the selected language.",
   ].join(" ");
@@ -237,10 +338,12 @@ function buildSystemPrompt(): string {
 
 function buildUserPrompt(ctx: AiDraftContext, allowedEvidenceIds: string[]): string {
   return JSON.stringify({
-    task: "Explain the opportunity and draft customer-facing copy for the offer below.",
+    task: "Explain the opportunity, draft customer-facing copy, and propose a short action plan for the offer below.",
     observation: ctx.observation,
     verifiedMetrics: ctx.metricSummaries,
     offerTermsComputedByCode: ctx.offer,
+    suggestedCorrections: ctx.corrections,
+    audienceComputedByCode: ctx.audience,
     allowedEvidenceIds,
     constraints: {
       explanationMaxLength: 900,
@@ -248,6 +351,8 @@ function buildUserPrompt(ctx: AiDraftContext, allowedEvidenceIds: string[]): str
       locale: ctx.locale,
       copyMustMentionOnlyThisPrice: formatINR(ctx.offer.pricePaise),
       copyMustMentionCap: ctx.offer.cap,
+      actionPlanMaxItems: 4,
+      actionPlanMaxTextLength: 160,
     },
   });
 }
@@ -323,7 +428,47 @@ export function parseLiveContent(content: string, ctx: AiDraftContext, allowedEv
   if (!copyMonetaryTermsValid(draft.copy, ctx.offer.pricePaise, ctx.offer.cap)) {
     throw new Error("Model copy contained monetary terms that contradict computed offer terms.");
   }
+  if (!actionPlanGrounded(draft.actionPlan, ctx)) {
+    throw new Error("Model action plan contradicted the computed corrections or terms.");
+  }
   return { ...draft, locale: ctx.locale };
+}
+
+/**
+ * Action-plan guard: every rupee token in a step must be the computed price or
+ * a server-supplied suggested price, and correction actions must carry the
+ * exact suggested values (or be absent when no correction exists).
+ */
+export function actionPlanGrounded(plan: AiActionPlanItem[], ctx: AiDraftContext): boolean {
+  const normalize = (t: string) => "\u20B9" + t.replace(/[\u20B9\s,]/g, "").replace(/\.0+$/, "");
+  // Steps may cite any computed fact (offer price, usual price, bundle cost,
+  // server-suggested price) - never an amount outside that set.
+  const allowedTokens = new Set(
+    [
+      ctx.offer.pricePaise,
+      ctx.offer.normalPricePaise,
+      ctx.offer.bundleCostPaise,
+      ctx.corrections.suggestedPricePaise,
+    ]
+      .filter((v): v is number => v !== null)
+      .map((v) => normalize(formatINR(v)))
+  );
+  for (const item of plan) {
+    const tokens = item.text.match(/\u20B9\s?[\d,]+(?:\.\d+)?/g) ?? [];
+    if (tokens.some((t) => !allowedTokens.has(normalize(t)))) return false;
+    if (item.action) {
+      if (item.action.kind === "set-price") {
+        if (ctx.corrections.suggestedPricePaise === null || item.action.valuePaise !== ctx.corrections.suggestedPricePaise) {
+          return false;
+        }
+      } else {
+        if (ctx.corrections.suggestedCap === null || item.action.value !== ctx.corrections.suggestedCap) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 /** Generate a draft. Never throws for live failures - falls back with honest labels. */

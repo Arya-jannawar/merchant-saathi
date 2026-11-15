@@ -7,7 +7,7 @@
   &nbsp;
   <img src="https://img.shields.io/badge/Next.js%2014-TypeScript%20strict-000000?style=for-the-badge&logo=next.js" alt="Next.js 14 TypeScript"/>
   &nbsp;
-  <img src="https://img.shields.io/badge/tests-95%20passing-10b981?style=for-the-badge&logo=vitest" alt="95 tests passing"/>
+  <img src="https://img.shields.io/badge/tests-106%20passing-10b981?style=for-the-badge&logo=vitest" alt="106 tests passing"/>
   &nbsp;
   <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20model%20API-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
   &nbsp;
@@ -94,6 +94,8 @@ Live **margin-vs-floor meter** and **cap-vs-capacity meter**. Type ₹50 and wat
 
 Approve stays disabled, nothing can be queued, and the mascot visibly panics. The AI drafts explanation + customer copy (English/Hindi) **from the computed numbers only** — its output is schema-validated, its rupee amounts are cross-checked against the computed facts, and any violation falls back to a labeled template. Monetary terms in copy can never contradict the math.
 
+**Every draft now ships with an Action plan** — 2–4 verb-led steps grounded in the computed state, localized for English and Hindi. A rejected draft leads with the fix and a one-click correction: *"Set the price to ₹54 — after the ₹40 cost that clears the 25% floor. **[Use ₹54]**"* The correction values are computed in server code, so the plan can only ever suggest numbers the economics engine cleared. Longer reasoning moves behind *Why these steps?*
+
 <p align="center"><img src="docs/screenshots/03-offer-hindi-copy.png" width="100%" alt="Hindi customer copy"/></p>
 
 ### 🔐 4. Hash-bound approval → simulated outbox
@@ -104,7 +106,7 @@ Approving binds version + price + cap + audience hash + inventory version. Execu
 ### 💰 5. Results with a money waterfall
 <p align="center"><img src="docs/screenshots/07-simulated-results.png" width="100%" alt="Simulated results waterfall"/></p>
 
-₹700 bundle sales − ₹400 ingredients & packaging = **₹300 contribution toward fixed costs**. Replay R-003 and the app proves idempotency live: *"replaying it changed nothing."* A downloadable `.txt` summary carries the caveats with the numbers.
+₹700 bundle sales − ₹400 ingredients & packaging = **₹300 contribution toward fixed costs**. Replay R-003 and the app proves idempotency live: *"replaying it changed nothing."* One report model feeds **both downloads**: a real **PDF** (selectable text, business-specific filename, rupee sign and Devanagari glyphs via embedded Noto fonts, honest zero-redemption state) next to the classic `.txt` — the two formats can never disagree because they render from the same authorized campaign results.
 
 ### 🪞 6. The honesty ledger — "insufficient evidence" on demand
 <p align="center"><img src="docs/screenshots/08-thin-data-insufficient-evidence.png" width="100%" alt="Thin data insufficient evidence"/></p>
@@ -116,16 +118,16 @@ One click loads the **thin-data demo**: tiny windows, and the app flatly refuses
 
 | Buddy | Is | Signature moves |
 | --- | --- | --- |
-| **Byte** | cupcake | happy · dance · hearts · curious |
-| **Firewall** | samosa | angry · enthusiastic · dance · curious |
-| **Java** | chai glass | enthusiastic · happy · dance · curious |
-| **Crypto** | rupee coin | dance · happy · enthusiastic · hearts |
-| **Pixel** | laddu | dance · happy · angry · enthusiastic |
-| **Glitch** | jalebi | curious · dance · hearts · angry |
+| **Muffin** | cupcake | happy · dance · hearts · curious |
+| **Chutku** | samosa | angry · enthusiastic · dance · curious |
+| **Chai Chai** | chai glass | enthusiastic · happy · dance · curious |
+| **Ginni** | rupee coin | dance · happy · enthusiastic · hearts |
+| **Laddoo** | laddu | dance · happy · angry · enthusiastic |
+| **Jiji** | jalebi | curious · dance · hearts · angry |
 
-Every mascot × mood pair has its **own synthesized tune** — the same melody is a sweet sparkle on Byte and a raspy shout on Firewall (voice = waveform + transposition + tempo + flourish: sparkle, pop, steam, coin, bounce, swirl). The buddy is *alive*: it **winks, giggles and gasps** when you hover, melts into **hearts** when you pet it (three quick brushes), shows off its **signature moves on double-click**, and — after 45 quiet seconds — **falls asleep** with floating Zzz's, stretching awake the moment you come back. It guides the whole product: speech bubbles, a **spotlight guided tour** on every screen, and live reactions — celebrates approvals, panics at unsafe prices, explains 409s.
+Every mascot × mood pair has its **own synthesized tune** — the same melody is a sweet sparkle on Muffin and a raspy shout on Chutku (voice = waveform + transposition + tempo + flourish: sparkle, pop, steam, coin, bounce, swirl). The buddy is *alive*: it **winks, giggles and gasps** when you hover, melts into **hearts** when you pet it (three quick brushes), shows off its **signature moves on double-click**, and — after 45 quiet seconds — **falls asleep** with floating Zzz's, stretching awake the moment you come back. It guides the whole product: speech bubbles, a **spotlight guided tour** on every screen, and live reactions — celebrates approvals, panics at unsafe prices, explains 409s.
 
-### 💬 8. Mithu's chat — grounded answers, optional live brain
+### 💬 8. Muffin's chat — grounded answers, optional live brain
 Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"* — the built-in **fact book** answers from the session's verified numbers with a *How I reasoned* trace. Paste a provider API key + model in the 🧠 dialog and answers become generative with deeper reasoning — still guarded: any rupee amount the model invents that isn't in the computed facts makes the reply fall back to the fact book with a labeled note. The key lives in **server memory only** (never disk, masked to the browser, public-host validated).
 
 ### 🏪 9. A platform for every Paytm merchant - register, don't configure
@@ -140,7 +142,7 @@ Merchant Saathi is built as a **platform**: hit *Register your business* and a t
 
 **Same verified math under every domain.** Every domain fixture is bakery-v1's audited economics with themed names: the 42.9% margin, the ₹400 exposure cap, the ₹700 − ₹400 = ₹300 story - all identical, all reconciled by `npm run fixtures:verify`, which now validates **every domain fixture** against its own seeded tenant on every run.
 
-**Platform mechanics:** the 🏪 switcher shows each business with its domain emoji and label; switching is one click and every screen refetches with the new scope. Every request carries the active business id; the server honors **only ids owned by your session** - and loads **that business's own domain fixture** for offers, approvals, executions and results. Client idempotency keys are scoped per business; resetting a business refreshes its rows **in place without losing its domain**; deleting one removes its data for good. Up to 6 businesses per session. New sessions land on a platform-style hero (domain grid + one-click registration) instead of an empty screen.
+**Platform mechanics:** the 🏪 switcher now lives **in the shared header** on every screen, right next to a labeled **"+ Add business"** action - both above the fold even at 360 px, where they take the first header row. Switching is one click and every screen refetches with the new scope (creating a business selects it, announces it and refreshes the view so no stale numbers or old campaign data flash through). Every request carries the active business id; the server honors **only ids owned by your session** - and loads **that business's own domain fixture** for offers, approvals, executions and results. Client idempotency keys are scoped per business; resetting a business refreshes its rows **in place without losing its domain**; deleting one removes its data for good. Up to 6 businesses per session. New sessions land on a platform-style hero (domain grid + one-click registration) instead of an empty screen.
 
 ## 🧰 The operations copilot - thinking beyond payments
 
@@ -197,7 +199,7 @@ src/
                            saathi-brain (fact book + live prompts + rupee guard), mascots-config, sound
   fixtures/bakery-v1.json  single source of truth for every demo number
 scripts/                   seed CLI + fixture verifier
-tests/                     vitest suites (95) + playwright e2e hero flow
+tests/                     vitest suites (106) + playwright e2e hero flow
 docs/                      screenshots of every stage + animations + team context pack
 ```
 </details>
@@ -218,6 +220,7 @@ docs/                      screenshots of every stage + animations + team contex
 | `/api/campaigns/{id}/execute` | POST | Transactional simulated queue; idempotent; re-checks everything |
 | `/api/demo/campaigns/{id}/redeem` | POST | Fixture event ids only; replays idempotent; cap enforced |
 | `/api/campaigns/{id}/results` | GET | Activity + simulated outcomes + audit trail |
+| `/api/campaigns/{id}/summary-pdf` | GET | Campaign summary as a real PDF (same authorized report model as the TXT) |
 | `/api/assistant/chat` | POST | Fact-book answers or rupee-checked live model replies |
 | `/api/assistant/settings` | GET/POST/DELETE | Chat brain key: server memory only, masked, public-host validated |
 
@@ -237,7 +240,7 @@ AI: drafts explanation + customer copy only, from verified facts — fixture mod
 
 ## 🧪 Testing & verification
 
-- **95 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails, thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard.
+- **106 unit tests** (Vitest): money, band filtering, margin floor, missing-cost, cap-vs-capacity, approval hash binding, stale consent/inventory, duplicate execute/redeem, key-reuse conflicts, AI guardrails (including the action-plan grounding guard), thin-data refusal, draft opportunity guard, config guards, multi-business caps/ownership/isolation, insights reconciliation, assistant fact book + rupee guard, campaign summary PDF rendering.
 - **1 Playwright e2e**: the full hero path — load → −30% → draft → ₹50 rejected → restore → approve → queue → 10 events → ₹300 → idempotent replay.
 - **`npm run fixtures:verify`**: reconciles every fixture number against the database — the pre-demo gate. It once caught a real data-loss bug in our own migration; that fix (FK-suspended table rebuild + husk self-heal) is now permanent.
 
