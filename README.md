@@ -39,6 +39,19 @@ One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b>
 
 ---
 
+## 📣 Pitch deck & feature guide (download, read, present)
+
+Everything on this page — and more — is packaged for sharing and presenting:
+
+| Deliverable | File | What is inside |
+| --- | --- | --- |
+| 🎞️ **Feature deck** (22 slides) | [`docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx`](docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx) | The full story as slides: problem in numbers, the control loop, every feature with real product screenshots, architecture, honesty ledger, testing, roadmap and the team |
+| 📕 **In-depth feature guide** (15 pages, PDF) | [`docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf`](docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf) | A written deep-dive: each pillar and feature explained in detail — how it works inside, the design rule behind it, and the exact demo numbers |
+
+Both documents carry **Team FinnovateX** branding at every section — Arya Jannawar, Siddhant Pardeshi and Avani Jannawar — and cover every feature of the platform: registration & domains, the infographic dashboard, evidence receipts, the offer workspace guardrails, Hindi copy, hash-bound approvals, the simulated outbox, the money waterfall, the honesty ledger, the operations copilot, consent intelligence, the mascot cast and the assistant brain. (The build scripts that regenerate both files live in the team's local tooling — ask in the group chat.)
+
+---
+
 ## 🎯 The problem, in real numbers
 
 Our hero user is a Pune bakery owner. Between the two most recent complete Mon–Fri windows, completed **3–6 p.m. orders fell from 100 to 70 (−30%)** and net sales from **₹8,000 to ₹5,600**. Average order value stayed flat at **₹80** — so the problem is **order count, not basket size**.
