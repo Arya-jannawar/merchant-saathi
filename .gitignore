@@ -29,3 +29,4 @@ npm-debug.log*
 out/
 playwright-report/
 test-results/
+.mimosa
