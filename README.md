@@ -37,6 +37,7 @@ One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b>
 
 <p align="center">
   <a href="#-watch-the-video-walkthrough-narrated-pick-your-pace">🎬 Video Walkthrough</a> •
+  <a href="#-pitch-deck--feature-guide-download-read-present">🎞️ Deck & Guide</a> •
   <a href="#-the-problem-in-real-numbers">The Problem</a> •
   <a href="#-the-solution-one-honest-loop">The Solution</a> •
   <a href="#-feature-deep-dive">Features</a> •
@@ -59,10 +60,10 @@ Everything on this page — and more — is packaged for sharing and presenting:
 | Deliverable | File | What is inside |
 | --- | --- | --- |
 | 🎬 **Narrated video walkthrough** (3 min 47 s + a 6 min deep dive) | [`docs/media/merchant-saathi-walkthrough.mp4`](docs/media/merchant-saathi-walkthrough.mp4) · [`merchant-saathi-walkthrough-voice.mp4`](docs/media/merchant-saathi-walkthrough-voice.mp4) | A friendly narrator (Muffin's voice) tours the entire build feature by feature on the running app — problem in numbers, evidence, offer math, approval, campaign waterfall + PDF, imports, forecast, My Year, festivals, deposits, mascots and services — ending with the team credits (Arya Jannawar, Siddhant Pardeshi, Avani Jannawar — **Team FinnovateX**) and a thank-you to Paytm for shortlisting the team's presentation. The second video adds the operations copilot, multi-business registration and the thin-data demo |
-| 🎞️ **Feature deck** (22 slides) | [`docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx`](docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx) | The full story as slides: problem in numbers, the control loop, every feature with real product screenshots, architecture, honesty ledger, testing, roadmap and the team |
-| 📕 **In-depth feature guide** (15 pages, PDF) | [`docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf`](docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf) | A written deep-dive: each pillar and feature explained in detail — how it works inside, the design rule behind it, and the exact demo numbers |
+| 🎞️ **Feature deep-dive deck** (39 slides, PPTX) | [`docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx`](docs/MerchantSaathi-FeatureDeck-FinnovateX.pptx) | Every feature, every function: the problem in numbers, all four pillars (Grow / Manage / Serve / Plan my next sale) slide by slide with fresh screenshots from the running build, the bounded AI draft, hash-bound approvals, the money waterfall + PDF export, imports and the forecast gate, festivals and deposits, the mascot cast and chat brain, the honesty ledger, the architecture, tests and the roadmap. **Team FinnovateX** branding on every slide — names on every footer |
+| 📕 **Feature deep-dive guide** (39 pages, PDF) | [`docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf`](docs/MerchantSaathi-FeatureGuide-FinnovateX.pdf) | The same deck as a print-ready PDF — read it cover to cover on a phone, share it in chat, or print it for the jury table |
 
-Both documents carry **Team FinnovateX** branding at every section — Arya Jannawar, Siddhant Pardeshi and Avani Jannawar — and cover every feature of the platform: registration & domains, the infographic dashboard, evidence receipts, the offer workspace guardrails, Hindi copy, hash-bound approvals, the simulated outbox, the money waterfall, the honesty ledger, the operations copilot, consent intelligence, the mascot cast and the assistant brain. (The build scripts that regenerate both files live in the team's local tooling — ask in the group chat.)
+Both documents were regenerated from the current build on Nov 15 and carry **Team FinnovateX** branding on every single slide — Arya Jannawar, Siddhant Pardeshi and Avani Jannawar. They cover every feature of the platform: registration & the eight domain fixtures, the infographic dashboard, evidence receipts, the offer workspace guardrails (including the ₹50 rejection and the ₹54 fix), Hindi copy, hash-bound approvals, the simulated outbox, the money waterfall, the operations copilot, statement imports with duplicate protection, the ridge forecast with its honest error bar, My Year, the festival planner, the deposit payment-link simulator, the verified services directory, the mascot cast, the chat brain, the sound layer, the honesty ledger and the test suite.
 
 ---
 

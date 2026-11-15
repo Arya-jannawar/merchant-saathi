@@ -72,6 +72,9 @@ export default function MerchantDashboard() {
         method: "POST",
         body: JSON.stringify({ fixtureVersion }),
       });
+      // The reset may have created this session's first business - tell the
+      // header strip to refetch so it appears without a navigation.
+      window.dispatchEvent(new Event("ms-merchants-changed"));
       saathi.say(
         fixtureVersion === "bakery-thin-v1"
           ? "Thin data loaded - watch the app refuse to guess. That refusal is a feature!"

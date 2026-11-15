@@ -30,20 +30,28 @@ export default function BusinessHeaderControl() {
 
   useEffect(() => {
     let cancelled = false;
-    api<{ merchants: MerchantDto[] }>("/api/merchants")
-      .then((res) => {
-        if (cancelled) return;
-        setMerchants(res.merchants);
-        const stored = getActiveMerchantId();
-        const valid = res.merchants.some((m) => m.id === stored);
-        if (!valid) {
-          setActiveMerchantId(res.merchants[0]?.id ?? null);
-          setActive(res.merchants[0]?.id ?? null);
-        }
-      })
-      .catch(() => undefined);
+    const refresh = () => {
+      api<{ merchants: MerchantDto[] }>("/api/merchants")
+        .then((res) => {
+          if (cancelled) return;
+          setMerchants(res.merchants);
+          const stored = getActiveMerchantId();
+          const valid = res.merchants.some((m) => m.id === stored);
+          if (!valid) {
+            setActiveMerchantId(res.merchants[0]?.id ?? null);
+            setActive(res.merchants[0]?.id ?? null);
+          }
+        })
+        .catch(() => undefined);
+    };
+    refresh();
+    // "Load sample data" / "Thin-data demo" create the first business for a
+    // fresh session without a navigation - listen for that and refetch so the
+    // strip appears immediately instead of after the next page change.
+    window.addEventListener("ms-merchants-changed", refresh);
     return () => {
       cancelled = true;
+      window.removeEventListener("ms-merchants-changed", refresh);
     };
   }, []);
 
