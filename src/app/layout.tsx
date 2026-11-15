@@ -39,6 +39,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </header>
           <main className="mx-auto w-full max-w-5xl px-4 py-6">{children}</main>
           <footer className="mx-auto max-w-5xl px-4 pb-10 pt-2 text-xs leading-relaxed text-slate-400">
+            <p className="ms-credits-glow mb-1.5 text-base font-extrabold tracking-wide text-navy">
+              Built with <span className="ms-credits-hop" aria-hidden>🧁</span> by{" "}
+              <span className="ms-credits-shine">Arya Jannawar · Avani Jannawar · Siddhant Pardeshi</span>
+              {" "}— <span className="ms-credits-glow text-brand">Team FinovateX ✦</span>
+            </p>
             Prototype for the Paytm AI Hackathon (Track 1 - Merchant Growth AI). All data, people and customers are synthetic;
             campaigns are simulated; no real messages are sent. Not an official Paytm product or endorsement.
           </footer>

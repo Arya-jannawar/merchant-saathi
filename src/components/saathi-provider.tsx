@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { MascotById } from "@/components/mascot";
 import { getMascot, INTERACTION_MOODS, MASCOTS, type MascotId, type MascotMood, type SignatureMood } from "@/lib/mascots-config";
-import { soundKit, type SoundName } from "@/lib/sound";
+import { ambientMusic, soundKit, type SoundName } from "@/lib/sound";
 import { api, ApiClientError, type AssistantChatDto, type AssistantSettingsDto, type DemoStateDto } from "@/lib/client";
 import { BrainModal } from "@/components/saathi-brain-modal";
 import { SaathiTour } from "@/components/saathi-tour";
@@ -58,6 +58,7 @@ const IDLE_TIPS = [
   "Try an unsafe price in the offer workspace. I will react, trust me.",
   "Everything labeled 'simulated' is simulated - I never blur that line.",
   "Want the grand tour? Click 'Show me around' in the chat.",
+  "Built by Team FinovateX - Arya, Avani and Siddhant. Say hi in the chat!",
 ];
 
 let nextId = 1;
@@ -72,6 +73,7 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   const [thinking, setThinking] = useState(false);
   const [input, setInput] = useState("");
   const [soundOn, setSoundOn] = useState(soundKit.enabled);
+  const [musicOn, setMusicOn] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [mascotId, setMascotId] = useState<MascotId>(() => {
@@ -93,6 +95,12 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
   const chatBodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => soundKit.subscribe(setSoundOn), []);
+  useEffect(() => ambientMusic.subscribe(setMusicOn), []);
+  // Honor a persisted music-on preference, but start the pad only after the
+  // visitor's first interaction (browser autoplay policy + politeness).
+  useEffect(() => {
+    ambientMusic.armOnFirstGesture();
+  }, []);
 
   // Cycle quiet tips when idle (paused while the chat is open).
   useEffect(() => {
@@ -287,6 +295,21 @@ export function SaathiProvider({ children }: { children: ReactNode }) {
         title={soundOn ? "Mute sounds" : "Unmute sounds"}
       >
         {soundOn ? "🔊" : "🔇"}
+      </button>
+
+      {/* ambient music toggle - opt-in lo-fi pad, persisted per browser */}
+      <button
+        type="button"
+        onClick={() => ambientMusic.setEnabled(!ambientMusic.enabled)}
+        className={`ms-pop fixed bottom-[70px] left-5 z-40 flex h-10 w-10 items-center justify-center rounded-full border text-lg shadow-card transition hover:scale-110 ${
+          musicOn
+            ? "border-brand bg-brand-light text-brand shadow-[0_0_14px_rgba(0,185,241,0.45)]"
+            : "border-slate-200 bg-slate-100 text-slate-400"
+        }`}
+        aria-label={musicOn ? "Stop ambient music" : "Play ambient music"}
+        title={musicOn ? "Stop ambient music" : "Play ambient music"}
+      >
+        {musicOn ? "🎵" : "🎵"}
       </button>
 
       {/* speech bubble */}

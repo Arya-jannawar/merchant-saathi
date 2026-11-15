@@ -158,12 +158,18 @@ export async function renderCampaignSummaryPdf(report: CampaignSummaryReport): P
   }
 
   // Footer
-  ensure(40);
+  ensure(52);
   doc.moveDown(1);
+  doc.font(fontBuffer("sansBold")).fontSize(8.5).fillColor(BRAND).text(
+    "Built by Team FinovateX - Arya Jannawar, Avani Jannawar, Siddhant Pardeshi",
+    left,
+    doc.y,
+    { width: right - left }
+  );
   doc.font(fontBuffer("sans")).fontSize(8).fillColor(MUTED).text(
     "Merchant Saathi prototype - Paytm AI Hackathon (Track 1). All data is synthetic; campaigns are simulated; no real messages are sent.",
     left,
-    doc.y,
+    doc.y + 2,
     { width: right - left }
   );
 

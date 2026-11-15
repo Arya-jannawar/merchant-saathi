@@ -83,7 +83,9 @@ export function RegisterBusinessModal({
           <div className="pointer-events-none absolute -right-10 -top-10 opacity-40">
             <MascotById id={buddy} mood="excited" size={120} />
           </div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">Merchant Saathi platform</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-accent">
+            Merchant Saathi platform · <span className="ms-credits-shine">Team FinovateX</span>
+          </p>
           <h2 className="mt-1 text-xl font-extrabold text-white">
             {step === 1 ? "Register your business 🚀" : "Pick your buddy 🎭"}
           </h2>

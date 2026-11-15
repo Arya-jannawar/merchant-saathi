@@ -260,7 +260,7 @@ npm run fixtures:verify         # must print: All fixture checks passed.
 npm run dev
 ```
 
-Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL`, or paste a key and endpoint in the chat's 🧠 dialog. Node 20+, nothing else to install.
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL`, or paste a key and endpoint in the chat's 🧠 dialog. Prefer a little atmosphere? The 🎵 toggle (bottom-left) plays a soft, synthesized lo-fi pad — opt-in, remembered per browser, paused when the tab is hidden. Node 20+, nothing else to install.
 
 <details>
 <summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>
@@ -313,5 +313,5 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 
 <p align="center">
   <sub>All data, people and customers are synthetic. Campaigns are simulated. No real messages are ever sent.<br/>
-  Not an official Paytm product and claims no endorsement. Built with 🧁, ☕ and honesty by Team FinovateX.</sub>
+  Not an official Paytm product and claims no endorsement. Built with 🧁, ☕ and honesty by Team FinovateX — Arya Jannawar · Avani Jannawar · Siddhant Pardeshi.</sub>
 </p>

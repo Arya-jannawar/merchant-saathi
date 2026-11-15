@@ -115,6 +115,40 @@ textarea {
   40% { transform: translateY(-6px); opacity: 1; }
 }
 
+/* Team credits: an animated shine sweep over the member names plus a soft
+   glow pulse on the team name. Honors prefers-reduced-motion like every
+   other motion in the build. */
+@keyframes ms-credits-shine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes ms-credits-glow {
+  0%, 100% { text-shadow: 0 0 6px rgba(0, 185, 241, 0.25); }
+  50% { text-shadow: 0 0 18px rgba(0, 185, 241, 0.7); }
+}
+@keyframes ms-credits-hop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.ms-credits-shine {
+  background: linear-gradient(90deg, #7dd3fc 0%, #00b9f1 25%, #ffd76e 50%, #00b9f1 75%, #7dd3fc 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ms-credits-shine 4.5s linear infinite;
+}
+.ms-credits-glow {
+  animation: ms-credits-glow 2.8s ease-in-out infinite;
+}
+.ms-credits-hop {
+  display: inline-block;
+  animation: ms-credits-hop 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ms-credits-shine, .ms-credits-glow, .ms-credits-hop { animation: none; }
+}
+
 @keyframes ms-spotlight-key {
   0%, 100% { outline-offset: 2px; }
   50% { outline-offset: 7px; }

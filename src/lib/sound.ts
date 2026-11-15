@@ -368,3 +368,194 @@ const MOOD_MELODIES: Record<SignatureMood, { notes: NoteSpec[] }> = {
 
 /** Singleton: one AudioContext for the whole app, created lazily on first gesture. */
 export const soundKit = new SoundKit();
+
+const AMBIENT_STORAGE_KEY = "ms_ambient_music";
+
+/**
+ * Opt-in ambient music layer: a soft, looped lo-fi chord pad synthesized on the
+ * Web Audio bus - no audio files, independent from the SFX mute so a merchant
+ * can keep interface sounds and switch the music off, or the reverse.
+ *
+ * Deliberately does NOT autoplay: browsers block audio before a gesture and
+ * judges (rightly) punish pages that shout. The 🎵 toggle in the corner starts
+ * it, the choice persists per browser, and the loop pauses when the tab is
+ * hidden so background sessions stay silent.
+ */
+class AmbientMusic {
+  private ctx: AudioContext | null = null;
+  private bus: GainNode | null = null;
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private nextBarAt = 0;
+  private barIndex = 0;
+  private listeners = new Set<(enabled: boolean) => void>();
+  private _enabled: boolean;
+
+  // Cmaj9 → Am7 → Fmaj7 → G6: a warm four-bar loop that sits under speech.
+  private static readonly CHORDS = [
+    [130.81, 196.0, 261.63, 329.63, 392.0],
+    [110.0, 164.81, 220.0, 261.63, 329.63],
+    [87.31, 174.61, 220.0, 261.63, 349.23],
+    [98.0, 196.0, 246.94, 293.66, 392.0],
+  ];
+  private static readonly BAR_SECONDS = 3.2;
+
+  constructor() {
+    if (typeof window === "undefined") {
+      this._enabled = false;
+      return;
+    }
+    this._enabled = window.localStorage.getItem(AMBIENT_STORAGE_KEY) === "1";
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) this.pauseLoop();
+        else if (this._enabled) this.resumeLoop();
+      });
+    }
+  }
+
+  get enabled(): boolean {
+    return this._enabled;
+  }
+
+  setEnabled(next: boolean): void {
+    this._enabled = next;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(AMBIENT_STORAGE_KEY, next ? "1" : "0");
+    }
+    this.listeners.forEach((fn) => fn(next));
+    if (next) this.resumeLoop();
+    else this.pauseLoop();
+  }
+
+  subscribe(fn: (enabled: boolean) => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  /**
+   * Browsers refuse to start audio before a user gesture. If the persisted
+   * preference is ON, wait for the first pointer/key interaction in the page
+   * and only then start the loop - the toggle shows the preference honestly,
+   * and no sound escapes before the visitor interacts.
+   */
+  armOnFirstGesture(): void {
+    if (!this._enabled || typeof window === "undefined") return;
+    const start = () => {
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+      this.resumeLoop();
+    };
+    window.addEventListener("pointerdown", start, { once: false });
+    window.addEventListener("keydown", start, { once: false });
+  }
+
+  private ensureContext(): AudioContext | null {
+    if (typeof window === "undefined") return null;
+    if (!this.ctx) {
+      const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!Ctor) return null;
+      this.ctx = new Ctor();
+      this.bus = this.ctx.createGain();
+      this.bus.gain.value = 0.0001;
+      const lowpass = this.ctx.createBiquadFilter();
+      lowpass.type = "lowpass";
+      lowpass.frequency.value = 1400;
+      this.bus.connect(lowpass);
+      lowpass.connect(this.ctx.destination);
+    }
+    if (this.ctx.state === "suspended") void this.ctx.resume();
+    return this.ctx;
+  }
+
+  private pad(ctx: AudioContext, at: number, freq: number, dur: number, gain: number): void {
+    // Two slightly detuned triangles per voice = a warm, wide pad.
+    for (const detune of [-4, 5]) {
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = freq;
+      osc.detune.value = detune;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.0001, at);
+      g.gain.exponentialRampToValueAtTime(gain, at + 0.9);
+      g.gain.exponentialRampToValueAtTime(gain * 0.7, at + dur * 0.7);
+      g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      osc.connect(g);
+      g.connect(this.bus!);
+      osc.start(at);
+      osc.stop(at + dur + 0.05);
+    }
+  }
+
+  private scheduleBar(at: number): void {
+    const ctx = this.ctx!;
+    const chord = AmbientMusic.CHORDS[this.barIndex % AmbientMusic.CHORDS.length];
+    this.barIndex += 1;
+    const dur = AmbientMusic.BAR_SECONDS + 0.6;
+    chord.forEach((freq, i) => {
+      const isBass = i === 0;
+      this.pad(ctx, at, isBass ? freq / 2 : freq, dur, isBass ? 0.028 : 0.016);
+    });
+    // A soft hat tick keeps the loop breathing without demanding attention.
+    if (this.noiseTick) this.noiseTick(at, dur);
+  }
+
+  private noiseTick(at: number, dur: number): void {
+    const ctx = this.ctx!;
+    const len = Math.floor(ctx.sampleRate * 0.05);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 6500;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.012, at);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.05);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.bus!);
+    src.start(at + dur * 0.5);
+    src.stop(at + dur * 0.5 + 0.08);
+  }
+
+  private resumeLoop(): void {
+    if (!this._enabled || typeof document !== "undefined" && document.hidden) return;
+    const ctx = this.ensureContext();
+    if (!ctx || this.timer !== null) return;
+    // Fade the bus in, then keep two bars scheduled ahead of the playhead.
+    this.bus!.gain.cancelScheduledValues(ctx.currentTime);
+    this.bus!.gain.setValueAtTime(0.0001, ctx.currentTime);
+    this.bus!.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 1.6);
+    this.nextBarAt = Math.max(this.nextBarAt, ctx.currentTime + 0.15);
+    this.timer = setInterval(() => {
+      const c = this.ctx;
+      if (!c || this.timer === null) return;
+      while (this.nextBarAt < c.currentTime + AmbientMusic.BAR_SECONDS * 2) {
+        this.scheduleBar(this.nextBarAt);
+        this.nextBarAt += AmbientMusic.BAR_SECONDS;
+      }
+    }, 400);
+    while (this.nextBarAt < ctx.currentTime + AmbientMusic.BAR_SECONDS * 2) {
+      this.scheduleBar(this.nextBarAt);
+      this.nextBarAt += AmbientMusic.BAR_SECONDS;
+    }
+  }
+
+  private pauseLoop(): void {
+    if (this.timer !== null) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+    if (this.ctx && this.bus) {
+      const now = this.ctx.currentTime;
+      this.bus.gain.cancelScheduledValues(now);
+      this.bus.gain.setValueAtTime(this.bus.gain.value, now);
+      this.bus.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    }
+  }
+}
+
+/** Singleton: the opt-in ambient music layer (own toggle + storage key). */
+export const ambientMusic = new AmbientMusic();
