@@ -6,8 +6,12 @@ export default defineConfig({
     environment: "node",
     include: ["tests/**/*.test.ts"],
     setupFiles: ["tests/setup.ts"],
-    // Tests share one SQLite file; run files sequentially to avoid cross-file interference.
+    // Suites share one hosted Postgres database; run files sequentially to
+    // avoid cross-tenant interference. Seeds do network round trips, so the
+    // per-test budget is generous.
     fileParallelism: false,
+    testTimeout: 180_000,
+    hookTimeout: 300_000,
   },
   resolve: {
     alias: {

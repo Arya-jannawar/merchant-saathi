@@ -31,19 +31,19 @@ export interface OfferComputation {
   } | null;
 }
 
-export function computeOffer(
+export async function computeOffer(
   db: SqliteDatabase,
   merchantId: string,
   fixture: Fixture,
   pricePaise: number,
   requestedCap: number
-): OfferComputation {
+): Promise<OfferComputation> {
   const floorPct = fixture.policy.minMarginPct;
 
   // Live stock + unit costs from the inventory table (not the fixture copy).
-  const invRows = db
+  const invRows = (await db
     .prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?")
-    .all(merchantId) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
+    .all(merchantId)) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
   const invBySku = new Map(invRows.map((r) => [r.sku_id, r]));
 
   let capacity = Number.POSITIVE_INFINITY;

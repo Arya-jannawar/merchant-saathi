@@ -16,17 +16,17 @@ const DepositSchema = z.object({
 
 /** GET /api/planning/deposits - deposit requests + reconciliation status. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  return ok({ deposits: listDeposits(db, merchantId) });
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  return ok({ deposits: await listDeposits(db, merchantId) });
 });
 
 /** POST /api/planning/deposits - create a labeled payment-link deposit request. */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(DepositSchema, await request.json());
-  return ok(createDeposit(db, merchantId, body), 201);
+  return ok(await createDeposit(db, merchantId, body), 201);
 });

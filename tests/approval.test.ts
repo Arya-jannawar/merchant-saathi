@@ -8,19 +8,23 @@ import {
   executeCampaign,
 } from "@/services/campaigns";
 import { ApiError } from "@/lib/errors";
+import { truncateAll } from "@/lib/db";
 
 const SESSION = "test-approval";
 let merchantId: string;
 const fixture = loadFixture();
 
-beforeAll(() => {
-  const db = openTestDb();
-  merchantId = resetTenant(db, SESSION);
+beforeAll(async () => {
+  const db = await openTestDb();
+  // Suites share one hosted database - wipe leftovers from previous runs so
+  // assertions on exact counts and session caps stay valid on re-runs.
+  await truncateAll(db);
+  merchantId = await resetTenant(db, SESSION);
 });
 
-function expectApiError(fn: () => unknown, code: string): void {
+async function expectApiError(fn: () => unknown | Promise<unknown>, code: string): Promise<void> {
   try {
-    fn();
+    await fn();
     throw new Error(`Expected ApiError ${code} but nothing was thrown`);
   } catch (err) {
     expect(err).toBeInstanceOf(ApiError);
@@ -30,29 +34,29 @@ function expectApiError(fn: () => unknown, code: string): void {
 
 describe("approval lifecycle", () => {
   it("approves the exact previewed version and queues it", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    const approval = approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    const approval = await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
     expect(approval.approvedVersion).toBe(draft.version);
 
-    const receipt = executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version);
+    const receipt = await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version);
     expect(receipt.status).toBe("simulated_queued");
     expect(receipt.count).toBe(40);
     expect(receipt.duplicate).toBe(false);
 
     const outboxCount = (
-      db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(draft.campaignId, draft.version) as { n: number }
+      await (db.prepare("SELECT COUNT(*)::int AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(draft.campaignId, draft.version)) as { n: number }
     ).n;
     expect(outboxCount).toBe(40);
   });
 
   it("rejects approval when the client hash does not match the stored preview", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
@@ -60,72 +64,72 @@ describe("approval lifecycle", () => {
       locale: "en",
     });
     const wrongHash = "a".repeat(64);
-    expectApiError(() => approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, wrongHash), "stale_preview");
+    await expectApiError(async () => await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, wrongHash), "stale_preview");
   });
 
   it("refuses to approve an unprofitable offer", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 5000, // 20% margin - below floor
       cap: 20,
       locale: "en",
     });
-    expectApiError(
-      () => approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
+    await expectApiError(
+      async () => await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
       "business_rule"
     );
   });
 
   it("rejects execution of an unapproved draft", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    expectApiError(() => executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "conflict");
+    await expectApiError(async () => await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "conflict");
   });
 
   it("blocks execution when consent changed after approval", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
-    db.prepare("UPDATE consents SET status='revoked', revoked_at=? WHERE customer_id LIKE '%CUST-002'").run(new Date().toISOString());
-    expectApiError(() => executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "stale_consent");
+    await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    await db.prepare("UPDATE consents SET status='revoked', revoked_at=? WHERE customer_id = ?").run(new Date().toISOString(), merchantId + '_CUST-002');
+    await expectApiError(async () => await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "stale_consent");
     // restore for later tests
-    db.prepare("UPDATE consents SET status='active', revoked_at=NULL WHERE customer_id LIKE '%CUST-002'").run();
+    await db.prepare("UPDATE consents SET status='active', revoked_at=NULL WHERE customer_id = ?").run(merchantId + '_CUST-002');
   });
 
   it("blocks execution when stock version changed after approval", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
-    db.prepare("UPDATE inventory SET version = version + 1 WHERE merchant_id = ?").run(merchantId);
-    expectApiError(() => executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "stale_inventory");
-    db.prepare("UPDATE inventory SET version = 1 WHERE merchant_id = ?").run(merchantId);
+    await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    await db.prepare("UPDATE inventory SET version = version + 1 WHERE merchant_id = ?").run(merchantId);
+    await expectApiError(async () => await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "stale_inventory");
+    await db.prepare("UPDATE inventory SET version = 1 WHERE merchant_id = ?").run(merchantId);
   });
 
   it("a newer draft supersedes an older approved version", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const v1 = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    approveCampaign(db, merchantId, fixture, v1.campaignId, v1.version, v1.previewHash);
+    await approveCampaign(db, merchantId, fixture, v1.campaignId, v1.version, v1.previewHash);
     const v2 = await draftCampaign(db, merchantId, fixture, {
       campaignId: v1.campaignId,
       opportunityId: "afternoon-decline-v1",
@@ -134,27 +138,27 @@ describe("approval lifecycle", () => {
       locale: "en",
     });
     expect(v2.version).toBe(v1.version + 1);
-    expectApiError(() => executeCampaign(db, merchantId, fixture, v1.campaignId, v1.version), "stale_version");
+    await expectApiError(async () => await executeCampaign(db, merchantId, fixture, v1.campaignId, v1.version), "stale_version");
   });
 
   it("refuses to approve a version that was already queued", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
-    executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version);
-    expectApiError(
-      () => approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
+    await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version);
+    await expectApiError(
+      async () => await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
       "stale_version"
     );
   });
 
   it("refuses to approve a draft version that is no longer the latest", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const v1 = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
@@ -168,47 +172,47 @@ describe("approval lifecycle", () => {
       cap: 15,
       locale: "en",
     });
-    expectApiError(
-      () => approveCampaign(db, merchantId, fixture, v1.campaignId, v1.version, v1.previewHash),
+    await expectApiError(
+      async () => await approveCampaign(db, merchantId, fixture, v1.campaignId, v1.version, v1.previewHash),
       "stale_version"
     );
   });
 
   it("blocks approval when the consent register changed since the preview", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    db.prepare("UPDATE consents SET status='revoked', revoked_at=? WHERE customer_id LIKE '%CUST-005'").run(
-      new Date().toISOString()
+    await db.prepare("UPDATE consents SET status='revoked', revoked_at=? WHERE customer_id = ?").run(
+      new Date().toISOString(), merchantId + '_CUST-005'
     );
-    expectApiError(
-      () => approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
+    await expectApiError(
+      async () => await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash),
       "stale_preview"
     );
     // restore for later tests
-    db.prepare("UPDATE consents SET status='active', revoked_at=NULL WHERE customer_id LIKE '%CUST-005'").run();
+    await db.prepare("UPDATE consents SET status='active', revoked_at=NULL WHERE customer_id = ?").run(merchantId + '_CUST-002');
   });
 
   it("blocks execution after the offer validity window has passed", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const draft = await draftCampaign(db, merchantId, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
       cap: 20,
       locale: "en",
     });
-    approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    await approveCampaign(db, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
     // Drafted at the fixture clock (Fri 6 Nov 2026, 7:00 p.m. IST) the offer is
     // valid until the next weekday evening (Mon 9 Nov, 6:00 p.m. IST). Move the
     // injected clock past that instant and execution must refuse.
     const savedNow = process.env.DEMO_NOW;
     process.env.DEMO_NOW = "2026-11-09T18:30:00+05:30";
     try {
-      expectApiError(() => executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "expired");
+      await expectApiError(async () => await executeCampaign(db, merchantId, fixture, draft.campaignId, draft.version), "expired");
     } finally {
       if (savedNow === undefined) delete process.env.DEMO_NOW;
       else process.env.DEMO_NOW = savedNow;
@@ -216,9 +220,9 @@ describe("approval lifecycle", () => {
   });
 
   it("refuses a draft whose campaign id belongs to another session", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     // Tenant A drafts a campaign; tenant B must not be able to extend that id.
-    const merchantA = resetTenant(db, "test-approval-xtenant-a");
+    const merchantA = await resetTenant(db, "test-approval-xtenant-a");
     const draftA = await draftCampaign(db, merchantA, fixture, {
       opportunityId: "afternoon-decline-v1",
       pricePaise: 7000,
@@ -265,31 +269,31 @@ describe("draft opportunity guard", () => {
   }
 
   it("refuses a made-up opportunity id", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     await expectCode(
-      () =>
-        draftCampaign(db, merchantId, fixture, {
-          opportunityId: "made-up-opportunity",
-          pricePaise: 7000,
-          cap: 20,
-          locale: "en",
-        }),
+      async () =>
+        await draftCampaign(db, merchantId, fixture, {
+                      opportunityId: "made-up-opportunity",
+                      pricePaise: 7000,
+                      cap: 20,
+                      locale: "en",
+                    }),
       "invalid_input"
     );
   });
 
   it("refuses drafting when the thin fixture offers no opportunity", async () => {
-    const db = openTestDb();
+    const db = await openTestDb();
     const thin = loadFixture("bakery-thin-v1");
-    const thinMerchant = resetTenant(db, "test-thin-draft", thin);
+    const thinMerchant = await resetTenant(db, "test-thin-draft", thin);
     await expectCode(
-      () =>
-        draftCampaign(db, thinMerchant, thin, {
-          opportunityId: "afternoon-decline-v1",
-          pricePaise: 7000,
-          cap: 20,
-          locale: "en",
-        }),
+      async () =>
+        await draftCampaign(db, thinMerchant, thin, {
+                      opportunityId: "afternoon-decline-v1",
+                      pricePaise: 7000,
+                      cap: 20,
+                      locale: "en",
+                    }),
       "business_rule"
     );
   });

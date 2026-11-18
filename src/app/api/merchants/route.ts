@@ -15,16 +15,16 @@ const CreateMerchantSchema = z.object({
 
 /** GET /api/merchants - the businesses owned by this demo session. */
 export const GET = routeHandler(async () => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  return ok({ merchants: listMerchants(db, sessionId) });
+  return ok({ merchants: await listMerchants(db, sessionId) });
 });
 
 /** POST /api/merchants - add a business (seeded deterministically, capped per session). */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
   const body = parseBody(CreateMerchantSchema, await request.json().catch(() => null));
-  const merchant = createMerchant(db, sessionId, body.name, body.domain);
+  const merchant = await createMerchant(db, sessionId, body.name, body.domain);
   return ok(merchant, 201);
 });

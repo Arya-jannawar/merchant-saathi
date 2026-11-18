@@ -8,9 +8,9 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/demo/insights - per-day afternoon totals + campaign funnel for the active business. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const insights = getDemoInsights(db, merchantId, getNow(), fixture);
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const insights = await getDemoInsights(db, merchantId, getNow(), fixture);
   return ok(insights);
 });

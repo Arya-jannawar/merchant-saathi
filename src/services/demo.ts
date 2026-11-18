@@ -16,12 +16,12 @@ export interface MerchantListItem {
   domain: { id: string; label: string; emoji: string };
 }
 
-export function listMerchants(db: SqliteDatabase, sessionId: string): MerchantListItem[] {
-  const rows = db
+export async function listMerchants(db: SqliteDatabase, sessionId: string): Promise<MerchantListItem[]> {
+  const rows = (await db
     .prepare(
       "SELECT id, variant_seed, display_name, fixture_version FROM merchants WHERE demo_session_id = ? ORDER BY created_at ASC, id ASC"
     )
-    .all(sessionId) as { id: string; variant_seed: number; display_name: string; fixture_version: string }[];
+    .all(sessionId)) as { id: string; variant_seed: number; display_name: string; fixture_version: string }[];
   return rows.map((r) => {
     let domain = { id: "bakery", label: "Bakery & Sweets", emoji: "🧁" };
     try {
@@ -40,8 +40,8 @@ export function listMerchants(db: SqliteDatabase, sessionId: string): MerchantLi
 }
 
 /** The fixture that owns a merchant's numbers - domain-aware. */
-export function loadMerchantFixture(db: SqliteDatabase, merchantId: string): Fixture {
-  const row = db.prepare("SELECT fixture_version FROM merchants WHERE id = ?").get(merchantId) as
+export async function loadMerchantFixture(db: SqliteDatabase, merchantId: string): Promise<Fixture> {
+  const row = (await db.prepare("SELECT fixture_version FROM merchants WHERE id = ?").get(merchantId)) as
     | { fixture_version: string }
     | undefined;
   return loadFixture((row?.fixture_version as FixtureVersion) ?? "bakery-v1");
@@ -52,12 +52,12 @@ export function loadMerchantFixture(db: SqliteDatabase, merchantId: string): Fix
  * requested id comes from the client but is only honored when it belongs to
  * this session - cross-session ids return not_found without leaking existence.
  */
-export function resolveMerchant(
+export async function resolveMerchant(
   db: SqliteDatabase,
   sessionId: string,
   requestedMerchantId?: string | null
-): { merchantId: string; merchants: MerchantListItem[] } | { merchantId: null; merchants: MerchantListItem[] } {
-  const merchants = listMerchants(db, sessionId);
+): Promise<{ merchantId: string; merchants: MerchantListItem[] } | { merchantId: null; merchants: MerchantListItem[] }> {
+  const merchants = await listMerchants(db, sessionId);
   if (requestedMerchantId) {
     const owned = merchants.find((m) => m.id === requestedMerchantId);
     if (!owned) throw new MerchantNotFoundError();
@@ -72,24 +72,25 @@ export class MerchantNotFoundError extends Error {
   }
 }
 
-export function createMerchant(
+export async function createMerchant(
   db: SqliteDatabase,
   sessionId: string,
   displayName?: string,
   domainVersion?: FixtureVersion
-): MerchantListItem {
-  const existing = listMerchants(db, sessionId);
+): Promise<MerchantListItem> {
+  const existing = await listMerchants(db, sessionId);
   if (existing.length >= MAX_MERCHANTS_PER_SESSION) {
     throw new MerchantLimitError();
   }
   const variantSeed = DEFAULT_VARIANT_SEED + (existing.length + 1) * 7919;
   const fixture = loadFixture(domainVersion ?? "bakery-v1");
-  const id = seedMerchant(db, sessionId, { variantSeed, displayName, fixture });
+  const id = await seedMerchant(db, sessionId, { variantSeed, displayName, fixture });
   return {
     id,
     name:
       displayName?.trim() ||
-      (db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(id) as { display_name: string }).display_name,
+      ((await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(id)) as { display_name: string })
+        .display_name,
     fixtureVersion: fixture.fixtureVersion,
     isDefault: false,
     domain: fixture.domain,
@@ -102,50 +103,49 @@ export class MerchantLimitError extends Error {
   }
 }
 
-export function removeMerchant(db: SqliteDatabase, sessionId: string, merchantId: string): void {
-  deleteMerchantById(db, sessionId, merchantId);
+export async function removeMerchant(db: SqliteDatabase, sessionId: string, merchantId: string): Promise<void> {
+  await deleteMerchantById(db, sessionId, merchantId);
 }
 
-export function resetActiveMerchant(
+export async function resetActiveMerchant(
   db: SqliteDatabase,
   sessionId: string,
   requestedMerchantId: string | null | undefined,
   fixtureVersion?: FixtureVersion
-): { fixtureVersion: string; merchantName: string } {
+): Promise<{ fixtureVersion: string; merchantName: string }> {
   // No active business yet -> seed the default one (first-visit "Load sample data").
-  const resolved = resolveMerchant(db, sessionId, requestedMerchantId);
+  const resolved = await resolveMerchant(db, sessionId, requestedMerchantId);
   if (!resolved.merchantId) {
     const fixture = loadFixture(fixtureVersion ?? "bakery-v1");
-    const id = seedMerchant(db, sessionId, { fixture });
-    return { fixtureVersion: fixture.fixtureVersion, merchantName: merchantDisplayName(db, id) };
+    const id = await seedMerchant(db, sessionId, { fixture });
+    return { fixtureVersion: fixture.fixtureVersion, merchantName: await merchantDisplayName(db, id) };
   }
   // No explicit fixture -> keep the merchant's own (a registered salon stays a salon).
-  const fixture = loadFixture(
-    fixtureVersion ?? (loadMerchantFixture(db, resolved.merchantId).fixtureVersion as FixtureVersion)
-  );
-  const { merchantId, displayName } = resetMerchantById(db, sessionId, resolved.merchantId, fixture);
+  const ownFixture = await loadMerchantFixture(db, resolved.merchantId);
+  const fixture = loadFixture(fixtureVersion ?? (ownFixture.fixtureVersion as FixtureVersion));
+  const { merchantId, displayName } = await resetMerchantById(db, sessionId, resolved.merchantId, fixture);
   return { fixtureVersion: fixture.fixtureVersion, merchantName: displayName };
 }
 
-function merchantDisplayName(db: SqliteDatabase, merchantId: string): string {
-  return (db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as { display_name: string })
+async function merchantDisplayName(db: SqliteDatabase, merchantId: string): Promise<string> {
+  return ((await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId)) as { display_name: string })
     .display_name;
 }
 
-export function ensureTenant(db: SqliteDatabase, sessionId: string): string {
-  const existing = db
+export async function ensureTenant(db: SqliteDatabase, sessionId: string): Promise<string> {
+  const existing = (await db
     .prepare("SELECT id FROM merchants WHERE demo_session_id = ? ORDER BY created_at ASC, id ASC")
-    .get(sessionId) as { id: string } | undefined;
+    .get(sessionId)) as { id: string } | undefined;
   if (existing) return existing.id;
   return seedMerchant(db, sessionId, {});
 }
 
-export function resolveTenant(db: SqliteDatabase, sessionId: string, requestedMerchantId?: string | null): { merchantId: string; fixture: Fixture } {
-  const resolved = resolveMerchant(db, sessionId, requestedMerchantId);
+export async function resolveTenant(db: SqliteDatabase, sessionId: string, requestedMerchantId?: string | null): Promise<{ merchantId: string; fixture: Fixture }> {
+  const resolved = await resolveMerchant(db, sessionId, requestedMerchantId);
   if (resolved.merchantId) {
-    return { merchantId: resolved.merchantId, fixture: loadMerchantFixture(db, resolved.merchantId) };
+    return { merchantId: resolved.merchantId, fixture: await loadMerchantFixture(db, resolved.merchantId) };
   }
-  const merchantId = seedMerchant(db, sessionId, {});
+  const merchantId = await seedMerchant(db, sessionId, {});
   return { merchantId, fixture: loadFixture("bakery-v1") };
 }
 
@@ -175,14 +175,14 @@ export interface DemoState {
   hint?: string;
 }
 
-export function getDemoState(
+export async function getDemoState(
   db: SqliteDatabase,
   sessionId: string,
   requestedMerchantId?: string | null
-): DemoState {
+): Promise<DemoState> {
   const fixture = loadFixture();
   const now = getNow();
-  const resolved = resolveMerchant(db, sessionId, requestedMerchantId);
+  const resolved = await resolveMerchant(db, sessionId, requestedMerchantId);
   const merchants = resolved.merchants;
   const base = {
     seeded: merchants.length > 0,
@@ -198,9 +198,9 @@ export function getDemoState(
     return { ...base, bundleHint: loadFixture("bakery-v1").bundle.name, hint: "Load the sample data to explore the demo bakery." };
   }
   const merchantId = resolved.merchantId;
-  const merchant = db
+  const merchant = (await db
     .prepare("SELECT * FROM merchants WHERE id = ? AND demo_session_id = ?")
-    .get(merchantId, sessionId) as
+    .get(merchantId, sessionId)) as
     | { id: string; display_name: string; fixture_version: string; timezone: string; currency: string }
     | undefined;
 
@@ -222,9 +222,9 @@ export function getDemoState(
 
   const currWin = lastCompleteAfternoonWindow(now);
   const prevWin = previousAfternoonWindow(currWin);
-  const prev = completedAfternoonTotals(db, merchantId, prevWin);
-  const curr = completedAfternoonTotals(db, merchantId, currWin);
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
+  const prev = await completedAfternoonTotals(db, merchantId, prevWin);
+  const curr = await completedAfternoonTotals(db, merchantId, currWin);
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
 
   return {
     ...base,
@@ -292,46 +292,48 @@ export interface DemoInsights {
  * per-day 3-6 p.m. totals for both windows, and the campaign funnel for the
  * latest queued campaign (stages are null when that step has not happened).
  */
-export function getDemoInsights(db: SqliteDatabase, merchantId: string, now: Date, fixtureOverride?: Fixture): DemoInsights {
+export async function getDemoInsights(db: SqliteDatabase, merchantId: string, now: Date, fixtureOverride?: Fixture): Promise<DemoInsights> {
   const fixture = fixtureOverride ?? loadFixture("bakery-v1");
-  const merchant = db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as
+  const merchant = (await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId)) as
     | { display_name: string }
     | undefined;
 
   const currWin = lastCompleteAfternoonWindow(now);
   const prevWin = previousAfternoonWindow(currWin);
-  const daySeries = (window: { startIso: string }): InsightsDay[] =>
-    afternoonBands(window.startIso).map((band) => {
-      const totals = completedTotalsInRange(db, merchantId, band.startIso, band.endIso);
-      const weekday = WEEKDAY_LABELS[istParts(new Date(band.startIso)).weekday];
-      return { dayLabel: weekday, orders: totals.orders, netSalesPaise: totals.netSalesPaise };
-    });
+  const daySeries = async (window: { startIso: string }): Promise<InsightsDay[]> =>
+    Promise.all(
+      afternoonBands(window.startIso).map(async (band) => {
+        const totals = await completedTotalsInRange(db, merchantId, band.startIso, band.endIso);
+        const weekday = WEEKDAY_LABELS[istParts(new Date(band.startIso)).weekday];
+        return { dayLabel: weekday, orders: totals.orders, netSalesPaise: totals.netSalesPaise };
+      })
+    );
 
   // Funnel from the latest campaign of this merchant (any status; later stages
   // stay null until the corresponding step actually happened).
-  const camp = db
+  const camp = (await db
     .prepare("SELECT id, version, status, audience_count FROM campaigns WHERE merchant_id = ? ORDER BY created_at DESC, version DESC LIMIT 1")
-    .get(merchantId) as { id: string; version: number; status: string; audience_count: number } | undefined;
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
-  const customers = (db.prepare("SELECT COUNT(*) AS n FROM customers WHERE merchant_id = ?").get(merchantId) as { n: number }).n;
+    .get(merchantId)) as { id: string; version: number; status: string; audience_count: number } | undefined;
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
+  const customers = ((await db.prepare("SELECT COUNT(*)::int AS n FROM customers WHERE merchant_id = ?").get(merchantId)) as { n: number }).n;
 
   let funnel: DemoInsights["funnel"] = null;
   if (camp) {
-    const outboxRow = db
-      .prepare("SELECT COUNT(*) AS n FROM outbox WHERE campaign_id = ? AND version = ?")
-      .get(camp.id, camp.version) as { n: number };
-    const redRow = db
+    const outboxRow = (await db
+      .prepare("SELECT COUNT(*)::int AS n FROM outbox WHERE campaign_id = ? AND version = ?")
+      .get(camp.id, camp.version)) as { n: number };
+    const redRow = (await db
       .prepare(
-        "SELECT COUNT(DISTINCT event_id) AS n, COALESCE(SUM(amount_paise),0) AS amt FROM redemptions WHERE campaign_id = ?"
+        "SELECT COUNT(DISTINCT event_id)::int AS n, COALESCE(SUM(amount_paise),0)::int AS amt FROM redemptions WHERE campaign_id = ?"
       )
-      .get(camp.id) as { n: number; amt: number };
-    const costRow = db.prepare("SELECT offer_json FROM campaigns WHERE id = ? AND version = ?").get(camp.id, camp.version) as
+      .get(camp.id)) as { n: number; amt: number };
+    const costRow = (await db.prepare("SELECT offer_json FROM campaigns WHERE id = ? AND version = ?").get(camp.id, camp.version)) as
       | { offer_json: string }
       | undefined;
     let contribution: number | null = null;
     if (camp.status === "queued" && costRow) {
       const offer = JSON.parse(costRow.offer_json) as { bundleCostPaise: number | null };
-      const qty = (db.prepare("SELECT COALESCE(SUM(quantity),0) AS q FROM redemptions WHERE campaign_id = ?").get(camp.id) as { q: number }).q;
+      const qty = ((await db.prepare("SELECT COALESCE(SUM(quantity),0)::int AS q FROM redemptions WHERE campaign_id = ?").get(camp.id)) as { q: number }).q;
       contribution = offer.bundleCostPaise === null ? null : redRow.amt - qty * offer.bundleCostPaise;
     }
     funnel = {
@@ -349,7 +351,7 @@ export function getDemoInsights(db: SqliteDatabase, merchantId: string, now: Dat
     merchantName: merchant?.display_name ?? "this business",
     nowIso: now.toISOString(),
     windowLabels: { previous: prevWin.label, current: currWin.label },
-    days: { previous: daySeries(prevWin), current: daySeries(currWin) },
+    days: { previous: await daySeries(prevWin), current: await daySeries(currWin) },
     funnel,
   };
 }

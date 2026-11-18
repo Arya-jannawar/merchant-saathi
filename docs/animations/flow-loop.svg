@@ -1,83 +1,75 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 230" width="900" height="230" role="img" aria-label="The hero loop: decline, evidence, offer math, approval, simulated outbox, results">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="900" height="240" role="img" aria-label="The owner control loop: dashboard to opportunity to offer to approval to campaign to results">
   <defs>
-    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#07234a"/>
-      <stop offset="1" stop-color="#0a2e5c"/>
+    <linearGradient id="cardg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12335f"/><stop offset="1" stop-color="#0d2547"/>
     </linearGradient>
-    <radialGradient id="dotGlow">
-      <stop offset="0" stop-color="#00b9f1" stop-opacity="0.9"/>
-      <stop offset="1" stop-color="#00b9f1" stop-opacity="0"/>
-    </radialGradient>
+    <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#00b9f1"/>
+    </marker>
   </defs>
-  <rect width="900" height="230" rx="18" fill="url(#bg3)"/>
-  <text x="450" y="36" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">The owner control loop - one complete, honest cycle</text>
+  <rect width="900" height="240" rx="18" fill="#071a35"/>
 
-  <path id="route" d="M90 120 H810" stroke="#1d4e86" stroke-width="3" stroke-dasharray="7 7" fill="none"/>
-  <path d="M90 120 H810" stroke="#00b9f1" stroke-width="3" fill="none" opacity="0.35" stroke-dasharray="7 7">
-    <animate attributeName="stroke-dashoffset" from="28" to="0" dur="1.2s" repeatCount="indefinite"/>
-  </path>
+  <text x="450" y="34" text-anchor="middle" font-family="Segoe UI, Arial" font-size="16" font-weight="800" fill="#ffffff">One honest loop &#8212; the owner never leaves it</text>
 
-  <!-- traveling spark -->
-  <g>
-    <circle r="26" fill="url(#dotGlow)">
-      <animateMotion dur="7.2s" repeatCount="indefinite" path="M90 120 H810"/>
-    </circle>
-    <circle r="7" fill="#ffffff">
-      <animateMotion dur="7.2s" repeatCount="indefinite" path="M90 120 H810"/>
-    </circle>
-  </g>
-
-  <!-- nodes -->
-  <g class="node n1">
-    <rect x="46" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
-    <text x="90" y="112" text-anchor="middle" font-size="20">📊</text>
-    <text x="90" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Decline</text>
-    <text x="90" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">100 &#8594; 70 orders</text>
-  </g>
-  <g class="node n2">
-    <rect x="188" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
-    <text x="232" y="112" text-anchor="middle" font-size="20">🔍</text>
-    <text x="232" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Evidence</text>
-    <text x="232" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">6 receipts</text>
-  </g>
-  <g class="node n3">
-    <rect x="330" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
-    <text x="374" y="112" text-anchor="middle" font-size="20">🧮</text>
-    <text x="374" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Offer math</text>
-    <text x="374" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">42.9% margin</text>
-  </g>
-  <g class="node n4">
-    <rect x="472" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#fbbf24" stroke-width="2"/>
-    <text x="516" y="112" text-anchor="middle" font-size="20">🔐</text>
-    <text x="516" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Approve</text>
-    <text x="516" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#fde68a">hash-bound</text>
-  </g>
-  <g class="node n5">
-    <rect x="614" y="86" width="88" height="68" rx="16" fill="#123d7c" stroke="#00b9f1" stroke-width="2"/>
-    <text x="658" y="112" text-anchor="middle" font-size="20">📮</text>
-    <text x="658" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">Simulated</text>
-    <text x="658" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#8fd8ff">40 recipients</text>
-  </g>
-  <g class="node n6">
-    <rect x="756" y="86" width="100" height="68" rx="16" fill="#0d3a2a" stroke="#10b981" stroke-width="2.5"/>
-    <text x="806" y="112" text-anchor="middle" font-size="20">🎯</text>
-    <text x="806" y="134" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11" font-weight="800" fill="#ffffff">&#8377;300 result</text>
-    <text x="806" y="147" text-anchor="middle" font-family="Segoe UI, Arial" font-size="8.5" fill="#6ee7b7">700-400=300</text>
+  <!-- six stage cards around a ring -->
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <g>
+      <rect x="30" y="70" width="200" height="46" rx="10" fill="url(#cardg)" stroke="#00b9f1" stroke-width="1.2"/>
+      <text x="130" y="98" font-size="14.5" font-weight="700" fill="#cfe8fb">1 &#183; Dashboard</text>
+    </g>
+    <g>
+      <rect x="345" y="56" width="210" height="46" rx="10" fill="url(#cardg)" stroke="#00b9f1" stroke-width="1.2"/>
+      <text x="450" y="84" font-size="14.5" font-weight="700" fill="#cfe8fb">2 &#183; Opportunity + evidence</text>
+    </g>
+    <g>
+      <rect x="672" y="70" width="200" height="46" rx="10" fill="url(#cardg)" stroke="#00b9f1" stroke-width="1.2"/>
+      <text x="772" y="98" font-size="14.5" font-weight="700" fill="#cfe8fb">3 &#183; Offer math</text>
+    </g>
+    <g>
+      <rect x="672" y="160" width="200" height="46" rx="10" fill="url(#cardg)" stroke="#ffd76e" stroke-width="1.2"/>
+      <text x="772" y="188" font-size="14.5" font-weight="700" fill="#ffe9ad">4 &#183; Hash-bound approval</text>
+    </g>
+    <g>
+      <rect x="345" y="174" width="210" height="46" rx="10" fill="url(#cardg)" stroke="#00b9f1" stroke-width="1.2"/>
+      <text x="450" y="202" font-size="14.5" font-weight="700" fill="#cfe8fb">5 &#183; Simulated campaign</text>
+    </g>
+    <g>
+      <rect x="30" y="160" width="200" height="46" rx="10" fill="url(#cardg)" stroke="#4ade80" stroke-width="1.2"/>
+      <text x="130" y="188" font-size="14.5" font-weight="700" fill="#b7f7cd">6 &#183; &#8377;300 results + PDF</text>
+    </g>
   </g>
 
-  <text x="450" y="192" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#bcd6ee">Code computes every number. AI only drafts the words. The owner approves the exact preview - anything stale is refused with 409.</text>
-  <text x="450" y="212" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="11" font-weight="700" fill="#fbbf24" class="pulse">Rs 700 sales - Rs 400 ingredients = Rs 300 contribution toward fixed costs (simulated, labeled)</text>
+  <!-- arrows -->
+  <g stroke="#00b9f1" stroke-width="2" fill="none" marker-end="url(#arr)">
+    <line x1="232" y1="92" x2="338" y2="80">
+      <animate attributeName="stroke-opacity" values="0.25;1;0.25" dur="3.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="557" y1="80" x2="664" y2="92">
+      <animate attributeName="stroke-opacity" values="0.25;1;0.25" dur="3.6s" begin="0.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="772" y1="118" x2="772" y2="154">
+      <animate attributeName="stroke-opacity" values="0.25;1;0.25" dur="3.6s" begin="1.2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="664" y1="182" x2="562" y2="196">
+      <animate attributeName="stroke-opacity" values="0.25;1;0.25" dur="3.6s" begin="1.8s" repeatCount="indefinite"/>
+    </line>
+    <line x1="343" y1="196" x2="236" y2="182">
+      <animate attributeName="stroke-opacity" values="0.25;1;0.25" dur="3.6s" begin="2.4s" repeatCount="indefinite"/>
+    </line>
+    <line x1="130" y1="158" x2="130" y2="122" stroke-dasharray="4 5" stroke="#8fb3d9" marker-end="url(#arr)">
+      <animate attributeName="stroke-opacity" values="0.3;0.9;0.3" dur="3.6s" begin="3s" repeatCount="indefinite"/>
+    </line>
+  </g>
 
-  <style>
-    .node { transform-box: fill-box; transform-origin: center; }
-    .n1 { animation: nodePulse 7.2s linear infinite; }
-    .n2 { animation: nodePulse 7.2s 1.2s linear infinite; }
-    .n3 { animation: nodePulse 7.2s 2.4s linear infinite; }
-    .n4 { animation: nodePulse 7.2s 3.6s linear infinite; }
-    .n5 { animation: nodePulse 7.2s 4.8s linear infinite; }
-    .n6 { animation: nodePulse 7.2s 6s linear infinite; }
-    @keyframes nodePulse { 0%, 18%, 100% { transform: scale(1); } 7% { transform: scale(1.09); } }
-    .pulse { animation: soft 2.6s ease-in-out infinite; }
-    @keyframes soft { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
-  </style>
+  <!-- travelling pulse dot along the loop -->
+  <circle r="6" fill="#ffd76e">
+    <animateMotion dur="3.6s" repeatCount="indefinite" path="M 236 93 L 340 80 L 560 80 L 660 93 L 772 120 L 772 152 L 660 184 L 560 197 L 340 197 L 236 184 L 130 156 L 130 124 Z"/>
+    <animate attributeName="opacity" values="1;1;1" dur="3.6s" repeatCount="indefinite"/>
+  </circle>
+  <circle r="12" fill="none" stroke="#ffd76e" stroke-width="1.5" opacity="0.6">
+    <animateMotion dur="3.6s" repeatCount="indefinite" path="M 236 93 L 340 80 L 560 80 L 660 93 L 772 120 L 772 152 L 660 184 L 560 197 L 340 197 L 236 184 L 130 156 L 130 124 Z"/>
+    <animate attributeName="r" values="4;14;4" dur="3.6s" repeatCount="indefinite"/>
+  </circle>
+
+  <text x="450" y="228" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12.5" fill="#8fb3d9">observe &#8594; price safely &#8594; approve exactly &#8594; simulate &#8594; measure &#8594; repeat</text>
 </svg>

@@ -17,9 +17,9 @@ const PreviewSchema = z.object({
 
 /** POST /api/planning/import/preview - parse and map, no ledger writes. */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(PreviewSchema, await request.json());
-  return ok(previewImport(db, merchantId, body.filename, body.content, body.dateOrder));
+  return ok(await previewImport(db, merchantId, body.filename, body.content, body.dateOrder));
 });

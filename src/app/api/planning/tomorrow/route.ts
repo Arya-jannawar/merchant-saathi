@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/planning/tomorrow - next-day forecast with the selection backtest. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  return ok(tomorrowForecast(db, merchantId));
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  return ok(await tomorrowForecast(db, merchantId));
 });

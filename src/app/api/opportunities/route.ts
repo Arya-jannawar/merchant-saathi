@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/opportunities - evidence-backed opportunities for this session's tenant. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const result = getOpportunities(db, merchantId, fixture, getNow());
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const result = await getOpportunities(db, merchantId, fixture, getNow());
   return ok(result);
 });

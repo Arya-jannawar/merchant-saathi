@@ -49,27 +49,27 @@ function scopeMonths(scope: "calendar" | "financial", year: number): { month: st
   return out;
 }
 
-export function yearReport(
+export async function yearReport(
   db: SqliteDatabase,
   merchantId: string,
   scope: "calendar" | "financial",
   year: number,
-): YearReport {
-  // Month/day bucketing happens in IST (the app's business timezone): SQLite's
-  // date() applies the fixed +05:30 shift to the UTC ISO timestamps.
-  const rows = db
+): Promise<YearReport> {
+  // Month/day bucketing happens in IST (the app's business timezone): the
+  // query applies the fixed +05:30 shift to the UTC ISO timestamps.
+  const rows = (await db
     .prepare(
-      `SELECT date(occurred_on, '+5 hours', '+30 minutes') AS ist_day,
-              substr(date(occurred_on, '+5 hours', '+30 minutes'), 1, 7) AS month,
-              SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE 0 END) AS net_sales,
-              SUM(CASE WHEN event_type = 'refund' THEN amount_paise ELSE 0 END) AS refunds,
-              SUM(CASE WHEN event_type = 'sale' THEN COALESCE(units, 0) * COALESCE(unit_cost_paise, 0) ELSE 0 END) AS cogs,
-              SUM(CASE WHEN event_type = 'sale' AND unit_cost_paise IS NOT NULL THEN amount_paise ELSE 0 END) AS costed_sales
+      `SELECT ((occurred_on::timestamp + interval '5 hours 30 minutes')::date::text) AS ist_day,
+              substr(((occurred_on::timestamp + interval '5 hours 30 minutes')::date::text), 1, 7) AS month,
+              SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE 0 END)::int AS net_sales,
+              SUM(CASE WHEN event_type = 'refund' THEN amount_paise ELSE 0 END)::int AS refunds,
+              SUM(CASE WHEN event_type = 'sale' THEN COALESCE(units, 0) * COALESCE(unit_cost_paise, 0) ELSE 0 END)::int AS cogs,
+              SUM(CASE WHEN event_type = 'sale' AND unit_cost_paise IS NOT NULL THEN amount_paise ELSE 0 END)::int AS costed_sales
        FROM ledger_events
        WHERE merchant_id = ? AND event_type IN ('sale','refund')
        GROUP BY ist_day`,
     )
-    .all(merchantId) as {
+    .all(merchantId)) as {
     ist_day: string;
     month: string;
     net_sales: number;
@@ -144,26 +144,26 @@ export function yearReport(
 }
 
 /** Daily net sales (sale − refund) for the forecast target, IST local dates. */
-export function dailyNetSales(db: SqliteDatabase, merchantId: string): { date: string; netPaise: number }[] {
-  const rows = db
+export async function dailyNetSales(db: SqliteDatabase, merchantId: string): Promise<{ date: string; netPaise: number }[]> {
+  const rows = (await db
     .prepare(
-      `SELECT date(occurred_on, '+5 hours', '+30 minutes') AS day,
-              SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE -amount_paise END) AS net
+      `SELECT ((occurred_on::timestamp + interval '5 hours 30 minutes')::date::text) AS day,
+              SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE -amount_paise END)::int AS net
        FROM ledger_events
        WHERE merchant_id = ? AND event_type IN ('sale','refund')
        GROUP BY day ORDER BY day`,
     )
-    .all(merchantId) as { day: string; net: number }[];
+    .all(merchantId)) as { day: string; net: number }[];
   return rows.map((r) => ({ date: r.day, netPaise: r.net }));
 }
 
 /** Tomorrow forecast over the ledger, using the injected demo clock. */
-export function tomorrowForecast(db: SqliteDatabase, merchantId: string): TomorrowForecast & { businessName: string } {
+export async function tomorrowForecast(db: SqliteDatabase, merchantId: string): Promise<TomorrowForecast & { businessName: string }> {
   const now = getNow();
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
   const business = (
-    db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as { display_name: string } | undefined
+    (await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId)) as { display_name: string } | undefined
   )?.display_name ?? "Your business";
-  const forecast = forecastTomorrow(dailyNetSales(db, merchantId), p);
+  const forecast = forecastTomorrow(await dailyNetSales(db, merchantId), p);
   return { ...forecast, businessName: business };
 }

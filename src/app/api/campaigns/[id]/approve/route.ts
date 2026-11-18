@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/campaigns/{id}/approve - approve the exact previewed version. */
 export const POST = routeHandler(async (request: Request, ctx: { params: { id: string } }) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(approveRequestSchema, await request.json());
-  const result = approveCampaign(db, merchantId, fixture, ctx.params.id, body.version, body.previewHash);
+  const result = await approveCampaign(db, merchantId, fixture, ctx.params.id, body.version, body.previewHash);
   return ok(result, 201);
 });

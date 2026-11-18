@@ -245,7 +245,7 @@ export interface SeedMerchantOptions {
  * derived from its variant seed, so numbers differ per business while staying
  * fully reproducible and internally reconciled (line items always sum exactly).
  */
-export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: SeedMerchantOptions = {}): string {
+export async function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: SeedMerchantOptions = {}): Promise<string> {
   const now = getNow();
   const fixture = opts.fixture ?? loadFixture();
   const variantSeed = opts.variantSeed ?? DEFAULT_VARIANT_SEED;
@@ -253,7 +253,7 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
   const createdAt = now.toISOString();
   const rand = mulberry32(variantSeed);
 
-  const existing = db.prepare("SELECT id FROM merchants WHERE id = ?").get(merchantId) as
+  const existing = (await db.prepare("SELECT id FROM merchants WHERE id = ?").get(merchantId)) as
     | { id: string }
     | undefined;
   if (existing) return existing.id;
@@ -270,8 +270,8 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
         };
   const displayName = opts.displayName?.trim() || merchantNameFor(variantSeed, fixture);
 
-  withTransaction(db, () => {
-    db.prepare(
+  await withTransaction(db, async () => {
+    await db.prepare(
       "INSERT INTO merchants (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at) VALUES (?,?,?,?,?,?,?,?)"
     ).run(
       merchantId,
@@ -284,95 +284,89 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
       createdAt
     );
 
-    // Inventory
-    const invStmt = db.prepare(
-      "INSERT INTO inventory (merchant_id, sku_id, quantity, unit_variable_cost_paise, version, updated_at) VALUES (?,?,?,?,1,?)"
+    // Inventory - one batched multi-row insert (fewer network round trips)
+    await db.prepare(
+      `INSERT INTO inventory (merchant_id, sku_id, quantity, unit_variable_cost_paise, version, updated_at) VALUES ` +
+        fixture.inventory
+          .map(() => "(?, ?, ?, ?, 1, ?)")
+          .join(", "),
+    ).run(
+      ...fixture.inventory.flatMap((item) => [merchantId, item.skuId, item.quantity, item.unitVariableCostPaise, createdAt]),
     );
-    for (const item of fixture.inventory) {
-      invStmt.run(merchantId, item.skuId, item.quantity, item.unitVariableCostPaise, createdAt);
-    }
 
-    // Customers + consent
-    const custStmt = db.prepare(
-      "INSERT INTO customers (id, merchant_id, demo_channel_id, display_label) VALUES (?,?,?,?)"
-    );
-    const consentStmt = db.prepare(
-      "INSERT INTO consents (id, customer_id, channel, status, captured_at, source, revoked_at) VALUES (?,?,?,?,?,?,?)"
-    );
+    // Customers + consent - accumulated then two batched inserts
     const { total, activeSms, revokedSms, channel, consentSources } = fixture.customers;
+    const custRows: unknown[][] = [];
+    const consentRows: unknown[][] = [];
     for (let i = 1; i <= total; i++) {
       // Customer ids are scoped by tenant so multiple demo sessions can coexist.
       const custId = `${merchantId}_CUST-${String(i).padStart(3, "0")}`;
-      custStmt.run(custId, merchantId, `demo-block-${String(4000 + i)}`, `Customer ${String(i).padStart(3, "0")}`);
+      custRows.push([custId, merchantId, `demo-block-${String(4000 + i)}`, `Customer ${String(i).padStart(3, "0")}`]);
       const capturedAt = istToUtcIso(2026, 10, 1 + (i % 5), 10 + (i % 8), (i * 7) % 60);
       if (i <= activeSms) {
-        consentStmt.run(
-          `con_${custId}_${channel}`,
-          custId,
-          channel,
-          "active",
-          capturedAt,
-          consentSources[i % consentSources.length],
-          null
-        );
+        consentRows.push([`con_${custId}_${channel}`, custId, channel, "active", capturedAt, consentSources[i % consentSources.length], null]);
       } else if (i <= activeSms + revokedSms) {
-        consentStmt.run(
-          `con_${custId}_${channel}`,
-          custId,
-          channel,
-          "revoked",
-          capturedAt,
-          consentSources[i % consentSources.length],
-          istToUtcIso(2026, 10, 20 + (i % 5), 12, 0)
-        );
+        consentRows.push([`con_${custId}_${channel}`, custId, channel, "revoked", capturedAt, consentSources[i % consentSources.length], istToUtcIso(2026, 10, 20 + (i % 5), 12, 0)]);
       } else {
-        consentStmt.run(`con_${custId}_${channel}`, custId, channel, "none", capturedAt, "never captured", null);
+        consentRows.push([`con_${custId}_${channel}`, custId, channel, "none", capturedAt, "never captured", null]);
       }
     }
+    await db.prepare(
+      `INSERT INTO customers (id, merchant_id, demo_channel_id, display_label) VALUES ` +
+        custRows.map(() => "(?,?,?,?)").join(", ")
+    ).run(...custRows.flat());
+    await db.prepare(
+      `INSERT INTO consents (id, customer_id, channel, status, captured_at, source, revoked_at) VALUES ` +
+        consentRows.map(() => "(?,?,?,?,?,?,?)").join(", ")
+    ).run(...consentRows.flat());
 
-    // Orders + items
-    const orderStmt = db.prepare(
-      "INSERT INTO orders (id, merchant_id, external_id, occurred_at, status, total_paise) VALUES (?,?,?,?,?,?)"
-    );
-    const itemStmt = db.prepare(
-      "INSERT INTO order_items (order_id, sku_id, quantity, unit_price_paise, unit_discount_paise) VALUES (?,?,?,?,0)"
-    );
+    // Orders + items - planned in memory (sum-checked), then two batched inserts
     const planned = planOrders(fixture, rand, heroDrop);
     const skuPrices = fixture.skus.map((s) => ({ skuId: s.id, pricePaise: s.pricePaise }));
+    const orderRows: unknown[][] = [];
+    const itemRows: unknown[][] = [];
     for (const o of planned) {
       const orderId = `${merchantId}_${o.externalId}`;
-      orderStmt.run(orderId, merchantId, o.externalId, o.occurredAtIso, o.status, o.totalPaise);
+      orderRows.push([orderId, merchantId, o.externalId, o.occurredAtIso, o.status, o.totalPaise]);
       const items = composeOrderTargets(o.totalPaise, skuPrices, rand);
       let sumCheck = 0;
       for (const item of items) {
         const sku = fixture.skus.find((s) => s.id === item.skuId);
         if (!sku) throw new Error(`Unknown SKU ${item.skuId}`);
         sumCheck += sku.pricePaise * item.quantity;
-        itemStmt.run(orderId, item.skuId, item.quantity, sku.pricePaise);
+        itemRows.push([orderId, item.skuId, item.quantity, sku.pricePaise]);
       }
       if (sumCheck !== o.totalPaise) {
         throw new Error(`Line items sum ${sumCheck} != order total ${o.totalPaise} for ${o.externalId}`);
       }
     }
+    await db.prepare(
+      `INSERT INTO orders (id, merchant_id, external_id, occurred_at, status, total_paise) VALUES ` +
+        orderRows.map(() => "(?,?,?,?,?,?)").join(", ")
+    ).run(...orderRows.flat());
+    await db.prepare(
+      `INSERT INTO order_items (order_id, sku_id, quantity, unit_price_paise, unit_discount_paise) VALUES ` +
+        itemRows.map(() => "(?,?,?,?,0)").join(", ")
+    ).run(...itemRows.flat());
 
     // Evidence snapshots computed from the rows we just inserted (never hardcoded).
     const prevWin = previousAfternoonWindow(lastCompleteAfternoonWindow(now));
     const currWin = lastCompleteAfternoonWindow(now);
-    const prev = completedAfternoonTotals(db, merchantId, prevWin);
-    const curr = completedAfternoonTotals(db, merchantId, currWin);
+    const prev = await completedAfternoonTotals(db, merchantId, prevWin);
+    const curr = await completedAfternoonTotals(db, merchantId, currWin);
 
-    const snapStmt = db.prepare(
+    const snapStmt = await db.prepare(
       "INSERT INTO metric_snapshots (id, merchant_id, fixture_version, period_start, period_end, definition_version, values_json, computed_at) VALUES (?,?,?,?,?,?,?,?)"
     );
     const defVersion = fixture.definitionVersion;
     const computedAt = createdAt;
-    const snap = (
+    const snap = async (
       id: string,
       periodStart: string,
       periodEnd: string,
       values: Record<string, unknown>
     ) =>
-      snapStmt.run(
+      await snapStmt.run(
         `${merchantId}_${id}`, // scoped per tenant; the evidence id stays the public label
         merchantId,
         fixture.fixtureVersion,
@@ -385,27 +379,27 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
 
     const pct = (c: number, p: number) => (p === 0 ? null : Math.round(((c - p) / p) * 10000) / 100);
 
-    snap("afternoon-order-delta-v1", prevWin.startIso, currWin.endIso, {
+    await snap("afternoon-order-delta-v1", prevWin.startIso, currWin.endIso, {
       previousOrders: prev.orders,
       currentOrders: curr.orders,
       deltaPct: pct(curr.orders, prev.orders),
       previousLabel: prevWin.label,
       currentLabel: currWin.label,
     });
-    snap("afternoon-net-sales-v1", prevWin.startIso, currWin.endIso, {
+    await snap("afternoon-net-sales-v1", prevWin.startIso, currWin.endIso, {
       previousNetSalesPaise: prev.netSalesPaise,
       currentNetSalesPaise: curr.netSalesPaise,
       deltaPct: pct(curr.netSalesPaise, prev.netSalesPaise),
     });
-    snap("afternoon-aov-v1", prevWin.startIso, currWin.endIso, {
+    await snap("afternoon-aov-v1", prevWin.startIso, currWin.endIso, {
       previousAovPaise: prev.orders ? Math.round(prev.netSalesPaise / prev.orders) : null,
       currentAovPaise: curr.orders ? Math.round(curr.netSalesPaise / curr.orders) : null,
     });
 
     // Bundle economics + capacity + audience are computed from fixture/inventory/consent rows.
-    const invRows = db.prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id=?").all(
+    const invRows = (await db.prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id=?").all(
       merchantId
-    ) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
+    )) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
     const invBySku = new Map(invRows.map((r) => [r.sku_id, r]));
     let capacity = Number.POSITIVE_INFINITY;
     let bundleCostAccumulator = 0;
@@ -419,27 +413,27 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
     if (!Number.isFinite(capacity)) capacity = 0;
     const bundleCost: number | null = bundleCostKnown ? bundleCostAccumulator : null;
 
-    snap("bundle-margin-v1", prevWin.startIso, currWin.endIso, {
+    await snap("bundle-margin-v1", prevWin.startIso, currWin.endIso, {
       pricePaise: fixture.bundle.proposedPricePaise,
       normalPricePaise: fixture.bundle.normalPricePaise,
       bundleCostPaise: bundleCost,
       contributionPaise: bundleCost === null ? null : fixture.bundle.proposedPricePaise - bundleCost,
       floorPct: fixture.policy.minMarginPct,
     });
-    snap("bundle-capacity-v1", prevWin.startIso, currWin.endIso, {
+    await snap("bundle-capacity-v1", prevWin.startIso, currWin.endIso, {
       capacity,
       redemptionCap: fixture.bundle.cap,
       maxDiscountExposurePaise:
         (fixture.bundle.normalPricePaise - fixture.bundle.proposedPricePaise) * fixture.bundle.cap,
     });
     const eligibleCount = (
-      db
+      (await db
         .prepare(
-          "SELECT COUNT(*) AS n FROM consents c JOIN customers cu ON cu.id=c.customer_id WHERE cu.merchant_id=? AND c.channel=? AND c.status='active'"
+          "SELECT COUNT(*)::int AS n FROM consents c JOIN customers cu ON cu.id=c.customer_id WHERE cu.merchant_id=? AND c.channel=? AND c.status='active'"
         )
-        .get(merchantId, fixture.customers.channel) as { n: number }
+        .get(merchantId, fixture.customers.channel)) as { n: number }
     ).n;
-    snap("audience-consent-v1", prevWin.startIso, currWin.endIso, {
+    await snap("audience-consent-v1", prevWin.startIso, currWin.endIso, {
       eligible: eligibleCount,
       excluded: fixture.customers.total - eligibleCount,
       channel: fixture.customers.channel,
@@ -449,30 +443,30 @@ export function seedMerchant(db: SqliteDatabase, demoSessionId: string, opts: Se
   return merchantId;
 }
 
-export function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
+export async function seedTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): Promise<string> {
   return seedMerchant(db, demoSessionId, { fixture });
 }
 
 /** Delete the idempotency receipts that belong to a merchant's campaigns. */
-function clearMerchantIdempotency(db: SqliteDatabase, merchantId: string): void {
+async function clearMerchantIdempotency(db: SqliteDatabase, merchantId: string): Promise<void> {
   // Merchant-scoped client keys (req:<merchantId>:<key>) - exact prefix match.
-  db.prepare("DELETE FROM idempotency_requests WHERE key LIKE 'req:' || ? || ':%'").run(merchantId);
+  await db.prepare("DELETE FROM idempotency_requests WHERE key LIKE 'req:' || ? || ':%'").run(merchantId);
   // Server receipts (exec:<campaignId>:<version>) and any pre-fix rows: match
   // on the stored campaign id...
-  db.prepare(
-    "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IN (SELECT id FROM campaigns WHERE merchant_id = ?)"
+  await db.prepare(
+    "DELETE FROM idempotency_requests WHERE response_json::json->>'campaignId' IN (SELECT id FROM campaigns WHERE merchant_id = ?)"
   ).run(merchantId);
   // ...and sweep orphans whose campaign no longer exists anywhere (they could
   // never be replayed, only conflict forever).
-  db.prepare(
-    "DELETE FROM idempotency_requests WHERE json_extract(response_json, '$.campaignId') IS NOT NULL AND json_extract(response_json, '$.campaignId') NOT IN (SELECT id FROM campaigns)"
+  await db.prepare(
+    "DELETE FROM idempotency_requests WHERE response_json::json->>'campaignId' IS NOT NULL AND response_json::json->>'campaignId' NOT IN (SELECT id FROM campaigns)"
   ).run();
 }
 
-function requireOwnedMerchant(db: SqliteDatabase, demoSessionId: string, merchantId: string): { variantSeed: number } {
-  const row = db
+async function requireOwnedMerchant(db: SqliteDatabase, demoSessionId: string, merchantId: string): Promise<{ variantSeed: number }> {
+  const row = (await db
     .prepare("SELECT demo_session_id, variant_seed FROM merchants WHERE id = ?")
-    .get(merchantId) as { demo_session_id: string; variant_seed: number } | undefined;
+    .get(merchantId)) as { demo_session_id: string; variant_seed: number } | undefined;
   // not_found (not 403) so we never leak another session's merchant existence.
   if (!row || row.demo_session_id !== demoSessionId) {
     throw new ApiError("not_found", "Merchant not found for this session.");
@@ -481,14 +475,14 @@ function requireOwnedMerchant(db: SqliteDatabase, demoSessionId: string, merchan
 }
 
 /** Reset one owned merchant in place: same id, same variant personality, fresh rows. */
-export function resetMerchantById(
+export async function resetMerchantById(
   db: SqliteDatabase,
   demoSessionId: string,
   merchantId: string,
   fixture: Fixture = loadFixture()
-): { merchantId: string; displayName: string } {
-  const owned = requireOwnedMerchant(db, demoSessionId, merchantId);
-  const nameRow = db.prepare("SELECT display_name, fixture_version FROM merchants WHERE id = ?").get(merchantId) as
+): Promise<{ merchantId: string; displayName: string }> {
+  const owned = await requireOwnedMerchant(db, demoSessionId, merchantId);
+  const nameRow = (await db.prepare("SELECT display_name, fixture_version FROM merchants WHERE id = ?").get(merchantId)) as
     | { display_name: string; fixture_version: string }
     | undefined;
   let displayName = nameRow?.display_name ?? merchantNameFor(owned.variantSeed, fixture);
@@ -509,47 +503,47 @@ export function resetMerchantById(
       displayName = merchantNameFor(owned.variantSeed, fixture);
     }
   }
-  withTransaction(db, () => {
-    clearMerchantIdempotency(db, merchantId);
-    db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
-    db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId); // cascades to child rows
+  await withTransaction(db, async () => {
+    await clearMerchantIdempotency(db, merchantId);
+    await db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
+    await db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId); // cascades to child rows
   });
-  seedMerchant(db, demoSessionId, { variantSeed: owned.variantSeed, displayName, fixture });
+  await seedMerchant(db, demoSessionId, { variantSeed: owned.variantSeed, displayName, fixture });
   return { merchantId, displayName };
 }
 
 /** Remove an owned merchant entirely (cascades to all of its rows). */
-export function deleteMerchantById(db: SqliteDatabase, demoSessionId: string, merchantId: string): void {
-  requireOwnedMerchant(db, demoSessionId, merchantId);
-  withTransaction(db, () => {
-    clearMerchantIdempotency(db, merchantId);
-    db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
-    db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId);
+export async function deleteMerchantById(db: SqliteDatabase, demoSessionId: string, merchantId: string): Promise<void> {
+  await requireOwnedMerchant(db, demoSessionId, merchantId);
+  await withTransaction(db, async () => {
+    await clearMerchantIdempotency(db, merchantId);
+    await db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(merchantId);
+    await db.prepare("DELETE FROM merchants WHERE id = ?").run(merchantId);
   });
 }
 
-export function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): string {
-  const existing = db
+export async function resetTenant(db: SqliteDatabase, demoSessionId: string, fixture: Fixture = loadFixture()): Promise<string> {
+  const existing = (await db
     .prepare("SELECT id FROM merchants WHERE demo_session_id = ? AND variant_seed = ?")
-    .get(demoSessionId, DEFAULT_VARIANT_SEED) as { id: string } | undefined;
-  withTransaction(db, () => {
+    .get(demoSessionId, DEFAULT_VARIANT_SEED)) as { id: string } | undefined;
+  await withTransaction(db, async () => {
     if (existing) {
       // Clear every idempotency receipt that references one of this tenant's
       // campaigns - both server-generated ("exec:<id>:<v>") and client-supplied
       // ("req:<key>") keys. Stale client keys would otherwise replay/conflict
       // against a future campaign after a reset.
-      clearMerchantIdempotency(db, existing.id);
-      db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(existing.id);
-      db.prepare("DELETE FROM merchants WHERE id = ?").run(existing.id); // cascades to all child rows
+      await clearMerchantIdempotency(db, existing.id);
+      await db.prepare("DELETE FROM audit_events WHERE merchant_id = ?").run(existing.id);
+      await db.prepare("DELETE FROM merchants WHERE id = ?").run(existing.id); // cascades to all child rows
     }
   });
   return seedMerchant(db, demoSessionId, { fixture });
 }
 
-/** For CLI seeding of the default local database. */
-export function seedDefaultDatabase(db: SqliteDatabase): { merchantId: string; session: string } {
+/** For CLI seeding of the default hosted database. */
+export async function seedDefaultDatabase(db: SqliteDatabase): Promise<{ merchantId: string; session: string }> {
   const session = "local-dev-session";
-  const merchantId = seedTenant(db, session);
+  const merchantId = await seedTenant(db, session);
   return { merchantId, session };
 }
 

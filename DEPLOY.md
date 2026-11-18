@@ -1,41 +1,46 @@
 # Deploying Merchant Saathi
 
 Read this before pointing any hosting service at the repo. The short version:
-**the app is deployable as-is on any host that provides a durable local disk and a
-long-running Node process (a small VM, Render/Railway/Fly with a persistent
-volume, or your own box). It is NOT yet deployable as-is on Vercel**, because
-the data layer is SQLite.
+**the app now runs on Vercel's free tier with a hosted Postgres (Neon)** — the
+data layer was ported from local SQLite to the `postgres` driver (same SQL
+surface, same schema, same invariants). It also still runs as-is on any host
+that provides a durable local disk and a long-running Node process (the
+original Option A below).
 
-## What is live right now (executed 2026-11-15)
+## What is live right now (executed 2026-11-17)
 
-The production build is published over a Cloudflare tunnel from the team's
-machine — Option A below, executed exactly as documented:
+- **Live URL:** https://merchant-saathi.vercel.app/merchant
+- **Stack:** Next.js 14 on Vercel (free tier) + Neon Postgres via the Vercel
+  marketplace integration (free tier, pooled connection string).
+- **Verified on the production URL:** session-scoped seed, offer draft ->
+  hash-bound approval -> queue -> 40-recipient outbox -> simulated
+  redemptions -> Rs 700 - Rs 400 = Rs 300 results, with state persisting
+  across independent requests and reloads.
+- **Env vars on Vercel** (never commit): DATABASE_URL (Neon integration) and
+  DEMO_MODE=true. There is deliberately no env-based model path: live model
+  credentials are entered per session in the chat's key dialog (server memory,
+  public-host validated), so no environment value ever flows into a fetch.
+- The 117-test suite and the fixtures gate (`npm run fixtures:verify`) run
+  against the same hosted Postgres via DATABASE_URL.
 
-```bash
-npm run build && npm start            # Node 20, production server on :3000
-cloudflared tunnel --url http://localhost:3000
-```
+## Data-layer port notes (Option B, executed)
 
-- **Live URL:** https://eye-under-dublin-oclc.trycloudflare.com/merchant
-  (a quick-tunnel URL — it changes if the tunnel restarts; re-running the one
-  command above publishes a fresh one)
-- **Verified through the public URL:** session-scoped seed, offer draft ->
-  hash-bound approval -> queue -> 40-recipient outbox -> apply-all events ->
-  Rs 700 - Rs 400 = Rs 300 results, and the state **persists across reloads**
-  (the durability this deployment protects).
-- **Why the tunnel and not serverless tonight:** the authed serverless options
-  (Vercel, Cloudflare Workers) both require the async data-layer port below.
-  That port touches 35 files plus the test suite and is deliberately not
-  attempted hours before judging - the tunnel serves the unchanged,
-  test-verified build instead.
-- **To make the hostname stable:** create a named tunnel
-  (`cloudflared tunnel create merchant-saathi` + DNS route) — requires a domain
-  zone on the Cloudflare account. Until then, re-run the quick tunnel command
-  and update the link wherever it is shared.
+- `src/lib/db.ts` keeps the historical call shape — `db.prepare(sql).get/all/run(...)`
+  with `await` added — so the 40+ call sites changed minimally.
+- SQLite `?` placeholders are translated to Postgres `$n` positionals in the
+  facade; `AUTOINCREMENT` became `GENERATED ALWAYS AS IDENTITY`; the IST
+  bucketing uses `(occurred_on::timestamp + interval '5 hours 30 minutes')`.
+- `withTransaction` reserves a dedicated connection (postgres.js `reserve()`)
+  and scopes it through AsyncLocalStorage, so transaction bodies are unchanged
+  and reads inside a transaction see its own writes.
+- Tests run sequentially (fileParallelism: false) against the same hosted
+  database; tenants are session-scoped so suites do not interfere.
+- Aggregates that tests assert on are cast `::int` in SQL — Postgres returns
+  bigint as strings and the suites compare exact numbers.
 
-## Why not Vercel today
+## Why local SQLite could not go to Vercel (historical context)
 
-The inspected app keeps state in **better-sqlite3** — a synchronous, local file
+The pre-port app kept state in **better-sqlite3** — a synchronous, local file
 (`data/merchant-saathi.sqlite`) with `BEGIN IMMEDIATE` transactions, idempotent
 receipts, and startup seeding. Vercel Functions have no shared durable disk:
 each instance gets its own ephemeral `/tmp`, so two requests can land on two
@@ -43,14 +48,23 @@ different databases and everything written is lost on recycle. This is a
 documented Vercel limitation (https://vercel.com/kb/guide/is-sqlite-supported-in-vercel),
 not a bug we can config away.
 
-The campaign/reward logic depends on that durability (approval hash binding,
-idempotent receipts, cap enforcement inside one transaction). Shipping the
-current build to Vercel would produce a demo that silently loses state —
-we refuse to present that as a deployment.
+The campaign/reward logic depends on durability (approval hash binding,
+idempotent receipts, cap enforcement inside one transaction). Shipping that
+build to Vercel would have produced a demo that silently loses state —
+which is why the data layer was ported to Postgres instead.
 
-## The honest path to a live link
+## Hosting options
 
-**Option A - persistent-disk host (fastest, runs today's code unchanged)**
+**Deployed - Vercel + Neon Postgres (current)**
+
+1. `vercel link --project merchant-saathi` and install the Neon marketplace
+   integration (`vercel integration add neon`) — it provisions DATABASE_URL.
+2. Set AI_MODE / DEMO_MODE / LLM_* via `vercel env add`.
+3. `npx vercel --prod` (or connect the GitHub repo for push deploys).
+4. Verify: `/api/demo/state` from a fresh session, register a business, queue a
+   campaign, refresh — the state survives.
+
+**Option A - persistent-disk host (runs a SQLite build unchanged)**
 
 1. Push the repo (it is on GitHub).
 2. Create a Web Service on Render/Railway/Fly (or a small VM): Node 20+,

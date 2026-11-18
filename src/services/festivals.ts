@@ -90,20 +90,21 @@ interface LedgerWindow {
   units: number;
 }
 
-function windowStats(db: SqliteDatabase, merchantId: string, startDate: string, days: number, tag: string | null): LedgerWindow {
+async function windowStats(db: SqliteDatabase, merchantId: string, startDate: string, days: number, tag: string | null): Promise<LedgerWindow> {
   const endExclusive = new Date(startDate + "T00:00:00Z");
   endExclusive.setUTCDate(endExclusive.getUTCDate() + days);
-  const rows = db
+  const istDay = "((occurred_on::timestamp + interval '5 hours 30 minutes')::date::text)";
+  const rows = (await db
     .prepare(
-      `SELECT COALESCE(SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE -amount_paise END), 0) AS net,
-              COALESCE(SUM(units * COALESCE(unit_cost_paise, 0)), 0) AS cost,
-              COALESCE(SUM(units), 0) AS units
+      `SELECT COALESCE(SUM(CASE WHEN event_type = 'sale' THEN amount_paise ELSE -amount_paise END), 0)::int AS net,
+              COALESCE(SUM(units * COALESCE(unit_cost_paise, 0)), 0)::int AS cost,
+              COALESCE(SUM(units), 0)::int AS units
        FROM ledger_events
        WHERE merchant_id = ? AND event_type IN ('sale','refund')
-         AND date(occurred_on, '+5 hours', '+30 minutes') >= ? AND date(occurred_on, '+5 hours', '+30 minutes') < ?
+         AND ${istDay} >= ? AND ${istDay} < ?
          ${tag ? "AND note = ?" : ""}`,
     )
-    .all(merchantId, startDate, endExclusive.toISOString().slice(0, 10), ...(tag ? [tag] : [])) as { net: number; cost: number; units: number }[];
+    .all(merchantId, startDate, endExclusive.toISOString().slice(0, 10), ...(tag ? [tag] : []))) as { net: number; cost: number; units: number }[];
   return { netPaise: rows[0]?.net ?? 0, costPaise: rows[0]?.cost ?? 0, units: rows[0]?.units ?? 0 };
 }
 
@@ -111,12 +112,12 @@ function windowStats(db: SqliteDatabase, merchantId: string, startDate: string, 
  * Historical comparison: last year's calendar occurrence of this festival vs
  * complete nearby windows that do not overlap the festival window itself.
  */
-function historicalComparison(db: SqliteDatabase, merchantId: string, historicalDate: string, days: number) {
-  const historical = windowStats(db, merchantId, historicalDate, days, null);
+async function historicalComparison(db: SqliteDatabase, merchantId: string, historicalDate: string, days: number) {
+  const historical = await windowStats(db, merchantId, historicalDate, days, null);
   if (historical.netPaise === 0) return null;
   const historicalStart = new Date(historicalDate + "T00:00:00Z").getTime();
   const historicalEnd = historicalStart + days * 86_400_000;
-  const base = dailyNetSales(db, merchantId).filter((d) => {
+  const base = (await dailyNetSales(db, merchantId)).filter((d) => {
     const t = new Date(d.date + "T00:00:00Z").getTime();
     return t >= historicalStart - 90 * 86_400_000 && t <= historicalEnd + 30 * 86_400_000;
   });
@@ -135,7 +136,7 @@ function historicalComparison(db: SqliteDatabase, merchantId: string, historical
     const windowEnd = windowStart + days * 86_400_000;
     if (windowStart < historicalEnd && windowEnd > historicalStart) complete = false;
     if (!complete) continue;
-    const stats = windowStats(db, merchantId, d.date, days, null);
+    const stats = await windowStats(db, merchantId, d.date, days, null);
     if (stats.netPaise > 0) comparable.push(stats);
   }
   if (comparable.length < 2) {
@@ -165,11 +166,11 @@ function historicalComparison(db: SqliteDatabase, merchantId: string, historical
   };
 }
 
-export function festivalPlan(db: SqliteDatabase, merchantId: string, opts: { prepDays: number; objective: "profit" | "trials"; budgetPaise: number | null }): {
+export async function festivalPlan(db: SqliteDatabase, merchantId: string, opts: { prepDays: number; objective: "profit" | "trials"; budgetPaise: number | null }): Promise<{
   asOf: string;
   region: string;
   opportunities: FestivalOpportunity[];
-} {
+}> {
   const now = getNow();
   const parts = istParts(now);
   const todayLocal = `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
@@ -183,7 +184,7 @@ export function festivalPlan(db: SqliteDatabase, merchantId: string, opts: { pre
     const leadTimeDays = Math.max(opts.prepDays, 1);
     const deadlinePassed = away < leadTimeDays;
     const historical = festival.historicalDate
-      ? historicalComparison(db, merchantId, festival.historicalDate, 7)
+      ? await historicalComparison(db, merchantId, festival.historicalDate, 7)
       : null;
 
     let suggestion: string;

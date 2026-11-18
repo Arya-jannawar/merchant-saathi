@@ -1,52 +1,67 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200" role="img" aria-label="An unsafe rupee fifty price fails the 25 percent margin floor and is visibly rejected">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="Guardrail: unsafe Rs 50 rejected, safe Rs 54 suggested in one click">
   <defs>
-    <linearGradient id="bg5" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0a2e5c"/>
-      <stop offset="1" stop-color="#07234a"/>
+    <linearGradient id="gcard" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12335f"/><stop offset="1" stop-color="#0d2547"/>
+    </linearGradient>
+    <linearGradient id="redg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e63946"/><stop offset="1" stop-color="#9d1c2e"/>
+    </linearGradient>
+    <linearGradient id="grng" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#15803d"/><stop offset="1" stop-color="#0d5c2a"/>
     </linearGradient>
   </defs>
-  <rect width="900" height="200" rx="18" fill="url(#bg5)"/>
-  <text x="450" y="32" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="17" font-weight="800" fill="#ffffff">Try to queue an unprofitable offer. The app says no. On camera.</text>
+  <rect width="900" height="220" rx="18" fill="#071a35"/>
+  <text x="450" y="32" text-anchor="middle" font-family="Segoe UI, Arial" font-size="16" font-weight="800" fill="#ffffff">The guardrail: code owns pricing, code says no</text>
 
-  <!-- price chip -->
-  <g class="chipWrap">
-    <rect x="150" y="70" width="150" height="52" rx="14" fill="#123d7c" stroke="#8fd8ff" stroke-width="2"/>
-    <text x="225" y="104" text-anchor="middle" font-family="Segoe UI, Arial" font-size="22" font-weight="800" fill="#ffffff">Price &#8377;50</text>
+  <!-- left: unsafe attempt looping -->
+  <g>
+    <rect x="40" y="52" width="380" height="140" rx="14" fill="url(#gcard)"/>
+    <text x="230" y="82" text-anchor="middle" font-family="Segoe UI, Arial" font-size="14" fill="#c9dcef">merchant types price = &#8377;50</text>
+    <text x="230" y="128" text-anchor="middle" font-family="Segoe UI, Arial" font-size="30" font-weight="800" fill="url(#redg)">
+      &#8377;50 &#10007;
+      <animate attributeName="opacity" values="1;1;0.25;1" keyTimes="0;0.55;0.7;1" dur="2.6s" repeatCount="indefinite"/>
+    </text>
+    <text x="230" y="158" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12.5" fill="#f2a7ad">margin 12.5% &#8212; below the 25% floor &#183; Approve disabled</text>
+    <rect x="150" y="96" width="160" height="8" rx="4" fill="#243b6b"/>
+    <rect x="150" y="96" width="52" height="8" rx="4" fill="url(#redg)">
+      <animate attributeName="width" values="0;52;52" keyTimes="0;0.4;1" dur="2.6s" repeatCount="indefinite"/>
+    </rect>
+    <g opacity="0">
+      <rect x="176" y="106" width="108" height="24" rx="12" fill="#9d1c2e"/>
+      <text x="230" y="123" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12" font-weight="800" fill="#ffffff">REJECTED</text>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.8;1" dur="2.6s" repeatCount="indefinite"/>
+    </g>
   </g>
 
-  <!-- margin meter -->
-  <text x="380" y="88" font-family="Segoe UI, Arial" font-size="12" font-weight="700" fill="#8fd8ff">margin 20%</text>
-  <rect x="380" y="98" width="260" height="16" rx="8" fill="#1d4e86"/>
-  <rect class="meterFill" x="380" y="98" width="0" height="16" rx="8" fill="#f43f5e"/>
-  <line x1="502" y1="92" x2="502" y2="120" stroke="#fbbf24" stroke-width="3"/>
-  <text x="502" y="136" text-anchor="middle" font-family="Segoe UI, Arial" font-size="10.5" font-weight="700" fill="#fde68a">25% floor</text>
+  <!-- center flash arrows -->
+  <g stroke="#ffd76e" stroke-width="2.5" fill="none" marker-end="none" opacity="0.9">
+    <path d="M 434 110 L 466 110">
+      <animate attributeName="stroke-dasharray" values="0 40; 40 0" dur="1.2s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <circle cx="450" cy="110" r="5" fill="#ffd76e">
+    <animate attributeName="opacity" values="1;0.3;1" dur="1.2s" repeatCount="indefinite"/>
+  </circle>
 
-  <!-- rejected stamp -->
-  <g class="stamp">
-    <rect x="690" y="62" width="176" height="58" rx="12" fill="none" stroke="#f43f5e" stroke-width="5"/>
-    <text x="778" y="101" text-anchor="middle" font-family="Segoe UI, Arial" font-size="26" font-weight="900" fill="#f43f5e" letter-spacing="3">REJECTED</text>
+  <!-- right: safe suggestion -->
+  <g>
+    <rect x="480" y="52" width="380" height="140" rx="14" fill="url(#gcard)" stroke="#4ade80" stroke-width="1.2"/>
+    <text x="670" y="82" text-anchor="middle" font-family="Segoe UI, Arial" font-size="14" fill="#c9dcef">the plan answers back: set it to &#8377;54</text>
+    <text x="670" y="128" text-anchor="middle" font-family="Segoe UI, Arial" font-size="30" font-weight="800" fill="url(#grng)">
+      &#8377;54 &#10003;
+      <animate attributeName="opacity" values="0.25;1;1;0.25" keyTimes="0;0.2;0.75;1" dur="2.6s" repeatCount="indefinite"/>
+    </text>
+    <text x="670" y="158" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12.5" fill="#a7f3c4">42.9% margin at &#8377;70 &#183; one click applies the safe price</text>
+    <rect x="590" y="96" width="160" height="8" rx="4" fill="#243b6b"/>
+    <rect x="590" y="96" width="128" height="8" rx="4" fill="url(#grng)">
+      <animate attributeName="width" values="0;128;128" keyTimes="0;0.55;1" dur="2.6s" repeatCount="indefinite"/>
+    </rect>
+    <g opacity="0">
+      <rect x="606" y="106" width="128" height="24" rx="12" fill="#0d5c2a"/>
+      <text x="670" y="123" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12" font-weight="800" fill="#ffffff">PASSES FLOOR</text>
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.3;0.45;0.9;1" dur="2.6s" repeatCount="indefinite"/>
+    </g>
   </g>
 
-  <!-- sad mascot -->
-  <g class="sad">
-    <path d="M36 100 Q33 84 50 82 Q53 72 64 75 Q76 71 80 82 Q88 88 84 98 Q80 104 60 104 Q42 104 36 100 Z" fill="#fff1e6"/>
-    <path d="M38 106 L42 128 Q60 134 78 128 L82 106 Z" fill="#00b9f1"/>
-    <circle cx="52" cy="92" r="3.8" fill="#0f172a"/><circle cx="68" cy="92" r="3.8" fill="#0f172a"/>
-    <path d="M54 104 Q60 98 66 104" stroke="#7c2d12" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-    <path d="M46 84 L58 88" stroke="#7c2d12" stroke-width="2.2" stroke-linecap="round"/>
-    <path d="M74 84 L62 88" stroke="#7c2d12" stroke-width="2.2" stroke-linecap="round"/>
-  </g>
-
-  <text x="450" y="172" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#bcd6ee">Approve stays disabled. Nothing can be queued. The Rs 70 counter-offer clears the same floor at 42.9%.</text>
-
-  <style>
-    .chipWrap { transform-box: fill-box; transform-origin: center; animation: shake 3s ease-in-out infinite; }
-    @keyframes shake { 0%, 34% { transform: translateX(0); } 40% { transform: translateX(-6px) rotate(-2deg); } 46% { transform: translateX(6px) rotate(2deg); } 52% { transform: translateX(-5px) rotate(-1deg); } 58%, 100% { transform: translateX(0); } }
-    .meterFill { transform-box: fill-box; transform-origin: left center; animation: meter 3s ease-out infinite; }
-    @keyframes meter { 0% { width: 0; } 25% { width: 208px; } 46% { width: 118px; } 100% { width: 118px; } }
-    .stamp { transform-box: fill-box; transform-origin: center; animation: slam 3s cubic-bezier(0.22,1,0.36,1) infinite; opacity: 0; }
-    @keyframes slam { 0%, 54% { opacity: 0; transform: scale(2.2) rotate(-14deg); } 62% { opacity: 1; transform: scale(1) rotate(-8deg); } 70% { transform: scale(1.06) rotate(-6deg); } 80%, 96% { opacity: 1; transform: scale(1) rotate(-7deg); } 100% { opacity: 0; } }
-    .sad { transform-box: fill-box; transform-origin: center bottom; animation: droop 3s ease-in-out infinite; }
-    @keyframes droop { 0%, 40% { transform: translateY(0) rotate(0); } 55% { transform: translateY(4px) rotate(-5deg); } 75% { transform: translateY(6px) rotate(4deg); } 100% { transform: translateY(0) rotate(0); } }
-  </style>
+  <text x="450" y="212" text-anchor="middle" font-family="Segoe UI, Arial" font-size="12.5" fill="#8fb3d9">AI may draft the words &#8212; it can never set the price</text>
 </svg>

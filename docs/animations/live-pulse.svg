@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 84" width="460" height="84" role="img" aria-label="Live demo badge">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0e2c55"/><stop offset="1" stop-color="#071a35"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="456" height="80" rx="40" fill="url(#lg)" stroke="#4ade80" stroke-width="1.6">
+    <animate attributeName="stroke" values="#4ade80;#00b9f1;#4ade80" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <circle cx="52" cy="42" r="9" fill="#4ade80">
+    <animate attributeName="r" values="7;9;7" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="52" cy="42" r="9" fill="none" stroke="#4ade80" stroke-width="2">
+    <animate attributeName="r" values="9;30" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;0" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="52" cy="42" r="9" fill="none" stroke="#4ade80" stroke-width="1.5">
+    <animate attributeName="r" values="9;30" dur="1.8s" begin="0.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0" dur="1.8s" begin="0.6s" repeatCount="indefinite"/>
+  </circle>
+  <text x="88" y="36" font-family="Segoe UI, Arial" font-size="17" font-weight="800" fill="#ffffff">LIVE on Vercel &#8212; click, don't clone</text>
+  <text x="88" y="60" font-family="Segoe UI, Arial" font-size="12.5" fill="#9fc3e8">merchant-saathi.vercel.app &#183; every visitor gets an isolated demo</text>
+</svg>

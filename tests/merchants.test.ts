@@ -2,10 +2,11 @@
 // isolation, insights correctness, and variant reset behavior.
 import { describe, expect, it } from "vitest";
 import { openTestDb } from "./helpers";
+import { truncateAll } from "@/lib/db";
 import { buildAssistantFacts, answerFromFactBook } from "@/lib/saathi-brain";
 
-function buildAssistantFactsForTest(d: ReturnType<typeof openTestDb>, merchantId: string) {
-  return buildAssistantFacts(d, merchantId);
+async function buildAssistantFactsForTest(d: SqliteDatabase, merchantId: string) {
+  return await buildAssistantFacts(d, merchantId);
 }
 import {
   createMerchant,
@@ -30,20 +31,21 @@ let db: SqliteDatabase | null = null;
 
 /** Wipe every business the session owns (they persist across runs on the shared
  * test database), then seed a fresh default. */
-function freshDb(session: string): SqliteDatabase {
-  if (!db) db = openTestDb();
-  for (const m of listMerchants(db, session)) {
+async function freshDb(session: string): Promise<SqliteDatabase> {
+  if (!db) db = await openTestDb();
+  await truncateAll(db);
+  for (const m of await listMerchants(db, session)) {
     removeMerchant(db, session, m.id);
   }
-  resetTenant(db, session);
+  await resetTenant(db, session);
   return db;
 }
 
 describe("multi-merchant sessions", () => {
-  it("adds businesses with distinct names, ids and non-identical data", () => {
-    const d = freshDb("merchants-basic");
-    const second = createMerchant(d, "merchants-basic");
-    const list = listMerchants(d, "merchants-basic");
+  it("adds businesses with distinct names, ids and non-identical data", async () => {
+    const d = await freshDb("merchants-basic");
+    const second = await createMerchant(d, "merchants-basic");
+    const list = await listMerchants(d, "merchants-basic");
     expect(list.length).toBe(2);
     expect(list[0].isDefault).toBe(true);
     expect(list[1].isDefault).toBe(false);
@@ -51,57 +53,57 @@ describe("multi-merchant sessions", () => {
     expect(second.name.length).toBeGreaterThan(0);
     // Variant data is deterministic but different: the two hero windows differ.
     const now = getNow();
-    const a = getDemoState(d, "merchants-basic", list[0].id).kpis!;
-    const b = getDemoState(d, "merchants-basic", second.id).kpis!;
+    const a = (await getDemoState(d, "merchants-basic", list[0].id)).kpis!;
+    const b = (await getDemoState(d, "merchants-basic", second.id)).kpis!;
     expect(a.current.orders).toBe(70); // default business keeps the fixture numbers
     expect(b.current.orders).not.toBe(a.current.orders);
     expect(b.previous.orders).toBeGreaterThan(b.current.orders); // still a decline story
   });
 
-  it("honors a requested owned merchant and refuses foreign ids without leaking them", () => {
-    const d = freshDb("merchants-ownership");
-    const mine = createMerchant(d, "merchants-ownership");
+  it("honors a requested owned merchant and refuses foreign ids without leaking them", async () => {
+    const d = await freshDb("merchants-ownership");
+    const mine = await createMerchant(d, "merchants-ownership");
     // A different session's default merchant id.
     const foreignId = merchantIdFor("another-session-entirely", DEFAULT_VARIANT_SEED);
-    expect(resolveMerchant(d, "merchants-ownership", mine.id).merchantId).toBe(mine.id);
-    expect(() => resolveMerchant(d, "merchants-ownership", foreignId)).toThrow(MerchantNotFoundError);
+    expect((await resolveMerchant(d, "merchants-ownership", mine.id)).merchantId).toBe(mine.id);
+    await expect(async () => resolveMerchant(d, "merchants-ownership", foreignId)).rejects.toThrow(MerchantNotFoundError);
     try {
-      resolveMerchant(d, "merchants-ownership", foreignId);
+      await resolveMerchant(d, "merchants-ownership", foreignId);
     } catch (err) {
       expect(err).toBeInstanceOf(MerchantNotFoundError);
     }
   });
 
-  it("caps how many businesses one session can add", () => {
-    const d = freshDb("merchants-cap");
+  it("caps how many businesses one session can add", async () => {
+    const d = await freshDb("merchants-cap");
     for (let i = 1; i < MAX_MERCHANTS_PER_SESSION; i++) {
-      createMerchant(d, "merchants-cap");
+      await createMerchant(d, "merchants-cap");
     }
-    expect(() => createMerchant(d, "merchants-cap")).toThrow(MerchantLimitError);
+    expect(async () => await createMerchant(d, "merchants-cap")).toThrow(MerchantLimitError);
     try {
-      createMerchant(d, "merchants-cap");
+      await createMerchant(d, "merchants-cap");
     } catch (err) {
       expect(err).toBeInstanceOf(MerchantLimitError);
     }
   });
 
-  it("resets a variant business in place (same id, same personality)", () => {
-    const d = freshDb("merchants-reset");
-    const created = createMerchant(d, "merchants-reset", "Zoya's Bake Studio");
-    const before = getDemoState(d, "merchants-reset", created.id).kpis!;
-    resetMerchantById(d, "merchants-reset", created.id);
-    const after = getDemoState(d, "merchants-reset", created.id).kpis!;
+  it("resets a variant business in place (same id, same personality)", async () => {
+    const d = await freshDb("merchants-reset");
+    const created = await createMerchant(d, "merchants-reset", "Zoya's Bake Studio");
+    const before = (await getDemoState(d, "merchants-reset", created.id)).kpis!;
+    await resetMerchantById(d, "merchants-reset", created.id);
+    const after = (await getDemoState(d, "merchants-reset", created.id)).kpis!;
     expect(after.current.orders).toBe(before.current.orders);
     expect(after.previous.orders).toBe(before.previous.orders);
-    const list = listMerchants(d, "merchants-reset");
+    const list = await listMerchants(d, "merchants-reset");
     expect(list.find((m) => m.id === created.id)?.name).toBe("Zoya's Bake Studio");
   });
 
-  it("removes a business and leaves the others untouched", () => {
-    const d = freshDb("merchants-remove");
-    const extra = createMerchant(d, "merchants-remove");
+  it("removes a business and leaves the others untouched", async () => {
+    const d = await freshDb("merchants-remove");
+    const extra = await createMerchant(d, "merchants-remove");
     removeMerchant(d, "merchants-remove", extra.id);
-    const list = listMerchants(d, "merchants-remove");
+    const list = await listMerchants(d, "merchants-remove");
     expect(list.length).toBe(1);
     expect(list[0].isDefault).toBe(true);
   });
@@ -109,8 +111,8 @@ describe("multi-merchant sessions", () => {
 
 describe("domain registration platform", () => {
   it("registers a salon with themed bundle and identical verified economics", async () => {
-    const d = freshDb("domains-salon");
-    const salon = createMerchant(d, "domains-salon", "Bling Studio Salon", "salon-v1");
+    const d = await freshDb("domains-salon");
+    const salon = await createMerchant(d, "domains-salon", "Bling Studio Salon", "salon-v1");
     expect(salon.domain).toEqual({
       id: "salon",
       label: "Salon & Grooming",
@@ -118,7 +120,7 @@ describe("domain registration platform", () => {
       pitch: expect.any(String),
     });
 
-    const state = getDemoState(d, "domains-salon", salon.id);
+    const state = await getDemoState(d, "domains-salon", salon.id);
     expect(state.merchant?.domain.label).toBe("Salon & Grooming");
     expect(state.bundleHint).toContain("Haircut + beard trim");
 
@@ -136,12 +138,12 @@ describe("domain registration platform", () => {
   });
 
   it("keeps a registered domain across resets and refuses nothing at the registry level", async () => {
-    const d = freshDb("domains-reset");
-    const cafe = createMerchant(d, "domains-reset", "The Daily Grind Cafe", "cafe-v1");
+    const d = await freshDb("domains-reset");
+    const cafe = await createMerchant(d, "domains-reset", "The Daily Grind Cafe", "cafe-v1");
     const { resetActiveMerchant } = await import("@/services/demo");
-    const result = resetActiveMerchant(d, "domains-reset", cafe.id);
+    const result = await resetActiveMerchant(d, "domains-reset", cafe.id);
     expect(result.merchantName).toBe("The Daily Grind Cafe");
-    const list = listMerchants(d, "domains-reset");
+    const list = await listMerchants(d, "domains-reset");
     expect(list.find((m) => m.id === cafe.id)?.fixtureVersion).toBe("cafe-v1");
     // the registry ships every domain with its own themed bundle
     expect(DOMAIN_REGISTRY.length).toBe(8);
@@ -152,9 +154,9 @@ describe("domain registration platform", () => {
   });
 
   it("answers the fact book with the domain's own bundle name", async () => {
-    const d = freshDb("domains-factbook");
-    const cafe = createMerchant(d, "domains-factbook", "The Daily Grind Cafe", "cafe-v1");
-    const facts = buildAssistantFactsForTest(d, cafe.id);
+    const d = await freshDb("domains-factbook");
+    const cafe = await createMerchant(d, "domains-factbook", "The Daily Grind Cafe", "cafe-v1");
+    const facts = await buildAssistantFactsForTest(d, cafe.id);
     const answer = answerFromFactBook("is the ₹70 offer safe?", facts);
     expect(answer.answer).toContain("Cappuccino + croissant");
     expect(answer.answer).toContain("42.9%");
@@ -162,17 +164,17 @@ describe("domain registration platform", () => {
 });
 
 describe("demo insights", () => {
-  it("per-day afternoon series reconciles with the window totals", () => {
-    const d = freshDb("merchants-insights");
-    const merchantId = resolveMerchant(d, "merchants-insights").merchantId!;
+  it("per-day afternoon series reconciles with the window totals", async () => {
+    const d = await freshDb("merchants-insights");
+    const merchantId = (await resolveMerchant(d, "merchants-insights")).merchantId!;
     const now = getNow();
-    const insights = getDemoInsights(d, merchantId, now);
+    const insights = await getDemoInsights(d, merchantId, now);
     expect(insights.days.previous.length).toBe(5);
     expect(insights.days.current.length).toBe(5);
     const currWin = lastCompleteAfternoonWindow(now);
     const prevWin = previousAfternoonWindow(currWin);
-    const prevTotals = completedAfternoonTotals(d, merchantId, prevWin);
-    const currTotals = completedAfternoonTotals(d, merchantId, currWin);
+    const prevTotals = await completedAfternoonTotals(d, merchantId, prevWin);
+    const currTotals = await completedAfternoonTotals(d, merchantId, currWin);
     const sumPrev = insights.days.previous.reduce((n, day) => n + day.orders, 0);
     const sumCurr = insights.days.current.reduce((n, day) => n + day.orders, 0);
     expect(sumPrev).toBe(prevTotals.orders);
@@ -182,9 +184,9 @@ describe("demo insights", () => {
   });
 
   it("funnel reports the audience stages and stays null before queueing", async () => {
-    const d = freshDb("merchants-funnel");
-    const merchantId = resolveMerchant(d, "merchants-funnel").merchantId!;
-    const insights = getDemoInsights(d, merchantId, getNow());
+    const d = await freshDb("merchants-funnel");
+    const merchantId = (await resolveMerchant(d, "merchants-funnel")).merchantId!;
+    const insights = await getDemoInsights(d, merchantId, getNow());
     // No campaign yet -> the whole funnel stays hidden (null).
     expect(insights.funnel).toBeNull();
     // A draft creates the campaign row; the funnel appears with later stages null.
@@ -194,7 +196,7 @@ describe("demo insights", () => {
       cap: 20,
       locale: "en",
     });
-    const afterDraft = getDemoInsights(d, merchantId, getNow());
+    const afterDraft = await getDemoInsights(d, merchantId, getNow());
     expect(afterDraft.funnel).not.toBeNull();
     expect(afterDraft.funnel?.customers).toBe(50);
     expect(afterDraft.funnel?.eligible).toBe(40);
@@ -206,9 +208,9 @@ describe("demo insights", () => {
 });
 
 describe("ownership guard via ApiError shape", () => {
-  it("surfaces not_found through the shared error type", () => {
-    const d = freshDb("merchants-guard");
-    expect(() => resolveMerchant(d, "merchants-guard", "mrc_totally_foreign")).toThrow(MerchantNotFoundError);
+  it("surfaces not_found through the shared error type", async () => {
+    const d = await freshDb("merchants-guard");
+    expect(async () => await resolveMerchant(d, "merchants-guard", "mrc_totally_foreign")).toThrow(MerchantNotFoundError);
     // MerchantNotFoundError maps to not_found in the route layer.
     const err = new MerchantNotFoundError();
     expect(err.message).toContain("Merchant not found");

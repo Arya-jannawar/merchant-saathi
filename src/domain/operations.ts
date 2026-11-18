@@ -61,8 +61,8 @@ export function stockStatus(stock: number, daysOfCover: number | null, campaignD
   return "healthy";
 }
 
-export function getOperationsInsights(db: SqliteDatabase, merchantId: string, fixture: Fixture, now: Date): OperationsInsights {
-  const merchant = db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as
+export async function getOperationsInsights(db: SqliteDatabase, merchantId: string, fixture: Fixture, now: Date): Promise<OperationsInsights> {
+  const merchant = (await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId)) as
     | { display_name: string }
     | undefined;
 
@@ -76,33 +76,33 @@ export function getOperationsInsights(db: SqliteDatabase, merchantId: string, fi
   const dayMs = 86_400_000;
   const windowEnd = new Date(new Date(currWin.startIso).getTime() + 5 * dayMs).toISOString();
 
-  const soldRows = db
+  const soldRows = (await db
     .prepare(
-      `SELECT oi.sku_id AS skuId, SUM(oi.quantity) AS units
+      `SELECT oi.sku_id AS "skuId", SUM(oi.quantity)::int AS units
        FROM order_items oi
        JOIN orders o ON o.id = oi.order_id
        WHERE o.merchant_id = ? AND o.status = 'completed' AND o.occurred_at >= ? AND o.occurred_at < ?
        GROUP BY oi.sku_id`
     )
-    .all(merchantId, windowStart, windowEnd) as { skuId: string; units: number }[];
+    .all(merchantId, windowStart, windowEnd)) as { skuId: string; units: number }[];
   const soldBySku = new Map(soldRows.map((r) => [r.skuId, r.units]));
 
-  const stockRows = db
+  const stockRows = (await db
     .prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?")
-    .all(merchantId) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
+    .all(merchantId)) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
   const stockBySku = new Map(stockRows.map((r) => [r.sku_id, r]));
 
   // Campaign draw-down: the latest campaign (if queued) can still consume
   // bundle components up to its cap.
-  const camp = db
+  const camp = (await db
     .prepare("SELECT id, status, offer_json FROM campaigns WHERE merchant_id = ? ORDER BY created_at DESC, version DESC LIMIT 1")
-    .get(merchantId) as { id: string; status: string; offer_json: string } | undefined;
+    .get(merchantId)) as { id: string; status: string; offer_json: string } | undefined;
   const recordedRows = camp
-    ? (db
+    ? ((await db
         .prepare(
-          "SELECT COALESCE(SUM(quantity), 0) AS q FROM redemptions WHERE campaign_id = ?"
+          "SELECT COALESCE(SUM(quantity), 0)::int AS q FROM redemptions WHERE campaign_id = ?"
         )
-        .get(camp.id) as { q: number })
+        .get(camp.id)) as { q: number })
     : { q: 0 };
   let remainingRedemptions = 0;
   let drawDownBySku = new Map<string, number>();
@@ -171,13 +171,13 @@ export function getOperationsInsights(db: SqliteDatabase, merchantId: string, fi
   }
 
   // ---- serve pillar: consent health + redemption champions
-  const consentRows = db
+  const consentRows = (await db
     .prepare(
-      `SELECT c.status AS status, COUNT(*) AS n FROM consents c
+      `SELECT c.status AS status, COUNT(*)::int AS n FROM consents c
        JOIN customers cu ON cu.id = c.customer_id
        WHERE cu.merchant_id = ? GROUP BY c.status`
     )
-    .all(merchantId) as { status: string; n: number }[];
+    .all(merchantId)) as { status: string; n: number }[];
   const consentByStatus = Object.fromEntries(consentRows.map((r) => [r.status, r.n]));
   const consents = {
     active: consentByStatus["active"] ?? 0,
@@ -188,18 +188,18 @@ export function getOperationsInsights(db: SqliteDatabase, merchantId: string, fi
 
   const champions: ServeBlock["champions"] = [];
   if (camp && camp.status === "queued") {
-    const perEvent = db
+    const perEvent = (await db
       .prepare(
-        "SELECT event_id, SUM(quantity) AS q, SUM(amount_paise) AS amt FROM redemptions WHERE campaign_id = ? GROUP BY event_id ORDER BY q DESC LIMIT 5"
+        "SELECT event_id, SUM(quantity)::int AS q, SUM(amount_paise)::int AS amt FROM redemptions WHERE campaign_id = ? GROUP BY event_id ORDER BY q DESC LIMIT 5"
       )
-      .all(camp.id) as { event_id: string; q: number; amt: number }[];
+      .all(camp.id)) as { event_id: string; q: number; amt: number }[];
     for (const row of perEvent) {
       const event = fixture.simulatedRedemptionEvents.find((e) => e.eventId === row.event_id);
       if (!event) continue;
       const localId = event.customerId;
-      const customer = db
+      const customer = (await db
         .prepare("SELECT display_label, demo_channel_id FROM customers WHERE merchant_id = ? AND id LIKE '%' || ?")
-        .get(merchantId, localId) as { display_label: string; demo_channel_id: string } | undefined;
+        .get(merchantId, localId)) as { display_label: string; demo_channel_id: string } | undefined;
       champions.push({
         label: customer?.display_label ?? localId,
         demoChannelId: customer?.demo_channel_id ?? "-",

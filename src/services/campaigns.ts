@@ -69,21 +69,21 @@ function sha256(input: string): string {
   return createHash("sha256").update(input).digest("hex");
 }
 
-function audit(
+async function audit(
   db: SqliteDatabase,
   merchantId: string,
   actorId: string,
   action: string,
   entityId: string,
   details: Record<string, unknown> = {}
-): void {
-  db.prepare(
+): Promise<void> {
+  await db.prepare(
     "INSERT INTO audit_events (merchant_id, actor_id, action, entity_id, timestamp, redacted_details_json) VALUES (?,?,?,?,?,?)"
   ).run(merchantId, actorId, action, entityId, getNow().toISOString(), JSON.stringify(details));
 }
 
-function currentInventoryVersion(db: SqliteDatabase, merchantId: string): number {
-  const row = db.prepare("SELECT COALESCE(MAX(version),0) AS v FROM inventory WHERE merchant_id = ?").get(merchantId) as {
+async function currentInventoryVersion(db: SqliteDatabase, merchantId: string): Promise<number> {
+  const row = (await db.prepare("SELECT COALESCE(MAX(version),0)::int AS v FROM inventory WHERE merchant_id = ?").get(merchantId)) as {
     v: number;
   };
   return row.v;
@@ -114,16 +114,16 @@ export function nextWeekdayEveningIso(now: Date): string {
   throw new Error("unreachable");
 }
 
-function getCampaignRow(db: SqliteDatabase, merchantId: string, campaignId: string, version: number): CampaignRow {
-  const row = db
+async function getCampaignRow(db: SqliteDatabase, merchantId: string, campaignId: string, version: number): Promise<CampaignRow> {
+  const row = (await db
     .prepare("SELECT * FROM campaigns WHERE merchant_id = ? AND id = ? AND version = ?")
-    .get(merchantId, campaignId, version) as CampaignRow | undefined;
+    .get(merchantId, campaignId, version)) as CampaignRow | undefined;
   if (!row) throw new ApiError("not_found", "Campaign version not found for this session.");
   return row;
 }
 
-function latestVersion(db: SqliteDatabase, merchantId: string, campaignId: string): number {
-  const row = db.prepare("SELECT MAX(version) AS v FROM campaigns WHERE merchant_id = ? AND id = ?").get(merchantId, campaignId) as {
+async function latestVersion(db: SqliteDatabase, merchantId: string, campaignId: string): Promise<number> {
+  const row = (await db.prepare("SELECT MAX(version)::int AS v FROM campaigns WHERE merchant_id = ? AND id = ?").get(merchantId, campaignId)) as {
     v: number | null;
   };
   return row.v ?? 0;
@@ -169,7 +169,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
   // price an opportunity the evidence engine currently offers. A made-up id is
   // a bad reference; no qualifying opportunity at all (thin data) means there
   // is nothing to price yet.
-  const ops = getOpportunities(db, merchantId, fixture, now);
+  const ops = await getOpportunities(db, merchantId, fixture, now);
   if (ops.items.length === 0) {
     throw new ApiError(
       "business_rule",
@@ -181,9 +181,9 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
       fieldErrors: { opportunityId: "Must be an opportunity the evidence engine currently reports." },
     });
   }
-  const computed = computeOffer(db, merchantId, fixture, input.pricePaise, input.cap);
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
-  const invVersion = currentInventoryVersion(db, merchantId);
+  const computed = await computeOffer(db, merchantId, fixture, input.pricePaise, input.cap);
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
+  const invVersion = await currentInventoryVersion(db, merchantId);
   const expiresAt = nextWeekdayEveningIso(now);
 
   const offer: StoredOffer = {
@@ -249,7 +249,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
   // exists elsewhere.
   let campaignId: string;
   if (input.campaignId) {
-    const known = db
+    const known = await db
       .prepare("SELECT id FROM campaigns WHERE merchant_id = ? AND id = ? LIMIT 1")
       .get(merchantId, input.campaignId);
     if (!known) throw new ApiError("not_found", "Campaign id does not exist for this session.");
@@ -257,7 +257,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
   } else {
     campaignId = `cmp_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
   }
-  const version = latestVersion(db, merchantId, campaignId) + 1;
+  const version = (await latestVersion(db, merchantId, campaignId)) + 1;
 
   const previewHash = sha256(
     JSON.stringify({
@@ -271,8 +271,8 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
     })
   );
 
-  withTransaction(db, () => {
-    db.prepare(
+  await withTransaction(db, async () => {
+    await db.prepare(
       `INSERT INTO campaigns (id, merchant_id, version, status, opportunity_id, offer_json, copy_json, audience_hash,
         audience_count, inventory_version, metric_snapshot_id, preview_hash, expires_at, ai_mode, created_at)
        VALUES (?,?,?,'draft',?,?,?,?,?,?,?,?,?,?,?)`
@@ -292,7 +292,7 @@ export async function draftCampaign(db: SqliteDatabase, merchantId: string, fixt
       ai.reportedMode,
       now.toISOString()
     );
-    audit(db, merchantId, "owner-demo", "campaign.drafted", `${campaignId}:${version}`, {
+    await audit(db, merchantId, "owner-demo", "campaign.drafted", `${campaignId}:${version}`, {
       pricePaise: offer.pricePaise,
       cap: offer.cap,
       passes: computed.passes,
@@ -337,28 +337,28 @@ export interface ApproveResult {
   status: "approved";
 }
 
-export function approveCampaign(
+export async function approveCampaign(
   db: SqliteDatabase,
   merchantId: string,
   fixture: Fixture,
   campaignId: string,
   version: number,
   clientPreviewHash: string
-): ApproveResult {
-  const row = getCampaignRow(db, merchantId, campaignId, version);
+): Promise<ApproveResult> {
+  const row = await getCampaignRow(db, merchantId, campaignId, version);
   if (row.status !== "draft") {
     throw new ApiError("stale_version", "This version was already approved or queued. Edit to create a new draft.");
   }
-  if (version !== latestVersion(db, merchantId, campaignId)) {
+  if (version !== (await latestVersion(db, merchantId, campaignId))) {
     throw new ApiError("stale_version", "A newer draft version exists for this campaign.");
   }
 
   // Re-verify the facts the preview showed. Any drift invalidates the preview.
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
   if (audience.hash !== row.audience_hash) {
     throw new ApiError("stale_preview", "Eligible audience changed since this preview. Review a fresh preview.");
   }
-  if (currentInventoryVersion(db, merchantId) !== row.inventory_version) {
+  if ((await currentInventoryVersion(db, merchantId)) !== row.inventory_version) {
     throw new ApiError("stale_preview", "Stock or costs changed since this preview. Review a fresh preview.");
   }
   if (clientPreviewHash !== row.preview_hash) {
@@ -367,23 +367,23 @@ export function approveCampaign(
 
   // Business rule: unprofitable or infeasible offers can never be approved.
   const storedOffer = JSON.parse(row.offer_json) as StoredOffer;
-  const recheck = computeOffer(db, merchantId, fixture, storedOffer.pricePaise, storedOffer.cap);
+  const recheck = await computeOffer(db, merchantId, fixture, storedOffer.pricePaise, storedOffer.cap);
   if (!recheck.passes) {
     throw new ApiError("business_rule", `This offer cannot be approved: ${recheck.violations.join(" ")}`);
   }
 
   const approvedAt = getNow().toISOString();
   const approvalId = `apr_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
-  withTransaction(db, () => {
-    db.prepare("UPDATE campaigns SET status = 'approved' WHERE merchant_id = ? AND id = ? AND version = ?").run(
+  await withTransaction(db, async () => {
+    await db.prepare("UPDATE campaigns SET status = 'approved' WHERE merchant_id = ? AND id = ? AND version = ?").run(
       merchantId,
       campaignId,
       version
     );
-    db.prepare(
+    await db.prepare(
       "INSERT INTO approvals (id, campaign_id, campaign_version, approver_id, approved_payload_hash, approved_at) VALUES (?,?,?,?,?,?)"
     ).run(approvalId, campaignId, version, "owner-demo", row.preview_hash, approvedAt);
-    audit(db, merchantId, "owner-demo", "campaign.approved", `${campaignId}:${version}`, { approvalId });
+    await audit(db, merchantId, "owner-demo", "campaign.approved", `${campaignId}:${version}`, { approvalId });
   });
   return { approvalId, approvedVersion: version, approvedAt, status: "approved" };
 }
@@ -399,16 +399,16 @@ export interface ExecuteReceipt {
   duplicate: boolean;
 }
 
-export function executeCampaign(
+export async function executeCampaign(
   db: SqliteDatabase,
   merchantId: string,
   fixture: Fixture,
   campaignId: string,
   version: number,
   clientKey?: string
-): ExecuteReceipt {
-  const row = getCampaignRow(db, merchantId, campaignId, version);
-  if (version !== latestVersion(db, merchantId, campaignId)) {
+): Promise<ExecuteReceipt> {
+  const row = await getCampaignRow(db, merchantId, campaignId, version);
+  if (version !== (await latestVersion(db, merchantId, campaignId))) {
     throw new ApiError("stale_version", "A newer draft version exists - that supersedes this version.");
   }
 
@@ -418,7 +418,7 @@ export function executeCampaign(
   // businesses never collides, and merchant-scoped cleanup stays exact.
   const idempotencyKeyEarly = clientKey?.trim() ? `req:${merchantId}:${clientKey.trim()}` : `exec:${campaignId}:${version}`;
   const fingerprint = sha256(`${merchantId}|${campaignId}|${version}`);
-  const earlyRequest = db.prepare("SELECT * FROM idempotency_requests WHERE key = ?").get(idempotencyKeyEarly) as
+  const earlyRequest = (await db.prepare("SELECT * FROM idempotency_requests WHERE key = ?").get(idempotencyKeyEarly)) as
     | { fingerprint: string; response_json: string }
     | undefined;
   if (earlyRequest) {
@@ -432,7 +432,7 @@ export function executeCampaign(
   // Executing an already-queued version (no matching key) returns a replay receipt.
   if (row.status === "queued") {
     const count = (
-      db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version) as {
+      (await db.prepare("SELECT COUNT(*)::int AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version)) as {
         n: number;
       }
     ).n;
@@ -443,9 +443,9 @@ export function executeCampaign(
   }
 
   // Status 'approved': verify every fact the approval was based on.
-  const approval = db
+  const approval = (await db
     .prepare("SELECT * FROM approvals WHERE campaign_id = ? AND campaign_version = ?")
-    .get(campaignId, version) as { id: string; approved_payload_hash: string } | undefined;
+    .get(campaignId, version)) as { id: string; approved_payload_hash: string } | undefined;
   if (!approval || approval.approved_payload_hash !== row.preview_hash) {
     throw new ApiError("stale_preview", "No valid approval matches this version's exact terms.");
   }
@@ -454,10 +454,10 @@ export function executeCampaign(
   if (now.getTime() >= new Date(row.expires_at).getTime()) {
     throw new ApiError("expired", "The offer validity window has passed. Prepare a fresh offer.");
   }
-  if (currentInventoryVersion(db, merchantId) !== row.inventory_version) {
+  if ((await currentInventoryVersion(db, merchantId)) !== row.inventory_version) {
     throw new ApiError("stale_inventory", "Stock or costs changed since approval. Review a fresh preview before queueing.");
   }
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
   if (audience.hash !== row.audience_hash) {
     throw new ApiError("stale_consent", "The consent register changed since approval. Review a fresh preview before queueing.");
   }
@@ -475,25 +475,25 @@ export function executeCampaign(
     duplicate: false,
   };
 
-  withTransaction(db, () => {
+  await withTransaction(db, async () => {
     // Re-check inside the transaction (serializes concurrent clicks).
-    const current = db
+    const current = (await db
       .prepare("SELECT status FROM campaigns WHERE merchant_id = ? AND id = ? AND version = ?")
-      .get(merchantId, campaignId, version) as { status: CampaignRow["status"] } | undefined;
+      .get(merchantId, campaignId, version)) as { status: CampaignRow["status"] } | undefined;
     if (!current || current.status !== "approved") {
       throw new ApiError("conflict", "Campaign is no longer in the approved state.");
     }
     const already = (
-      db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version) as { n: number }
+      (await db.prepare("SELECT COUNT(*)::int AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version)) as { n: number }
     ).n;
     if (already > 0) return; // lost race: nothing to insert
 
-    const insertOutbox = db.prepare(
+    const insertOutbox = await db.prepare(
       "INSERT INTO outbox (id, campaign_id, version, customer_id, channel, status, simulated, idempotency_key, created_at) VALUES (?,?,?,?,?,'simulated_queued',1,?,?)"
     );
     for (const customerId of audience.eligibleIds) {
       const perRecipientKey = sha256(`${campaignId}:${version}:${customerId}:${fixture.customers.channel}`);
-      insertOutbox.run(
+      await insertOutbox.run(
         `out_${randomUUID().replace(/-/g, "").slice(0, 20)}`,
         campaignId,
         version,
@@ -503,18 +503,18 @@ export function executeCampaign(
         now.toISOString()
       );
     }
-    db.prepare("UPDATE campaigns SET status = 'queued' WHERE merchant_id = ? AND id = ? AND version = ?").run(
+    await db.prepare("UPDATE campaigns SET status = 'queued' WHERE merchant_id = ? AND id = ? AND version = ?").run(
       merchantId,
       campaignId,
       version
     );
-    db.prepare("INSERT INTO idempotency_requests (key, fingerprint, response_json, created_at) VALUES (?,?,?,?)").run(
+    await db.prepare("INSERT INTO idempotency_requests (key, fingerprint, response_json, created_at) VALUES (?,?,?,?)").run(
       idempotencyKey,
       fingerprint,
       JSON.stringify(receipt),
       now.toISOString()
     );
-    audit(db, merchantId, "owner-demo", "campaign.queued_simulated", `${campaignId}:${version}`, {
+    await audit(db, merchantId, "owner-demo", "campaign.queued_simulated", `${campaignId}:${version}`, {
       count: audience.eligibleIds.length,
       simulated: true,
     });
@@ -539,27 +539,27 @@ export interface RedeemResult {
   cap: number;
 }
 
-export function redeemEvent(
+export async function redeemEvent(
   db: SqliteDatabase,
   merchantId: string,
   fixture: Fixture,
   campaignId: string,
   eventId: string
-): RedeemResult {
-  const version = latestVersion(db, merchantId, campaignId);
+): Promise<RedeemResult> {
+  const version = await latestVersion(db, merchantId, campaignId);
   if (version === 0) throw new ApiError("not_found", "Campaign not found for this session.");
-  const row = getCampaignRow(db, merchantId, campaignId, version);
+  const row = await getCampaignRow(db, merchantId, campaignId, version);
   const offer = JSON.parse(row.offer_json) as StoredOffer;
 
   const event = fixture.simulatedRedemptionEvents.find((e) => e.eventId === eventId);
   if (!event) throw new ApiError("not_found", "Unknown simulated redemption event id.");
 
-  const totalsSoFar = redemptionTotals(db, campaignId, offer);
+  const totalsSoFar = await redemptionTotals(db, campaignId, offer);
 
   // Idempotent replay of the same event: return the existing record unchanged.
-  const existing = db
+  const existing = (await db
     .prepare("SELECT * FROM redemptions WHERE campaign_id = ? AND event_id = ?")
-    .get(campaignId, eventId) as
+    .get(campaignId, eventId)) as
     | { event_id: string; quantity: number; amount_paise: number; occurred_at: string }
     | undefined;
   if (existing) {
@@ -587,10 +587,10 @@ export function redeemEvent(
   }
 
   // Stock recheck at each redemption (cumulative consumption vs current stock).
-  withTransaction(db, () => {
-    const invRows = db
+  await withTransaction(db, async () => {
+    const invRows = (await db
       .prepare("SELECT sku_id, quantity FROM inventory WHERE merchant_id = ?")
-      .all(merchantId) as { sku_id: string; quantity: number }[];
+      .all(merchantId)) as { sku_id: string; quantity: number }[];
     const stockBySku = new Map(invRows.map((r) => [r.sku_id, r.quantity]));
     for (const c of offer.components) {
       const consumed = totalsSoFar.redemptions * c.quantity + event.quantity * c.quantity;
@@ -598,7 +598,7 @@ export function redeemEvent(
         throw new ApiError("business_rule", `Stock exhausted for ${c.skuId}; redemption not recorded.`);
       }
     }
-    db.prepare(
+    await db.prepare(
       "INSERT INTO redemptions (id, campaign_id, event_id, quantity, amount_paise, occurred_at, simulated, created_at) VALUES (?,?,?,?,?,?,1,?)"
     ).run(
       `red_${randomUUID().replace(/-/g, "").slice(0, 20)}`,
@@ -609,7 +609,7 @@ export function redeemEvent(
       new Date(event.occurredAtIso).toISOString(),
       getNow().toISOString()
     );
-    audit(db, merchantId, "fixture", "redemption.recorded_simulated", `${campaignId}:${event.eventId}`, {
+    await audit(db, merchantId, "fixture", "redemption.recorded_simulated", `${campaignId}:${event.eventId}`, {
       quantity: event.quantity,
       simulated: true,
     });
@@ -623,19 +623,19 @@ export function redeemEvent(
       occurredAtIso: new Date(event.occurredAtIso).toISOString(),
       duplicate: false,
     },
-    totals: redemptionTotals(db, campaignId, offer),
+    totals: await redemptionTotals(db, campaignId, offer),
     cap: offer.cap,
   };
 }
 
-function redemptionTotals(
+async function redemptionTotals(
   db: SqliteDatabase,
   campaignId: string,
   offer: StoredOffer
-): { redemptions: number; revenuePaise: number; variableCostPaise: number; contributionPaise: number; discountPaise: number } {
-  const agg = db
-    .prepare("SELECT COUNT(*) AS n, COALESCE(SUM(quantity),0) AS qty, COALESCE(SUM(amount_paise),0) AS revenue FROM redemptions WHERE campaign_id = ?")
-    .get(campaignId) as { n: number; qty: number; revenue: number };
+): Promise<{ redemptions: number; revenuePaise: number; variableCostPaise: number; contributionPaise: number; discountPaise: number }> {
+  const agg = (await db
+    .prepare("SELECT COUNT(*)::int AS n, COALESCE(SUM(quantity),0)::int AS qty, COALESCE(SUM(amount_paise),0)::int AS revenue FROM redemptions WHERE campaign_id = ?")
+    .get(campaignId)) as { n: number; qty: number; revenue: number };
   const cost = offer.bundleCostPaise === null ? 0 : offer.bundleCostPaise * agg.qty;
   const discountPerBundle = Math.max(0, offer.normalPricePaise - offer.pricePaise);
   return {
@@ -684,37 +684,37 @@ function shortCustomerId(id: string): string {
   return idx >= 0 ? "CUST-" + id.slice(idx + "_CUST-".length) : id;
 }
 
-export function getCampaignResults(db: SqliteDatabase, merchantId: string, fixture: Fixture, campaignId: string): CampaignResults {
-  const version = latestVersion(db, merchantId, campaignId);
+export async function getCampaignResults(db: SqliteDatabase, merchantId: string, fixture: Fixture, campaignId: string): Promise<CampaignResults> {
+  const version = await latestVersion(db, merchantId, campaignId);
   if (version === 0) throw new ApiError("not_found", "Campaign not found for this session.");
-  const row = getCampaignRow(db, merchantId, campaignId, version);
+  const row = await getCampaignRow(db, merchantId, campaignId, version);
   const offer = JSON.parse(row.offer_json) as StoredOffer;
   const copy = JSON.parse(row.copy_json) as StoredCopy;
 
-  const approval = db
+  const approval = (await db
     .prepare("SELECT approved_at FROM approvals WHERE campaign_id = ? AND campaign_version = ?")
-    .get(campaignId, version) as { approved_at: string } | undefined;
+    .get(campaignId, version)) as { approved_at: string } | undefined;
 
-  const outboxRows = db
+  const outboxRows = (await db
     .prepare(
       "SELECT o.customer_id, c.display_label, c.demo_channel_id, o.channel, o.status FROM outbox o JOIN customers c ON c.id = o.customer_id WHERE o.campaign_id = ? AND o.version = ? ORDER BY o.customer_id LIMIT 6"
     )
-    .all(campaignId, version) as { customer_id: string; display_label: string; demo_channel_id: string; channel: string; status: string }[];
+    .all(campaignId, version)) as { customer_id: string; display_label: string; demo_channel_id: string; channel: string; status: string }[];
   const outboxCount = (
-    db.prepare("SELECT COUNT(*) AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version) as { n: number }
+    (await db.prepare("SELECT COUNT(*)::int AS n FROM outbox WHERE campaign_id = ? AND version = ?").get(campaignId, version)) as { n: number }
   ).n;
 
-  const redemptionRows = db
+  const redemptionRows = (await db
     .prepare("SELECT event_id, quantity, amount_paise, occurred_at FROM redemptions WHERE campaign_id = ? ORDER BY occurred_at")
-    .all(campaignId) as { event_id: string; quantity: number; amount_paise: number; occurred_at: string }[];
-  const totals = redemptionTotals(db, campaignId, offer);
+    .all(campaignId)) as { event_id: string; quantity: number; amount_paise: number; occurred_at: string }[];
+  const totals = await redemptionTotals(db, campaignId, offer);
 
-  const auditRows = db
+  const auditRows = (await db
     .prepare("SELECT action, entity_id, timestamp, actor_id FROM audit_events WHERE merchant_id = ? AND entity_id LIKE ? ORDER BY id DESC LIMIT 12")
-    .all(merchantId, `${campaignId}%`) as { action: string; entity_id: string; timestamp: string; actor_id: string }[];
+    .all(merchantId, `${campaignId}%`)) as { action: string; entity_id: string; timestamp: string; actor_id: string }[];
 
   const merchantName = (
-    db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId) as { display_name: string } | undefined
+    (await db.prepare("SELECT display_name FROM merchants WHERE id = ?").get(merchantId)) as { display_name: string } | undefined
   )?.display_name ?? "Your business";
 
   return {

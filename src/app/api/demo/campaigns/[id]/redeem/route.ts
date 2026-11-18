@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/demo/campaigns/{id}/redeem - apply one fixed fixture redemption event (idempotent per event). */
 export const POST = routeHandler(async (request: Request, ctx: { params: { id: string } }) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(redeemRequestSchema, await request.json());
-  const result = redeemEvent(db, merchantId, fixture, ctx.params.id, body.eventId);
+  const result = await redeemEvent(db, merchantId, fixture, ctx.params.id, body.eventId);
   return ok(result, 201);
 });

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 200" width="900" height="200" role="img" aria-label="Evidence receipt stamp animation: every number carries its receipt">
+  <defs>
+    <linearGradient id="evg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12335f"/><stop offset="1" stop-color="#0d2547"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="200" rx="18" fill="#071a35"/>
+
+  <!-- receipt paper -->
+  <g>
+    <rect x="90" y="34" width="220" height="132" rx="6" fill="#f4f8fc"/>
+    <path d="M 90 34 L 110 26 L 130 34 L 150 26 L 170 34 L 190 26 L 210 34 L 230 26 L 250 34 L 270 26 L 290 34 L 310 26 L 310 34 Z" fill="#f4f8fc"/>
+    <g stroke="#b8c8da" stroke-width="2">
+      <line x1="106" y1="52" x2="294" y2="52"/><line x1="106" y1="68" x2="294" y2="68"/>
+      <line x1="106" y1="84" x2="294" y2="84"/><line x1="106" y1="100" x2="294" y2="100"/>
+      <line x1="106" y1="116" x2="294" y2="116"/>
+    </g>
+    <text x="200" y="148" text-anchor="middle" font-family="Consolas, monospace" font-size="12" font-weight="700" fill="#0b2447">EV-afternoon-delta-v1</text>
+    <!-- stamp slams down repeatedly -->
+    <g opacity="0">
+      <rect x="128" y="70" width="150" height="42" rx="8" fill="none" stroke="#15803d" stroke-width="4" transform="rotate(-12 203 91)"/>
+      <text x="203" y="98" text-anchor="middle" font-family="Segoe UI, Arial" font-size="15" font-weight="900" fill="#15803d" transform="rotate(-12 203 91)">VERIFIED</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.15;0.22;0.7;0.8;1" dur="3.2s" repeatCount="indefinite"/>
+    </g>
+  </g>
+
+  <!-- the number it certifies -->
+  <text x="400" y="98" font-family="Segoe UI, Arial" font-size="44" font-weight="800" fill="#ffffff">&#8722;30.0%
+    <animate attributeName="opacity" values="1;1;0.4;1" keyTimes="0;0.5;0.62;1" dur="3.2s" repeatCount="indefinite"/>
+  </text>
+  <text x="400" y="126" font-family="Segoe UI, Arial" font-size="13" fill="#8fb3d9">completed 3&#8211;6 p.m. orders, two Mon&#8211;Fri windows</text>
+
+  <!-- right: what evidence blocks -->
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <rect x="560" y="46" width="300" height="38" rx="19" fill="#0e2c55" stroke="#5b6b7e" stroke-width="1.2"/>
+    <text x="710" y="70" font-size="13" font-weight="700" fill="#f2a7ad">&#10007; "orders fell because of weather"</text>
+    <rect x="560" y="96" width="300" height="38" rx="19" fill="#0e2c55" stroke="#5b6b7e" stroke-width="1.2"/>
+    <text x="710" y="120" font-size="13" font-weight="700" fill="#f2a7ad">&#10007; "competition opened nearby"</text>
+  </g>
+  <g opacity="0">
+    <rect x="560" y="146" width="300" height="38" rx="19" fill="#0e2c55" stroke="#4ade80" stroke-width="1.4"/>
+    <text x="710" y="170" font-size="13" font-weight="700" fill="#4ade80">&#10003; "two windows prove the drop &#8212; not the cause"</text>
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.2;0.35;1" dur="3.2s" repeatCount="indefinite"/>
+  </g>
+</svg>

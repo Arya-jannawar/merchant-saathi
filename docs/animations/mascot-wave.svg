@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" width="420" height="300" role="img" aria-label="Muffin the cupcake mascot waving">
+  <defs>
+    <radialGradient id="muffbg" cx="0.5" cy="0.4" r="0.8">
+      <stop offset="0" stop-color="#12335f"/><stop offset="1" stop-color="#071a35"/>
+    </radialGradient>
+    <linearGradient id="wrap" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#00b9f1"/><stop offset="1" stop-color="#005f8f"/>
+    </linearGradient>
+  </defs>
+  <rect width="420" height="300" rx="18" fill="url(#muffbg)"/>
+
+  <!-- soft halo -->
+  <circle cx="210" cy="140" r="86" fill="#00b9f1" opacity="0.12">
+    <animate attributeName="r" values="80;92;80" dur="3.4s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- steam -->
+  <g stroke="#8fd8ff" stroke-width="3.4" fill="none" stroke-linecap="round" opacity="0.85">
+    <path d="M 192 64 q 7 -11 0 -20 q -7 -9 1 -18">
+      <animate attributeName="opacity" values="0.9;0.15;0.9" dur="2.6s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 228 64 q -7 -11 0 -20 q 7 -9 -1 -18">
+      <animate attributeName="opacity" values="0.15;0.9;0.15" dur="2.6s" begin="1.2s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- whole mascot bobbing -->
+  <g>
+    <animateTransform attributeName="transform" type="translate" values="0 0; 0 -9; 0 0" dur="2.4s" repeatCount="indefinite"/>
+    <!-- frosting -->
+    <path d="M 150 128 q -14 -44 26 -58 q 6 -26 34 -26 q 28 0 34 26 q 40 14 26 58 z" fill="#f472b6"/>
+    <circle cx="178" cy="88" r="5" fill="#7dd3fc"/><circle cx="210" cy="74" r="5" fill="#ffd76e"/><circle cx="242" cy="92" r="5" fill="#4ade80"/>
+    <!-- cherry -->
+    <circle cx="210" cy="42" r="8" fill="#e63946">
+      <animate attributeName="cy" values="42;40;42" dur="2.4s" repeatCount="indefinite"/>
+    </circle>
+    <path d="M 210 34 q 6 -10 12 -8" stroke="#15803d" stroke-width="3" fill="none"/>
+    <!-- wrapper -->
+    <path d="M 152 128 L 268 128 L 252 190 L 168 190 Z" fill="url(#wrap)"/>
+    <path d="M 178 128 L 186 190 M 210 128 L 210 190 M 242 128 L 234 190" stroke="#005f8f" stroke-width="3"/>
+    <!-- face -->
+    <circle cx="192" cy="152" r="7" fill="#0b2447">
+      <animate attributeName="ry" values="7;7;1;7;7" keyTimes="0;0.9;0.93;0.96;1" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="228" cy="152" r="7" fill="#0b2447">
+      <animate attributeName="ry" values="7;7;1;7;7" keyTimes="0;0.9;0.93;0.96;1" dur="4s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="194.5" cy="149.5" r="2.2" fill="#ffffff"/><circle cx="230.5" cy="149.5" r="2.2" fill="#ffffff"/>
+    <path d="M 200 168 q 10 9 20 0" stroke="#0b2447" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+    <circle cx="176" cy="164" r="6" fill="#f9a8d4" opacity="0.8"/>
+    <circle cx="244" cy="164" r="6" fill="#f9a8d4" opacity="0.8"/>
+    <!-- waving arm -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate" values="0 268 140; 24 268 140; 0 268 140; -12 268 140; 0 268 140" keyTimes="0;0.25;0.5;0.75;1" dur="2.4s" repeatCount="indefinite"/>
+      <path d="M 268 140 q 26 -8 34 -30" stroke="#f472b6" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <circle cx="304" cy="106" r="9" fill="#f9a8d4"/>
+    </g>
+    <path d="M 152 140 q -22 4 -28 -14" stroke="#f472b6" stroke-width="9" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- speech bubble cycling honest tips -->
+  <g>
+    <rect x="52" y="212" width="316" height="56" rx="16" fill="#ffffff"/>
+    <path d="M 196 212 L 210 196 L 224 212 Z" fill="#ffffff"/>
+    <text x="210" y="236" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13.5" font-weight="700" fill="#0b2447">
+      "Every number has a receipt!"
+      <animate attributeName="opacity" values="1;1;0;0;1" keyTimes="0;0.3;0.34;0.97;1" dur="6s" repeatCount="indefinite"/>
+    </text>
+    <text x="210" y="236" text-anchor="middle" font-family="Segoe UI, Arial" font-size="13.5" font-weight="700" fill="#0b2447" opacity="0">
+      "Simulated means simulated."
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.34;0.38;0.62;0.66;1" dur="6s" repeatCount="indefinite"/>
+    </text>
+    <text x="210" y="256" text-anchor="middle" font-family="Segoe UI, Arial" font-size="11.5" fill="#5b6b7e">
+      pick from six buddies &#183; each with its own synth voice
+    </text>
+  </g>
+</svg>

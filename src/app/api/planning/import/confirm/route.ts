@@ -15,9 +15,9 @@ const ConfirmSchema = z.object({
 
 /** POST /api/planning/import/confirm - atomic post of every valid row + receipt. */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(ConfirmSchema, await request.json());
-  return ok(confirmImport(db, merchantId, body.filename, body.content, body.dateOrder), 201);
+  return ok(await confirmImport(db, merchantId, body.filename, body.content, body.dateOrder), 201);
 });

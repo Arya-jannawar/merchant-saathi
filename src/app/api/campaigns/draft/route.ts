@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/campaigns/draft - create a (new) draft version with computed constraints + AI copy. */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
   const body = parseBody(draftRequestSchema, await request.json());
   const result = await draftCampaign(db, merchantId, fixture, {
     campaignId: body.campaignId,

@@ -2,6 +2,7 @@
 // answers, and the in-memory key settings store.
 import { afterEach, describe, expect, it } from "vitest";
 import { openTestDb } from "./helpers";
+import { truncateAll } from "@/lib/db";
 import { resetTenant, merchantIdFor, DEFAULT_VARIANT_SEED } from "@/lib/seed";
 import { draftCampaign, approveCampaign, executeCampaign, redeemEvent } from "@/services/campaigns";
 import { loadFixture } from "@/lib/fixture";
@@ -23,9 +24,10 @@ import type { SqliteDatabase } from "@/lib/db";
 
 let db: SqliteDatabase | null = null;
 
-function freshDb(session: string): SqliteDatabase {
-  if (!db) db = openTestDb();
-  resetTenant(db, session);
+async function freshDb(session: string): Promise<SqliteDatabase> {
+  if (!db) db = await openTestDb();
+  await truncateAll(db);
+  await resetTenant(db, session);
   return db;
 }
 
@@ -82,9 +84,9 @@ describe("assistantMonetaryTermsValid", () => {
 });
 
 describe("fact book against a seeded tenant", () => {
-  it("answers the decline question from the window totals", () => {
-    const d = freshDb("assistant-decline");
-    const facts = buildAssistantFacts(d, merchantFor("assistant-decline"));
+  it("answers the decline question from the window totals", async () => {
+    const d = await freshDb("assistant-decline");
+    const facts = await buildAssistantFacts(d, merchantFor("assistant-decline"));
     expect(facts.seeded).toBe(true);
     expect(facts.economics).not.toBeNull();
     expect(facts.economics?.passes).toBe(true);
@@ -97,9 +99,9 @@ describe("fact book against a seeded tenant", () => {
     expect(a.answer.toLowerCase()).not.toMatch(/because of|caused by/);
   });
 
-  it("reports the offer math with the floor and the ₹50 rejection", () => {
-    const d = freshDb("assistant-offer");
-    const facts = buildAssistantFacts(d, merchantFor("assistant-offer"));
+  it("reports the offer math with the floor and the ₹50 rejection", async () => {
+    const d = await freshDb("assistant-offer");
+    const facts = await buildAssistantFacts(d, merchantFor("assistant-offer"));
     const a = answerFromFactBook("is the ₹70 offer safe?", facts);
     expect(a.answer).toContain("42.9%");
     expect(a.answer).toContain("25%");
@@ -108,10 +110,10 @@ describe("fact book against a seeded tenant", () => {
   });
 
   it("says there are no results before a campaign is queued, then the ₹300 story after", async () => {
-    const d = freshDb("assistant-results");
+    const d = await freshDb("assistant-results");
     const fixture = loadFixture();
-    const merchantId = resetTenant(d, "assistant-results");
-    const factsBefore = buildAssistantFacts(d, merchantFor("assistant-results"));
+    const merchantId = await resetTenant(d, "assistant-results");
+    const factsBefore = await buildAssistantFacts(d, merchantFor("assistant-results"));
     expect(answerFromFactBook("how much money did the campaign make?", factsBefore).answer).toContain("no queued campaign");
 
     const draft = await draftCampaign(d, merchantId, fixture, {
@@ -120,17 +122,17 @@ describe("fact book against a seeded tenant", () => {
       cap: fixture.bundle.cap,
       locale: "en",
     });
-    approveCampaign(d, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
-    executeCampaign(d, merchantId, fixture, draft.campaignId, draft.version);
+    await approveCampaign(d, merchantId, fixture, draft.campaignId, draft.version, draft.previewHash);
+    await executeCampaign(d, merchantId, fixture, draft.campaignId, draft.version);
 
-    const factsQueued = buildAssistantFacts(d, merchantFor("assistant-results"));
+    const factsQueued = await buildAssistantFacts(d, merchantFor("assistant-results"));
     expect(answerFromFactBook("how much money did the campaign make?", factsQueued).answer).toContain("no redemption events have been applied");
 
     for (const event of fixture.simulatedRedemptionEvents) {
-      redeemEvent(d, merchantId, fixture, draft.campaignId, event.eventId);
+      await redeemEvent(d, merchantId, fixture, draft.campaignId, event.eventId);
     }
 
-    const factsAfter = buildAssistantFacts(d, merchantFor("assistant-results"));
+    const factsAfter = await buildAssistantFacts(d, merchantFor("assistant-results"));
     const a = answerFromFactBook("how much money did the campaign make?", factsAfter);
     expect(a.answer).toContain("₹700");
     expect(a.answer).toContain("₹400");
@@ -139,8 +141,8 @@ describe("fact book against a seeded tenant", () => {
   });
 });
 
-describe("live answer parsing", () => {
-  const facts = buildAssistantFacts(freshDb("assistant-parse"), merchantFor("assistant-parse"));
+describe("live answer parsing", async () => {
+  const facts = await buildAssistantFacts(await freshDb("assistant-parse"), merchantFor("assistant-parse"));
 
   it("accepts a well-formed, grounded answer (with or without fences)", () => {
     const raw = '```json\n{"answer":"Orders fell 30% and AOV is ₹80.","reasoning":["Compared the two windows"],"followUps":["Is ₹70 safe?"]}\n```';

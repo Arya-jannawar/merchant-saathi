@@ -15,10 +15,10 @@ export const dynamic = "force-dynamic";
  * a campaign from another session is a clean 404.
  */
 export const GET = routeHandler(async (_request: Request, ctx: { params: { id: string } }) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(_request));
-  const results = getCampaignResults(db, merchantId, fixture, ctx.params.id);
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(_request));
+  const results = await getCampaignResults(db, merchantId, fixture, ctx.params.id);
 
   const pdf = await renderCampaignSummaryPdf({
     businessName: results.merchantName,

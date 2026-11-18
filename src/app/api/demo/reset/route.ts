@@ -9,14 +9,14 @@ export const dynamic = "force-dynamic";
 
 /** POST /api/demo/reset - resets only THIS demo session's tenant and reseeds it. */
 export const POST = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
   // Body is optional; an empty body resets to the standard bakery-v1 fixture.
   const raw = await request.json().catch(() => ({}));
   const body = parseBody(resetRequestSchema, raw ?? {});
     // An explicit fixture switches the story (standard/thin demo); without one the
   // merchant keeps its own registered domain.
-  const result = resetActiveMerchant(db, sessionId, getRequestedMerchantId(request), body.fixtureVersion);
+  const result = await resetActiveMerchant(db, sessionId, getRequestedMerchantId(request), body.fixtureVersion);
   return ok({ fixtureVersion: result.fixtureVersion, merchantName: result.merchantName, reset: true });
 });
 

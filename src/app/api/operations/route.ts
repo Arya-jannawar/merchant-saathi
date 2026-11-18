@@ -9,9 +9,9 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/operations - the operations copilot: run-rates, cover, restock plan. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId, fixture } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  const insights = getOperationsInsights(db, merchantId, fixture, getNow());
+  const { merchantId, fixture } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  const insights = await getOperationsInsights(db, merchantId, fixture, getNow());
   return ok(insights);
 });

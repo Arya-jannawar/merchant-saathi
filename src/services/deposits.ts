@@ -40,23 +40,23 @@ function toDto(row: Record<string, unknown>): DepositRequestDto {
   };
 }
 
-export function createDeposit(
+export async function createDeposit(
   db: SqliteDatabase,
   merchantId: string,
   input: { orderRef: string; description: string; orderPaise: number; depositPct: number },
-): DepositRequestDto {
+): Promise<DepositRequestDto> {
   if (input.orderPaise <= 0) throw new ApiError("invalid_input", "Order value must be a positive amount.");
   if (input.depositPct <= 0 || input.depositPct > 100) throw new ApiError("invalid_input", "Deposit rate must be 1-100 percent.");
   const depositPaise = Math.round((input.orderPaise * input.depositPct) / 100);
   const now = getNow().toISOString();
   const id = `dep_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
   const linkId = `pl_${randomUUID().replace(/-/g, "").slice(0, 12)}`;
-  withTransaction(db, () => {
-    db.prepare(
+  await withTransaction(db, async () => {
+    await db.prepare(
       "INSERT INTO deposit_requests (id, merchant_id, order_ref, description, order_paise, deposit_paise, status, link_id, created_at) VALUES (?,?,?,?,?,?,'pending',?,?)",
     ).run(id, merchantId, input.orderRef, input.description, input.orderPaise, depositPaise, linkId, now);
   });
-  const row = db.prepare("SELECT * FROM deposit_requests WHERE id = ?").get(id) as Record<string, unknown>;
+  const row = (await db.prepare("SELECT * FROM deposit_requests WHERE id = ?").get(id)) as Record<string, unknown>;
   return toDto(row);
 }
 
@@ -65,18 +65,18 @@ export function createDeposit(
  * pending -> collected and records one ledger payment event; every later call
  * returns the same receipt with duplicate: true and touches nothing.
  */
-export function collectDeposit(db: SqliteDatabase, merchantId: string, depositId: string): { deposit: DepositRequestDto; duplicate: boolean } {
-  const row = db
+export async function collectDeposit(db: SqliteDatabase, merchantId: string, depositId: string): Promise<{ deposit: DepositRequestDto; duplicate: boolean }> {
+  const row = (await db
     .prepare("SELECT * FROM deposit_requests WHERE merchant_id = ? AND id = ?")
-    .get(merchantId, depositId) as Record<string, unknown> | undefined;
+    .get(merchantId, depositId)) as Record<string, unknown> | undefined;
   if (!row) throw new ApiError("not_found", "Deposit request not found for this session.");
   if (row.status === "collected") {
     return { deposit: toDto(row), duplicate: true };
   }
   const now = getNow().toISOString();
-  withTransaction(db, () => {
-    db.prepare("UPDATE deposit_requests SET status = 'collected', collected_at = ? WHERE id = ?").run(now, depositId);
-    db.prepare(
+  await withTransaction(db, async () => {
+    await db.prepare("UPDATE deposit_requests SET status = 'collected', collected_at = ? WHERE id = ?").run(now, depositId);
+    await db.prepare(
       `INSERT INTO ledger_events (id, merchant_id, batch_id, external_id, event_type, occurred_on, amount_paise, method, note, sku_id, units, unit_cost_paise, source, fingerprint, created_at)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     ).run(
@@ -97,13 +97,13 @@ export function collectDeposit(db: SqliteDatabase, merchantId: string, depositId
       now,
     );
   });
-  const updated = db.prepare("SELECT * FROM deposit_requests WHERE id = ?").get(depositId) as Record<string, unknown>;
+  const updated = (await db.prepare("SELECT * FROM deposit_requests WHERE id = ?").get(depositId)) as Record<string, unknown>;
   return { deposit: toDto(updated), duplicate: false };
 }
 
-export function listDeposits(db: SqliteDatabase, merchantId: string): DepositRequestDto[] {
-  const rows = db
+export async function listDeposits(db: SqliteDatabase, merchantId: string): Promise<DepositRequestDto[]> {
+  const rows = (await db
     .prepare("SELECT * FROM deposit_requests WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 20")
-    .all(merchantId) as Record<string, unknown>[];
+    .all(merchantId)) as Record<string, unknown>[];
   return rows.map(toDto);
 }

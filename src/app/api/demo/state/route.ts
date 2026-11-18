@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/demo/state - dashboard bootstrap. Reports seeded/unseeded without side effects. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const state = getDemoState(db, sessionId, getRequestedMerchantId(request));
+  const state = await getDemoState(db, sessionId, getRequestedMerchantId(request));
   return ok(state);
 });

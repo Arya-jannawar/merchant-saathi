@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { openTestDb } from "./helpers";
+import { truncateAll } from "@/lib/db";
 import { resetTenant } from "@/lib/seed";
 import { loadFixture } from "@/lib/fixture";
 import { getNow, lastCompleteAfternoonWindow, previousAfternoonWindow, isAfternoonIst, istToUtcIso } from "@/lib/clock";
@@ -16,14 +17,16 @@ import { getAudience } from "@/domain/consent";
 const SESSION = "test-metrics";
 let merchantId: string;
 
-beforeAll(() => {
-  const db = openTestDb();
-  merchantId = resetTenant(db, SESSION);
+beforeAll(async () => {
+  const db = await openTestDb();
+  // Suites share one hosted database - wipe leftovers from previous runs.
+  await truncateAll(db);
+  merchantId = await resetTenant(db, SESSION);
 });
 
 describe("fixture totals (bakery-v1)", () => {
-  it("reconciles the two hero windows exactly", () => {
-    const db = openTestDb();
+  it("reconciles the two hero windows exactly", async () => {
+    const db = await openTestDb();
     const fixture = loadFixture();
     const now = getNow();
     const currWin = lastCompleteAfternoonWindow(now);
@@ -32,8 +35,8 @@ describe("fixture totals (bakery-v1)", () => {
     expect(currWin.label).toBe(fixture.windows.current.label);
     expect(prevWin.label).toBe(fixture.windows.previous.label);
 
-    const prev = completedAfternoonTotals(db, merchantId, prevWin);
-    const curr = completedAfternoonTotals(db, merchantId, currWin);
+    const prev = await completedAfternoonTotals(db, merchantId, prevWin);
+    const curr = await completedAfternoonTotals(db, merchantId, currWin);
 
     expect(prev.orders).toBe(100);
     expect(prev.netSalesPaise).toBe(800000);
@@ -41,13 +44,13 @@ describe("fixture totals (bakery-v1)", () => {
     expect(curr.netSalesPaise).toBe(560000);
   });
 
-  it("shows -30% deltas and a flat Rs 80 AOV", () => {
-    const db = openTestDb();
+  it("shows -30% deltas and a flat Rs 80 AOV", async () => {
+    const db = await openTestDb();
     const now = getNow();
     const currWin = lastCompleteAfternoonWindow(now);
     const prevWin = previousAfternoonWindow(currWin);
-    const prev = completedAfternoonTotals(db, merchantId, prevWin);
-    const curr = completedAfternoonTotals(db, merchantId, currWin);
+    const prev = await completedAfternoonTotals(db, merchantId, prevWin);
+    const curr = await completedAfternoonTotals(db, merchantId, currWin);
 
     expect(salesDeltaPct(curr.orders, prev.orders)).toBe(-30);
     expect(salesDeltaPct(curr.netSalesPaise, prev.netSalesPaise)).toBe(-30);
@@ -55,8 +58,8 @@ describe("fixture totals (bakery-v1)", () => {
     expect(averageOrderValuePaise(curr)).toBe(8000);
   });
 
-  it("counts only the five daily 3-6 p.m. bands, not the continuous range", () => {
-    const db = openTestDb();
+  it("counts only the five daily 3-6 p.m. bands, not the continuous range", async () => {
+    const db = await openTestDb();
     const currWin = lastCompleteAfternoonWindow(getNow());
     const bands = afternoonBands(currWin.startIso);
     expect(bands).toHaveLength(5);
@@ -65,41 +68,41 @@ describe("fixture totals (bakery-v1)", () => {
     expect(bands[4].endIso).toBe("2026-11-06T12:30:00.000Z");
 
     // Continuous range would wrongly include Tue-Fri morning orders.
-    const continuous = completedTotalsInRange(db, merchantId, currWin.startIso, currWin.endIso);
-    const banded = completedAfternoonTotals(db, merchantId, currWin);
+    const continuous = await completedTotalsInRange(db, merchantId, currWin.startIso, currWin.endIso);
+    const banded = await completedAfternoonTotals(db, merchantId, currWin);
     expect(banded.orders).toBe(70);
     expect(continuous.orders).toBeGreaterThan(banded.orders);
   });
 
-  it("excludes pending and canceled orders from completed totals", () => {
-    const db = openTestDb();
-    const rows = db
+  it("excludes pending and canceled orders from completed totals", async () => {
+    const db = await openTestDb();
+    const rows = await (db
       .prepare("SELECT status, COUNT(*) AS n FROM orders WHERE merchant_id = ? GROUP BY status")
-      .all(merchantId) as { status: string; n: number }[];
+      .all(merchantId)) as { status: string; n: number }[];
     const byStatus = Object.fromEntries(rows.map((r) => [r.status, r.n]));
     expect(byStatus["pending"]).toBe(1);
     expect(byStatus["canceled"]).toBe(1);
     expect(byStatus["completed"]).toBeGreaterThan(0);
   });
 
-  it("reconciles every order with its line items", () => {
-    const db = openTestDb();
+  it("reconciles every order with its line items", async () => {
+    const db = await openTestDb();
     const mismatched = (
-      db
+      await (db
         .prepare(
-          `SELECT COUNT(*) AS n FROM orders o WHERE o.merchant_id = ? AND o.total_paise != (
+          `SELECT COUNT(*)::int AS n FROM orders o WHERE o.merchant_id = ? AND o.total_paise != (
              SELECT COALESCE(SUM(oi.quantity * (oi.unit_price_paise - oi.unit_discount_paise)), 0)
              FROM order_items oi WHERE oi.order_id = o.id)`
         )
-        .get(merchantId) as { n: number }
+        .get(merchantId)) as { n: number }
     ).n;
     expect(mismatched).toBe(0);
   });
 
-  it("returns the hero opportunity with the full evidence chain", () => {
-    const db = openTestDb();
+  it("returns the hero opportunity with the full evidence chain", async () => {
+    const db = await openTestDb();
     const fixture = loadFixture();
-    const ops = getOpportunities(db, merchantId, fixture, getNow());
+    const ops = await getOpportunities(db, merchantId, fixture, getNow());
     expect(ops.items).toHaveLength(1);
     expect(ops.items[0].id).toBe("afternoon-decline-v1");
     expect(ops.items[0].metricIds).toEqual([
@@ -114,10 +117,10 @@ describe("fixture totals (bakery-v1)", () => {
     expect(ops.items[0].windows.current.orders).toBe(70);
   });
 
-  it("filters the consented audience (40 eligible / 10 excluded)", () => {
-    const db = openTestDb();
+  it("filters the consented audience (40 eligible / 10 excluded)", async () => {
+    const db = await openTestDb();
     const fixture = loadFixture();
-    const audience = getAudience(db, merchantId, fixture.customers.channel);
+    const audience = await getAudience(db, merchantId, fixture.customers.channel);
     expect(audience.eligibleIds).toHaveLength(40);
     expect(audience.excluded).toHaveLength(10);
     expect(audience.excluded.some((e) => e.reason === "consent revoked")).toBe(true);
@@ -126,11 +129,11 @@ describe("fixture totals (bakery-v1)", () => {
 });
 
 describe("thin fixture (insufficient-evidence behavior)", () => {
-  it("refuses to recommend when both windows are too small", () => {
-    const db = openTestDb();
+  it("refuses to recommend when both windows are too small", async () => {
+    const db = await openTestDb();
     const fixture = loadFixture("bakery-thin-v1");
-    const thinMerchant = resetTenant(db, "test-thin", fixture);
-    const ops = getOpportunities(db, thinMerchant, fixture, getNow());
+    const thinMerchant = await resetTenant(db, "test-thin", fixture);
+    const ops = await getOpportunities(db, thinMerchant, fixture, getNow());
     expect(ops.items).toHaveLength(0);
     expect(ops.lowDataReason).toContain("20");
     expect(ops.eligibility.previousOrders).toBe(12);
@@ -138,15 +141,15 @@ describe("thin fixture (insufficient-evidence behavior)", () => {
     expect(ops.fixtureVersion).toBe("bakery-thin-v1");
   });
 
-  it("reconciles thin fixture window totals with a flat Rs 80 AOV", () => {
-    const db = openTestDb();
+  it("reconciles thin fixture window totals with a flat Rs 80 AOV", async () => {
+    const db = await openTestDb();
     const fixture = loadFixture("bakery-thin-v1");
-    const thinMerchant = resetTenant(db, "test-thin-verify", fixture);
+    const thinMerchant = await resetTenant(db, "test-thin-verify", fixture);
     const now = getNow();
     const currWin = lastCompleteAfternoonWindow(now);
     const prevWin = previousAfternoonWindow(currWin);
-    const prev = completedAfternoonTotals(db, thinMerchant, prevWin);
-    const curr = completedAfternoonTotals(db, thinMerchant, currWin);
+    const prev = await completedAfternoonTotals(db, thinMerchant, prevWin);
+    const curr = await completedAfternoonTotals(db, thinMerchant, currWin);
     expect(prev.orders).toBe(12);
     expect(prev.netSalesPaise).toBe(96000);
     expect(curr.orders).toBe(8);

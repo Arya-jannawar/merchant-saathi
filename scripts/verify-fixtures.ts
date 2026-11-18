@@ -2,8 +2,20 @@
  * Fixture verifier: proves the seeded database matches bakery-v1 exactly.
  * Exits non-zero on any mismatch - CI and pre-demo gate.
  */
-import { openDatabase } from "../src/lib/db";
-import { seedDefaultDatabase } from "../src/lib/seed";
+// Scripts run via tsx which does not auto-load .env.local - load it once.
+import fs from "node:fs";
+if (!process.env.DATABASE_URL) {
+  try {
+    const envFile = fs.readFileSync(".env.local", "utf8");
+    const match = envFile.match(/^DATABASE_URL=(.*)$/m);
+    if (match) process.env.DATABASE_URL = match[1].trim().replace(/^"/, "").replace(/"$/, "");
+  } catch {
+    // fall through - the db layer surfaces a clear error without a URL
+  }
+}
+
+import { getDb } from "../src/lib/db";
+import { seedDefaultDatabase, resetTenant } from "../src/lib/seed";
 import { loadFixture } from "../src/lib/fixture";
 import { getNow, lastCompleteAfternoonWindow, previousAfternoonWindow, istToUtcIso } from "../src/lib/clock";
 import { completedAfternoonTotals, averageOrderValuePaise, salesDeltaPct } from "../src/domain/metrics";
@@ -19,9 +31,10 @@ function check(name: string, actual: unknown, expected: unknown): void {
 
 async function main() {
   const dbPath = process.env.DATABASE_PATH?.trim() || "./data/merchant-saathi.sqlite";
-  const db = openDatabase(dbPath);
+  const db = await getDb();
   const fixture = loadFixture();
-  const { merchantId } = seedDefaultDatabase(db);
+  await resetTenant(db, "local-dev-session");
+  const { merchantId } = await seedDefaultDatabase(db);
   const now = getNow();
 
   console.log(`[verify] database: ${dbPath}`);
@@ -32,8 +45,8 @@ async function main() {
   const prevWin = previousAfternoonWindow(currWin);
   check("current window label", currWin.label, fixture.windows.current.label);
   check("previous window label", prevWin.label, fixture.windows.previous.label);
-  const curr = completedAfternoonTotals(db, merchantId, currWin);
-  const prev = completedAfternoonTotals(db, merchantId, prevWin);
+  const curr = await completedAfternoonTotals(db, merchantId, currWin);
+  const prev = await completedAfternoonTotals(db, merchantId, prevWin);
   check("previous completed afternoon orders", prev.orders, fixture.windows.previous.completedAfternoonOrders);
   check("previous net sales (paise)", prev.netSalesPaise, fixture.windows.previous.netSalesPaise);
   check("current completed afternoon orders", curr.orders, fixture.windows.current.completedAfternoonOrders);
@@ -44,28 +57,28 @@ async function main() {
   check("current AOV (paise)", averageOrderValuePaise(curr), 8000);
 
   // 2. Pending/canceled excluded but present
-  const statusCounts = db
-    .prepare("SELECT status, COUNT(*) AS n FROM orders WHERE merchant_id = ? GROUP BY status")
-    .all(merchantId) as { status: string; n: number }[];
+  const statusCounts = await (await db
+    .prepare("SELECT status, COUNT(*)::int AS n FROM orders WHERE merchant_id = ? GROUP BY status")
+    .all(merchantId)) as { status: string; n: number }[];
   const byStatus = Object.fromEntries(statusCounts.map((r) => [r.status, r.n]));
   check("pending orders present (excluded from totals)", byStatus["pending"] ?? 0, 1);
   check("canceled orders present (excluded from totals)", byStatus["canceled"] ?? 0, 1);
 
   // 3. Line items sum exactly to order totals
   const mismatched = (
-    db
+    await (await db
       .prepare(
-        `SELECT COUNT(*) AS n FROM orders o
+        `SELECT COUNT(*)::int AS n FROM orders o
          WHERE o.merchant_id = ? AND o.total_paise != (
-           SELECT COALESCE(SUM(oi.quantity * oi.unit_price_paise - oi.quantity * oi.unit_discount_paise), 0)
+           SELECT COALESCE(SUM(oi.quantity * oi.unit_price_paise - oi.quantity * oi.unit_discount_paise), 0)::int
            FROM order_items oi WHERE oi.order_id = o.id)`
       )
-      .get(merchantId) as { n: number }
+      .get(merchantId)) as { n: number }
   ).n;
   check("all orders reconcile with line items", mismatched, 0);
 
   // 4. Inventory + capacity
-  const invRows = db.prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?").all(merchantId) as {
+  const invRows = await (await db.prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?").all(merchantId)) as {
     sku_id: string;
     quantity: number;
     unit_variable_cost_paise: number;
@@ -91,15 +104,15 @@ async function main() {
   check("max discount exposure", (fixture.bundle.normalPricePaise - fixture.bundle.proposedPricePaise) * fixture.bundle.cap, fixture.campaign.maxDiscountExposurePaise);
 
   // 6. Audience + consent
-  const audience = getAudience(db, merchantId, fixture.customers.channel);
+  const audience = await getAudience(db, merchantId, fixture.customers.channel);
   check("eligible customers", audience.eligibleIds.length, fixture.customers.activeSms);
   check("excluded customers", audience.excluded.length, fixture.customers.total - fixture.customers.activeSms);
-  check("total customers", (db.prepare("SELECT COUNT(*) AS n FROM customers WHERE merchant_id = ?").get(merchantId) as { n: number }).n, fixture.customers.total);
+  check("total customers", (await (await db.prepare("SELECT COUNT(*)::int AS n FROM customers WHERE merchant_id = ?").get(merchantId)) as { n: number }).n, fixture.customers.total);
 
   // 7. Redemption events reference consented customers with correct amounts
   // (DB customer ids are tenant-scoped: "<merchant>_CUST-001" - compare the local part)
   const eligibleLocalIds = new Set(
-    audience.eligibleIds.map((id) => {
+    audience.eligibleIds.map((id: string) => {
       const idx = id.lastIndexOf("_CUST-");
       return idx >= 0 ? "CUST-" + id.slice(idx + "_CUST-".length) : id;
     })
@@ -143,32 +156,32 @@ async function main() {
     const fx = loadFixture(entry.fixtureVersion);
     const session = "verify-" + entry.fixtureVersion;
     const { seedMerchant } = await import("../src/lib/seed");
-    const mid = seedMerchant(db, session, { fixture: fx });
+    const mid = await seedMerchant(db, session, { fixture: fx });
     const domLabel = fx.domain.label;
 
-    const dCurr = completedAfternoonTotals(db, mid, currWin);
-    const dPrev = completedAfternoonTotals(db, mid, prevWin);
+    const dCurr = await completedAfternoonTotals(db, mid, currWin);
+    const dPrev = await completedAfternoonTotals(db, mid, prevWin);
     check(`[${domLabel}] previous orders`, dPrev.orders, fx.windows.previous.completedAfternoonOrders);
     check(`[${domLabel}] previous net sales`, dPrev.netSalesPaise, fx.windows.previous.netSalesPaise);
     check(`[${domLabel}] current orders`, dCurr.orders, fx.windows.current.completedAfternoonOrders);
     check(`[${domLabel}] current net sales`, dCurr.netSalesPaise, fx.windows.current.netSalesPaise);
 
     const domMismatched = (
-      db
+      await (await db
         .prepare(
-          `SELECT COUNT(*) AS n FROM orders o
+          `SELECT COUNT(*)::int AS n FROM orders o
            WHERE o.merchant_id = ? AND o.total_paise != (
-             SELECT COALESCE(SUM(oi.quantity * oi.unit_price_paise - oi.quantity * oi.unit_discount_paise), 0)
+             SELECT COALESCE(SUM(oi.quantity * oi.unit_price_paise - oi.quantity * oi.unit_discount_paise), 0)::int
              FROM order_items oi WHERE oi.order_id = o.id
            )`
         )
-        .get(mid) as { n: number }
+        .get(mid)) as { n: number }
     ).n;
     check(`[${domLabel}] line items reconcile`, domMismatched, 0);
 
-    const domInv = db
+    const domInv = await (await db
       .prepare("SELECT sku_id, quantity, unit_variable_cost_paise FROM inventory WHERE merchant_id = ?")
-      .all(mid) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
+      .all(mid)) as { sku_id: string; quantity: number; unit_variable_cost_paise: number | null }[];
     const domInvOk = fx.inventory.every((item) => {
       const row = domInv.find((r) => r.sku_id === item.skuId);
       return row && row.quantity === item.quantity && row.unit_variable_cost_paise === item.unitVariableCostPaise;
@@ -189,11 +202,11 @@ async function main() {
       fx.bundle.name,
       entry.bundleName
     );
-    const domAudience = getAudience(db, mid, fx.customers.channel);
+    const domAudience = await getAudience(db, mid, fx.customers.channel);
     check(`[${domLabel}] eligible audience`, domAudience.eligibleIds.length, fx.customers.activeSms);
 
     // clean up the verification tenant so the gate stays tidy
-    db.prepare("DELETE FROM merchants WHERE id = ?").run(mid);
+    await db.prepare("DELETE FROM merchants WHERE id = ?").run(mid);
   }
 
   console.log(failures === 0 ? "\nAll fixture checks passed." : `\n${failures} check(s) FAILED.`);

@@ -1,17 +1,44 @@
 /**
- * SQLite access layer (better-sqlite3, Node server runtime only).
+ * Postgres access layer (postgres.js over a hosted Postgres, server runtime only).
  *
- * - One connection per process, kept on globalThis so Next dev HMR reuses it.
- * - Schema is created idempotently on first open.
+ * Ported from better-sqlite3 so the app can run on serverless hosts (Vercel):
+ * - One lazy singleton per process, kept on globalThis so Next dev HMR reuses it.
+ *   Queries go through `db.prepare(sql).get/all/run(...)` exactly as before - the
+ *   helpers are async now and every call site awaits them.
+ * - Schema is created idempotently on first open; the app owns its schema.
  * - All money is integer paise. All timestamps ISO 8601 UTC strings.
  * - Tenant scoping: every business table carries merchant_id and every query
  *   must filter by it (enforced in the service layer).
+ *
+ * Transactions: `withTransaction` reserves a dedicated connection (postgres.js
+ * `reserve()`), runs BEGIN/COMMIT around the callback, and exposes the reserved
+ * connection to the callback's `prepare()` calls through AsyncLocalStorage -
+ * so transaction bodies keep reading and writing through the same helper.
  */
+import { AsyncLocalStorage } from "node:async_hooks";
 import fs from "node:fs";
-import path from "node:path";
-import Database from "better-sqlite3";
+import postgres from "postgres";
 
-export type SqliteDatabase = Database.Database;
+/** The query-builder returned by `db.prepare(sql)` - awaited by every call site. */
+export interface Prepared {
+  // Typed `any` (not Promise<any>) so the historical call-site style -
+  // `(...).get(...) as { n: number }` - stays valid at any position relative
+  // to `await` (TS binds `as` tighter than `await`); callers narrow with `as`.
+  get(...args: unknown[]): any;
+  all(...args: unknown[]): any;
+  run(...args: unknown[]): Promise<RunResult>;
+}
+
+/**
+ * The database handle the services pass around. It mirrors the old
+ * better-sqlite3 call shape (`db.prepare(sql).get/all/run(...)`) over async
+ * Postgres, plus a raw `unsafe` for schema/bootstrap statements.
+ */
+export interface SqliteDatabase {
+  prepare(text: string): Prepared;
+  unsafe(text: string, args?: unknown[]): Promise<Record<string, unknown>[] & { count?: number }>;
+  reserve(): Promise<{ sql: SqliteDatabase; release: () => void }>;
+}
 
 export interface RunResult {
   changes: number;
@@ -42,7 +69,7 @@ const SCHEMA_STATEMENTS: string[] = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_orders_merchant_time ON orders (merchant_id, occurred_at, status)`,
   `CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     sku_id TEXT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
@@ -141,7 +168,7 @@ const SCHEMA_STATEMENTS: string[] = [
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS audit_events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     merchant_id TEXT NOT NULL,
     actor_id TEXT NOT NULL,
     action TEXT NOT NULL,
@@ -200,137 +227,222 @@ const SCHEMA_STATEMENTS: string[] = [
   )`,
 ];
 
-/** Static migration for the one-time legacy merchants-table rebuild. Never interpolated. */
-const LEGACY_MERCHANTS_MIGRATION_STATEMENTS: string[] = [
-  `CREATE TABLE merchants_migrated (
-    id TEXT PRIMARY KEY,
-    demo_session_id TEXT NOT NULL,
-    variant_seed INTEGER NOT NULL DEFAULT 20261106,
-    display_name TEXT NOT NULL,
-    timezone TEXT NOT NULL,
-    currency TEXT NOT NULL,
-    fixture_version TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  )`,
-  `INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
-    SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants`,
-  `DROP TABLE merchants`,
-  `ALTER TABLE merchants_migrated RENAME TO merchants`,
-  `CREATE INDEX IF NOT EXISTS idx_merchants_session ON merchants (demo_session_id)`,
-];
-
-/** Run each static statement through a prepared statement - no dynamic SQL anywhere. */
-function runStatements(db: SqliteDatabase, statements: string[]): void {
-  for (const sql of statements) {
-    db.prepare(sql).run();
+/** Run each static statement as a parameterless query - no dynamic SQL anywhere. */
+async function runStatements(sql: SqliteDatabase, statements: string[]): Promise<void> {
+  for (const statement of statements) {
+    await sql.unsafe(statement);
   }
-}
-
-/**
- * Validates a configured database path before it touches the filesystem:
- * no control characters, no URL schemes, and the resolved location must stay
- * inside the project working directory (no ../ escapes). All shipped configs
- * (app server, seed CLI, fixture verifier, test runner) use project-relative
- * paths, so this changes no legitimate behaviour.
- */
-export function resolveDatabasePath(raw: string): string {
-  const trimmed = raw.trim();
-  if (!trimmed) throw new Error("Database path is empty.");
-  if (/[\0\r\n]/.test(trimmed)) throw new Error("Database path contains control characters.");
-  // Windows drive letters ("C:\data\app.sqlite") are legitimate absolute
-  // filesystem paths - check them BEFORE the URL-scheme pattern, which would
-  // otherwise misread "C:" as a scheme.
-  const isWindowsAbsolute = /^[a-zA-Z]:[\\/]/.test(trimmed);
-  if (!isWindowsAbsolute && /^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
-    throw new Error(`Database path must be a filesystem path, not a URL: ${trimmed}`);
-  }
-  const root = process.cwd();
-  const resolved = path.isAbsolute(trimmed) ? path.normalize(trimmed) : path.resolve(root, trimmed);
-  if (resolved === root || !resolved.startsWith(root + path.sep)) {
-    throw new Error(`Database path must stay inside the project directory (got ${resolved}).`);
-  }
-  return resolved;
-}
-
-export function openDatabase(dbPath: string): SqliteDatabase {
-  const resolved = resolveDatabasePath(dbPath);
-  fs.mkdirSync(path.dirname(resolved), { recursive: true });
-  const db = new Database(resolved);
-  db.pragma("journal_mode = WAL");
-  migrateLegacyMerchantsTable(db);
-  db.pragma("foreign_keys = ON");
-  runStatements(db, SCHEMA_STATEMENTS);
-  pruneChildlessMerchants(db);
-  return db;
-}
-
-/**
- * Databases created before multi-merchant support had UNIQUE(demo_session_id)
- * and no variant_seed column. SQLite cannot drop a unique constraint in place,
- * so if the old shape is detected the table is rebuilt (rows and children kept).
- *
- * better-sqlite3 leaves foreign_keys ON by default; a plain `DROP TABLE
- * merchants` under FK enforcement performs an implicit DELETE that CASCADES to
- * every child row. The rebuild therefore runs with foreign keys suspended.
- */
-/** Static DDL/DML for the one-time legacy merchants-table rebuild. No interpolation. */
-const LEGACY_MERCHANTS_MIGRATION_SQL = `
-  CREATE TABLE merchants_migrated (
-    id TEXT PRIMARY KEY,
-    demo_session_id TEXT NOT NULL,
-    variant_seed INTEGER NOT NULL DEFAULT 20261106,
-    display_name TEXT NOT NULL,
-    timezone TEXT NOT NULL,
-    currency TEXT NOT NULL,
-    fixture_version TEXT NOT NULL,
-    created_at TEXT NOT NULL
-  );
-  INSERT INTO merchants_migrated (id, demo_session_id, variant_seed, display_name, timezone, currency, fixture_version, created_at)
-    SELECT id, demo_session_id, 20261106, display_name, timezone, currency, fixture_version, created_at FROM merchants;
-  DROP TABLE merchants;
-  ALTER TABLE merchants_migrated RENAME TO merchants;
-`;
-
-function migrateLegacyMerchantsTable(db: SqliteDatabase): void {
-  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'merchants'").get() as
-    | { sql: string }
-    | undefined;
-  if (!row || !row.sql.includes("UNIQUE")) return;
-  db.pragma("foreign_keys = OFF");
-  db.transaction(() => {
-    runStatements(db, LEGACY_MERCHANTS_MIGRATION_STATEMENTS);
-  })();
-  db.pragma("foreign_keys = ON");
 }
 
 /**
  * A merchant row without any order rows is a husk - seedMerchant always fills
- * orders in the same transaction, so an empty one can only come from an older
- * broken migration (or manual tampering). Dropping it lets the owning session
- * reseed cleanly on its next visit instead of serving empty screens labeled as
- * seeded data.
+ * orders in the same transaction, so an empty one can only come from a broken
+ * seed run. Dropping it lets the owning session reseed cleanly on its next
+ * visit instead of serving empty screens labeled as seeded data.
  */
-function pruneChildlessMerchants(db: SqliteDatabase): void {
-  db.prepare(
-    "DELETE FROM merchants WHERE NOT EXISTS (SELECT 1 FROM orders WHERE orders.merchant_id = merchants.id)"
-  ).run();
+async function pruneChildlessMerchants(sql: SqliteDatabase): Promise<void> {
+  await sql.unsafe(
+    "DELETE FROM merchants WHERE NOT EXISTS (SELECT 1 FROM orders WHERE orders.merchant_id = merchants.id)",
+  );
 }
 
-/** Run `fn` inside an IMMEDIATE transaction; rolls back on throw. */
-export function withTransaction<T>(db: SqliteDatabase, fn: () => T): T {
-  // db.transaction().immediate() is better-sqlite3's native wrapper for
-  // BEGIN IMMEDIATE ... COMMIT / ROLLBACK with identical semantics.
-  return db.transaction(fn).immediate();
-}
-
-type GlobalWithDb = typeof globalThis & { __merchantSaathiDb?: SqliteDatabase };
-
-/** Process-wide singleton used by route handlers. */
-export function getDb(): SqliteDatabase {
-  const g = globalThis as GlobalWithDb;
-  if (!g.__merchantSaathiDb) {
-    const dbPath = process.env.DATABASE_PATH?.trim() || "./data/merchant-saathi.sqlite";
-    g.__merchantSaathiDb = openDatabase(dbPath);
+/**
+ * Validates a configured database connection string before it is used:
+ * no control characters. (Kept from the SQLite era; the hosted data layer
+ * uses DATABASE_URL, local tooling may still use a file path.)
+ */
+export function resolveDatabasePath(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) throw new Error("Database path is empty.");
+  const controlChars = new RegExp("[" + String.fromCharCode(0) + String.fromCharCode(13) + String.fromCharCode(10) + "]");
+  if (controlChars.test(trimmed)) throw new Error("Database path contains control characters.");
+  // Hosted-Postgres URLs (postgres://, libsql://) are legitimate here; any
+  // other URL scheme (http://, file://, ...) is rejected - DATABASE_URL feeds
+  // the postgres driver, which speaks only the database protocols above.
+  const knownScheme = /^(postgres|postgresql|libsql):/i.test(trimmed);
+  if (!knownScheme) {
+    if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed)) {
+      throw new Error(`Database path must be a filesystem path or a postgres:// URL: ${trimmed}`);
+    }
+    // Filesystem path: must stay inside the project directory.
+    const isWindowsAbsolute = /^[a-zA-Z]:[\/]/.test(trimmed);
+    if (!isWindowsAbsolute && /(^|[\/])\.\.([\/]|$)/.test(trimmed)) {
+      throw new Error(`Database path must stay inside the project directory (got ${trimmed}).`);
+    }
   }
-  return g.__merchantSaathiDb;
+  return trimmed;
+}
+
+/** Translate SQLite-style `?` placeholders to Postgres `$n` positionals. */
+function toPgPlaceholders(text: string): string {
+  let index = 0;
+  return text.replace(/\?/g, () => `$${++index}`);
+}
+
+function makePrepared(conn: SqliteDatabase, text: string): Prepared {
+  const pgText = toPgPlaceholders(text);
+  const logIfParamError = (args: unknown[]) => (e: any) => {
+    if (e && (e.code === "42P18" || e.code === "42804")) {
+      console.error("[db] parameter error:", e.code, "query:", pgText.replace(/\s+/g, " ").slice(0, 300));
+      const shown = args.map((v) => (v === undefined ? "<<undefined>>" : v === null ? "<<null>>" : typeof v));
+      console.error("[db] args:", JSON.stringify(shown).slice(0, 300));
+    }
+    throw e;
+  };
+  return {
+    async get(...args: unknown[]): Promise<any> {
+      const rows = await conn.unsafe(pgText, args).catch(logIfParamError(args));
+      return rows[0];
+    },
+    async all(...args: unknown[]): Promise<any> {
+      return await conn.unsafe(pgText, args).catch(logIfParamError(args));
+    },
+    async run(...args: unknown[]): Promise<RunResult> {
+      const result = await conn.unsafe(pgText, args).catch(logIfParamError(args));
+      return { changes: result.count ?? 0, lastInsertRowid: 0 };
+    },
+  };
+}
+
+/** Wrap a raw postgres.Sql (or a reserved connection) in the service-facing client. */
+function wrapClient(raw: postgres.Sql): SqliteDatabase {
+  const client: SqliteDatabase = {
+    prepare: (text: string) => makePrepared(client, text),
+    unsafe: (text: string, args?: unknown[]) =>
+      raw.unsafe(toPgPlaceholders(text), (args ?? []) as postgres.ParameterOrJSON<never>[]) as Promise<
+        Record<string, unknown>[] & { count?: number }
+      >,
+    reserve: async () => {
+      const reserved = (await raw.reserve()) as unknown as postgres.Sql & { release: () => void };
+      const reservedClient: SqliteDatabase = {
+        prepare: (text: string) => makePrepared(reservedClient, text),
+        unsafe: (text: string, args?: unknown[]) =>
+          reserved.unsafe(toPgPlaceholders(text), (args ?? []) as postgres.ParameterOrJSON<never>[]) as Promise<
+            Record<string, unknown>[] & { count?: number }
+          >,
+        // Reservations do not nest in this codebase; route to the same one.
+        reserve: async () => ({ sql: reservedClient, release: reserved.release }),
+      };
+      return { sql: reservedClient, release: reserved.release };
+    },
+  };
+  return client;
+}
+
+type GlobalWithDb = typeof globalThis & {
+  __merchantSaathiSql?: SqliteDatabase;
+  __merchantSaathiSqlInit?: Promise<void>;
+};
+
+/** Process-wide singleton used by route handlers, scripts and tests. */
+export async function getDb(): Promise<SqliteDatabase> {
+  const g = globalThis as GlobalWithDb;
+  if (!g.__merchantSaathiSql) {
+    let url = process.env.DATABASE_URL?.trim();
+    if (!url) {
+      // CLI scripts (tsx) do not auto-load .env.local - read just the
+      // connection string from it. On Vercel this file does not exist and
+      // the platform-injected DATABASE_URL is used instead.
+      try {
+        const envFile = fs.readFileSync(".env.local", "utf8");
+        const match = envFile.match(/^DATABASE_URL=(.*)$/m);
+        if (match) url = match[1].trim().replace(/^"/, "").replace(/"$/, "");
+      } catch {
+        // fall through to the clear error below
+      }
+    }
+    if (!url) {
+      throw new Error(
+        "DATABASE_URL is not set - the Postgres data layer needs a hosted Postgres connection string (see DEPLOY.md).",
+      );
+    }
+    const sql = postgres(url, {
+      // Hosted poolers (Neon's PgBouncer in transaction mode) do not support
+      // named prepared statements - keep parsing on the client.
+      prepare: false,
+      max: 3,
+      idle_timeout: 20,
+      connect_timeout: 15,
+      onnotice: () => {},
+    });
+    const client = wrapClient(sql);
+    await runStatements(client, SCHEMA_STATEMENTS);
+    await pruneChildlessMerchants(client);
+    g.__merchantSaathiSql = client;
+    g.__merchantSaathiSqlInit = Promise.resolve();
+  }
+  await g.__merchantSaathiSqlInit;
+  return g.__merchantSaathiSql;
+}
+
+/** Test helper: point the singleton at a specific database (isolated per suite). */
+export async function openTestDatabase(url: string): Promise<SqliteDatabase> {
+  const g = globalThis as GlobalWithDb;
+  const sql = postgres(url, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15, onnotice: () => {} });
+  const client = wrapClient(sql);
+  await runStatements(client, SCHEMA_STATEMENTS);
+  await pruneChildlessMerchants(client);
+  g.__merchantSaathiSql = client;
+  g.__merchantSaathiSqlInit = Promise.resolve();
+  return client;
+}
+
+interface TxScope {
+  conn: SqliteDatabase;
+}
+
+const txScope = new AsyncLocalStorage<TxScope>();
+
+/** Standalone query builder outside the passed-around db handle. */
+export function prepare(text: string): Prepared {
+  return {
+    async get(...args: unknown[]): Promise<any> {
+      const conn = txScope.getStore()?.conn ?? (await getDb());
+      return await makePrepared(conn, text).get(...args);
+    },
+    async all(...args: unknown[]): Promise<any> {
+      const conn = txScope.getStore()?.conn ?? (await getDb());
+      return await makePrepared(conn, text).all(...args);
+    },
+    async run(...args: unknown[]): Promise<RunResult> {
+      const conn = txScope.getStore()?.conn ?? (await getDb());
+      return await makePrepared(conn, text).run(...args);
+    },
+  };
+}
+
+/**
+ * Run `fn` inside a transaction; rolls back on throw.
+ *
+ * The callback's `db.prepare()` calls run on the reserved connection through
+ * the AsyncLocalStorage scope, so reads inside the transaction see its own
+ * writes, and concurrent requests never interleave on the same connection.
+ */
+export async function withTransaction<T>(db: SqliteDatabase, fn: () => T | Promise<T>): Promise<T> {
+  const base = txScope.getStore()?.conn ?? db;
+  const reserved = await base.reserve();
+  try {
+    await reserved.sql.unsafe("BEGIN");
+    try {
+      const result = await txScope.run({ conn: reserved.sql }, () => fn());
+      await reserved.sql.unsafe("COMMIT");
+      return result;
+    } catch (error) {
+      await reserved.sql.unsafe("ROLLBACK");
+      throw error;
+    }
+  } finally {
+    reserved.release();
+  }
+}
+
+/** Truncate every table (test isolation). CASCADE handles foreign keys. */
+export async function truncateAll(db: SqliteDatabase): Promise<void> {
+  await db.unsafe(`
+    TRUNCATE TABLE audit_events, outbox, redemptions, approvals, campaigns,
+      metric_snapshots, consents, order_items, orders, inventory, customers,
+      ledger_events, import_batches, deposit_requests, idempotency_requests,
+      merchants
+    CASCADE
+  `);
 }

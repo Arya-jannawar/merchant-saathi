@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" width="1200" height="400" role="img" aria-label="Team FinnovateX - Arya Jannawar, Siddhant Pardeshi, Avani Jannawar">
+  <defs>
+    <linearGradient id="aurora" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071a35">
+        <animate attributeName="stop-color" values="#071a35;#0d2f63;#071a35" dur="8s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="0.5" stop-color="#0b2447">
+        <animate attributeName="stop-color" values="#0b2447;#134a7c;#0b2447" dur="6s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="1" stop-color="#071a35">
+        <animate attributeName="stop-color" values="#071a35;#243b6b;#071a35" dur="10s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+    <linearGradient id="goldshine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b8860b"/><stop offset="0.4" stop-color="#ffd76e"/><stop offset="0.55" stop-color="#fff3c4"/><stop offset="0.7" stop-color="#ffd76e"/><stop offset="1" stop-color="#b8860b"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-1 0; 1 0; -1 0" dur="3.5s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="cyanshine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#005f8f"/><stop offset="0.5" stop-color="#7dd3fc"/><stop offset="1" stop-color="#00b9f1"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="1 0; -1 0; 1 0" dur="4.5s" repeatCount="indefinite"/>
+    </linearGradient>
+    <radialGradient id="spot" cx="0.5" cy="0.28" r="0.75">
+      <stop offset="0" stop-color="#1b4a8c" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#071a35" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#aurora)"/>
+  <rect width="1200" height="400" fill="url(#spot)">
+    <animate attributeName="opacity" values="0.5;1;0.5" dur="6s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- orbiting sparkles -->
+  <g fill="#ffd76e">
+    <circle cx="255" cy="86" r="2.4">
+      <animate attributeName="opacity" values="0;1;0" dur="2.2s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="0 600 130; 360 600 130" dur="14s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="945" cy="140" r="2">
+      <animate attributeName="opacity" values="0;1;0" dur="2.8s" begin="0.7s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="rotate" values="360 600 130; 0 600 130" dur="18s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="352" cy="52" r="1.7">
+      <animate attributeName="opacity" values="0;0.9;0" dur="3.1s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="852" cy="58" r="1.9">
+      <animate attributeName="opacity" values="0;0.9;0" dur="2.5s" begin="1.8s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- kicker stamp -->
+  <g opacity="0">
+    <rect x="452" y="30" width="296" height="38" rx="19" fill="none" stroke="#ffd76e" stroke-width="1.6"/>
+    <text x="600" y="55" text-anchor="middle" font-family="Segoe UI, Arial" font-size="14.5" font-weight="800" letter-spacing="4" fill="#ffd76e">THE TEAM BEHIND SAATHI</text>
+    <animate attributeName="opacity" values="0;1" dur="0.8s" begin="0.3s" fill="freeze"/>
+  </g>
+
+  <!-- TEAM: small gold word with side stars, drops in -->
+  <g opacity="0">
+    <text x="452" y="122" text-anchor="middle" font-size="20" fill="#7dd3fc">&#10022;<animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite"/></text>
+    <text x="600" y="130" text-anchor="middle" font-family="Segoe UI, Arial" font-size="34" font-weight="800" letter-spacing="22" fill="#ffffff">TEAM</text>
+    <text x="748" y="122" text-anchor="middle" font-size="20" fill="#7dd3fc">&#10022;<animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/></text>
+    <animate attributeName="opacity" values="0;1" dur="0.4s" begin="0.9s" fill="freeze"/>
+    <animateTransform attributeName="transform" type="translate" values="0 -26; 0 0" dur="0.5s" begin="0.9s" fill="freeze"/>
+  </g>
+
+  <!-- FINNOVATEX: the huge gold-shine word -->
+  <g opacity="0">
+    <text x="600" y="216" text-anchor="middle" font-family="Segoe UI, Arial" font-size="88" font-weight="800" letter-spacing="6" fill="url(#goldshine)">FINNOVATEX</text>
+    <animate attributeName="opacity" values="0;1" dur="0.5s" begin="1.4s" fill="freeze"/>
+    <animateTransform attributeName="transform" type="translate" values="0 -40; 0 0" dur="0.6s" begin="1.4s" fill="freeze"/>
+  </g>
+  <!-- underline sweep -->
+  <rect x="330" y="232" width="540" height="4" rx="2" fill="#00b9f1">
+    <animate attributeName="width" values="0;540;540" keyTimes="0;0.6;1" dur="1.4s" begin="1.9s" fill="freeze"/>
+    <animate attributeName="x" values="600;330;330" keyTimes="0;0.6;1" dur="1.4s" begin="1.9s" fill="freeze"/>
+  </rect>
+
+  <!-- member cards slide in from alternating sides -->
+  <g font-family="Segoe UI, Arial" text-anchor="middle">
+    <g opacity="0" transform="translate(-420 0)">
+      <rect x="150" y="254" width="280" height="102" rx="16" fill="#0e2c55" stroke="#00b9f1" stroke-width="1.4">
+        <animate attributeName="stroke-opacity" values="1;0.45;1" dur="3s" repeatCount="indefinite"/>
+      </rect>
+      <text x="290" y="292" font-size="21" font-weight="800" fill="#ffffff">Arya Jannawar</text>
+      <text x="290" y="318" font-size="13.5" font-weight="700" fill="#ffd76e">TEAM LEADER &#183; PRODUCT</text>
+      <text x="290" y="340" font-size="12" fill="#8fb3d9">"evidence or it didn't happen"</text>
+      <animate attributeName="opacity" values="0;1" dur="0.6s" begin="2.5s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" values="-420 0; 0 0" dur="0.7s" begin="2.5s" fill="freeze"/>
+    </g>
+    <g opacity="0" transform="translate(420 0)">
+      <rect x="460" y="254" width="280" height="102" rx="16" fill="#0e2c55" stroke="#00b9f1" stroke-width="1.4">
+        <animate attributeName="stroke-opacity" values="0.45;1;0.45" dur="3s" repeatCount="indefinite"/>
+      </rect>
+      <text x="600" y="292" font-size="21" font-weight="800" fill="#ffffff">Siddhant Pardeshi</text>
+      <text x="600" y="318" font-size="13.5" font-weight="700" fill="#7dd3fc">ENGINEERING &#183; DEPLOYMENT</text>
+      <text x="600" y="340" font-size="12" fill="#8fb3d9">integer paise or nothing</text>
+      <animate attributeName="opacity" values="0;1" dur="0.6s" begin="2.8s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" values="420 0; 0 0" dur="0.7s" begin="2.8s" fill="freeze"/>
+    </g>
+    <g opacity="0" transform="translate(-420 0)">
+      <rect x="770" y="254" width="280" height="102" rx="16" fill="#0e2c55" stroke="#00b9f1" stroke-width="1.4">
+        <animate attributeName="stroke-opacity" values="1;0.45;1" dur="3s" begin="1.5s" repeatCount="indefinite"/>
+      </rect>
+      <text x="910" y="292" font-size="21" font-weight="800" fill="#ffffff">Avani Jannawar</text>
+      <text x="910" y="318" font-size="13.5" font-weight="700" fill="#4ade80">DESIGN &#183; VERIFICATION</text>
+      <text x="910" y="340" font-size="12" fill="#8fb3d9">every number has a receipt</text>
+      <animate attributeName="opacity" values="0;1" dur="0.6s" begin="3.1s" fill="freeze"/>
+      <animateTransform attributeName="transform" type="translate" values="-420 0; 0 0" dur="0.7s" begin="3.1s" fill="freeze"/>
+    </g>
+  </g>
+
+  <!-- bottom motto -->
+  <text x="600" y="386" text-anchor="middle" font-family="Segoe UI, Arial" font-size="14" font-weight="700" fill="url(#cyanshine)">
+    Built with &#129471; and honesty &#183; Paytm AI Hackathon &#183; Pune &#183; Track 1 &#8212; Merchant Growth AI
+  </text>
+</svg>

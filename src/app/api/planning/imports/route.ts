@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 
 /** GET /api/planning/imports - the last 20 import batches with statuses. */
 export const GET = routeHandler(async (request: Request) => {
-  const db = getDb();
+  const db = await getDb();
   const sessionId = getDemoSessionId();
-  const { merchantId } = resolveTenant(db, sessionId, getRequestedMerchantId(request));
-  return ok({ batches: listBatches(db, merchantId) });
+  const { merchantId } = await resolveTenant(db, sessionId, getRequestedMerchantId(request));
+  return ok({ batches: await listBatches(db, merchantId) });
 });

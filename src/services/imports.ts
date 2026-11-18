@@ -29,28 +29,30 @@ export interface ImportPreview {
 }
 
 /** The ledger rows that a confirmation would actually post (for previews). */
-function postableRows(
+async function postableRows(
   db: SqliteDatabase,
   merchantId: string,
   parsed: ParseResult,
-): (ParsedRow & { duplicateOfLedger: boolean })[] {
-  return parsed.rows.filter((r) => r.status === "import").map((r) => ({
-    ...r,
-    duplicateOfLedger: db
-      .prepare("SELECT 1 FROM ledger_events WHERE merchant_id = ? AND fingerprint = ?")
-      .get(merchantId, fingerprintFor(r.occurredAt, r.eventType, r.amountPaise, r.externalId, r.note)) !== undefined,
-  }));
+): Promise<(ParsedRow & { duplicateOfLedger: boolean })[]> {
+  const out: (ParsedRow & { duplicateOfLedger: boolean })[] = [];
+  for (const r of parsed.rows.filter((r) => r.status === "import")) {
+    const dup = (await db
+      .prepare("SELECT 1 AS hit FROM ledger_events WHERE merchant_id = ? AND fingerprint = ?")
+      .get(merchantId, fingerprintFor(r.occurredAt, r.eventType, r.amountPaise, r.externalId, r.note))) !== undefined;
+    out.push({ ...r, duplicateOfLedger: dup });
+  }
+  return out;
 }
 
-export function previewImport(
+export async function previewImport(
   db: SqliteDatabase,
   merchantId: string,
   filename: string,
   content: string,
   dateOrder: "auto" | "dmy" | "mdy" | "ymd",
-): ImportPreview {
+): Promise<ImportPreview> {
   const parsed = parseStatement({ content, dateOrder });
-  const postable = postableRows(db, merchantId, parsed);
+  const postable = await postableRows(db, merchantId, parsed);
   const counts = (status: ParsedRow["status"]) => parsed.rows.filter((r) => r.status === status).length;
   const previewRows = parsed.rows.map((r) => {
     const dup = r.status === "import" && postable.find((p) => p.rowNumber === r.rowNumber)?.duplicateOfLedger;
@@ -86,18 +88,18 @@ export interface ImportReceipt {
 }
 
 /** Confirm: parse again server-side, then post every valid row atomically. */
-export function confirmImport(
+export async function confirmImport(
   db: SqliteDatabase,
   merchantId: string,
   filename: string,
   content: string,
   dateOrder: "auto" | "dmy" | "mdy" | "ymd",
-): ImportReceipt {
+): Promise<ImportReceipt> {
   const parsed = parseStatement({ content, dateOrder });
   if (parsed.unsupportedReason) throw new ApiError("invalid_input", parsed.unsupportedReason);
-  const existing = db
+  const existing = (await db
     .prepare("SELECT id FROM import_batches WHERE merchant_id = ? AND checksum = ? AND reversed_at IS NULL")
-    .get(merchantId, parsed.checksum) as { id: string } | undefined;
+    .get(merchantId, parsed.checksum)) as { id: string } | undefined;
   const now = getNow().toISOString();
   const batchId = `imp_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 
@@ -106,29 +108,29 @@ export function confirmImport(
   let skipped = parsed.rows.filter((r) => r.status === "skip-duplicate" || r.status === "skip-cancelled").length;
   let conflicting = parsed.rows.filter((r) => r.status === "conflict").length;
 
-  withTransaction(db, () => {
+  await withTransaction(db, async () => {
     if (existing) {
       // Exact-file retry: fingerprints dedupe to zero new rows; still return
       // the original receipt shape with duplicateBatch marked.
-      const prior = db
+      const prior = (await db
         .prepare("SELECT rows_total, rows_imported, rows_skipped, rows_conflicting, period_start, period_end FROM import_batches WHERE id = ?")
-        .get(existing.id) as { rows_total: number; rows_imported: number; rows_skipped: number; rows_conflicting: number; period_start: string | null; period_end: string | null };
-      db.prepare("UPDATE import_batches SET created_at = ? WHERE id = ?").run(now, batchId);
-      db.prepare(
+        .get(existing.id)) as { rows_total: number; rows_imported: number; rows_skipped: number; rows_conflicting: number; period_start: string | null; period_end: string | null };
+      await db.prepare("UPDATE import_batches SET created_at = ? WHERE id = ?").run(now, batchId);
+      await db.prepare(
         "INSERT INTO import_batches (id, merchant_id, filename, checksum, rows_total, rows_imported, rows_skipped, rows_conflicting, period_start, period_end, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
       ).run(batchId, merchantId, filename, parsed.checksum, prior.rows_total, 0, prior.rows_total, 0, prior.period_start, prior.period_end, now);
       return;
     }
     for (const row of rowsToPost) {
       const fp = fingerprintFor(row.occurredAt, row.eventType, row.amountPaise, row.externalId, row.note);
-      const dup = db
-        .prepare("SELECT 1 FROM ledger_events WHERE merchant_id = ? AND fingerprint = ?")
+      const dup = await db
+        .prepare("SELECT 1 AS hit FROM ledger_events WHERE merchant_id = ? AND fingerprint = ?")
         .get(merchantId, fp);
       if (dup) {
         skipped += 1;
         continue;
       }
-      db.prepare(
+      await db.prepare(
         `INSERT INTO ledger_events (id, merchant_id, batch_id, external_id, event_type, occurred_on, amount_paise, method, note, sku_id, units, unit_cost_paise, source, fingerprint, created_at)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       ).run(
@@ -151,14 +153,14 @@ export function confirmImport(
       imported += 1;
     }
     const importedDates = rowsToPost.map((r) => r.occurredAt).sort();
-    db.prepare(
+    await db.prepare(
       "INSERT INTO import_batches (id, merchant_id, filename, checksum, rows_total, rows_imported, rows_skipped, rows_conflicting, period_start, period_end, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
     ).run(batchId, merchantId, filename, parsed.checksum, parsed.rows.length, imported, skipped, conflicting, importedDates[0] ?? null, importedDates.at(-1) ?? null, now);
   });
 
-  const receipt = db
+  const receipt = (await db
     .prepare("SELECT * FROM import_batches WHERE merchant_id = ? AND id = ?")
-    .get(merchantId, batchId) as {
+    .get(merchantId, batchId)) as {
     id: string; filename: string; rows_total: number; rows_imported: number; rows_skipped: number; rows_conflicting: number; period_start: string | null; period_end: string | null;
   };
   return {
@@ -187,10 +189,10 @@ export interface ImportBatchDto {
   reversedAt: string | null;
 }
 
-export function listBatches(db: SqliteDatabase, merchantId: string): ImportBatchDto[] {
-  const rows = db
+export async function listBatches(db: SqliteDatabase, merchantId: string): Promise<ImportBatchDto[]> {
+  const rows = (await db
     .prepare("SELECT * FROM import_batches WHERE merchant_id = ? ORDER BY created_at DESC LIMIT 20")
-    .all(merchantId) as Record<string, unknown>[];
+    .all(merchantId)) as Record<string, unknown>[];
   return rows.map((r) => ({
     id: String(r.id),
     filename: String(r.filename),
@@ -206,14 +208,14 @@ export function listBatches(db: SqliteDatabase, merchantId: string): ImportBatch
 }
 
 /** Reverse a confirmed batch: its rows are removed, records confirmed by another batch stay. */
-export function revertBatch(db: SqliteDatabase, merchantId: string, batchId: string): { reversed: boolean } {
-  const batch = db
+export async function revertBatch(db: SqliteDatabase, merchantId: string, batchId: string): Promise<{ reversed: boolean }> {
+  const batch = (await db
     .prepare("SELECT id FROM import_batches WHERE merchant_id = ? AND id = ? AND reversed_at IS NULL")
-    .get(merchantId, batchId) as { id: string } | undefined;
+    .get(merchantId, batchId)) as { id: string } | undefined;
   if (!batch) throw new ApiError("not_found", "Import batch not found for this session (or already reversed).");
-  withTransaction(db, () => {
-    db.prepare("DELETE FROM ledger_events WHERE merchant_id = ? AND batch_id = ?").run(merchantId, batchId);
-    db.prepare("UPDATE import_batches SET reversed_at = ? WHERE id = ?").run(getNow().toISOString(), batchId);
+  await withTransaction(db, async () => {
+    await db.prepare("DELETE FROM ledger_events WHERE merchant_id = ? AND batch_id = ?").run(merchantId, batchId);
+    await db.prepare("UPDATE import_batches SET reversed_at = ? WHERE id = ?").run(getNow().toISOString(), batchId);
   });
   return { reversed: true };
 }

@@ -18,10 +18,14 @@
 
 ## 🌐 Try it live — no install needed
 
-> **▶ Open the live demo: [https://eye-under-dublin-oclc.trycloudflare.com](https://eye-under-dublin-oclc.trycloudflare.com/merchant)**
-> Click **Load sample data**, then walk the loop exactly as the video shows: dashboard → evidence → offer workspace → approve → simulated campaign → the ₹300 waterfall. Every visitor gets their own isolated demo session.
+<p align="center">
+  <a href="https://merchant-saathi.vercel.app/merchant"><img src="docs/animations/live-pulse.svg" width="62%" alt="Live on Vercel badge"/></a>
+</p>
 
-*How this is hosted: the production build (`npm run build && npm start`) runs as a real Node process with a durable SQLite file — the "persistent-disk host" path in [DEPLOY.md](DEPLOY.md) — and a Cloudflare tunnel publishes it over HTTPS. The URL changes if the tunnel restarts (one command re-publishes it); the durable serverless path (Vercel + a hosted Postgres port) is documented in the same file as the long-term option. AI is in live mode with the labeled fixture fallback active until the organizer-published model endpoint is filled in — the app says so on screen.*
+> **▶ Open the live demo: [https://merchant-saathi.vercel.app](https://merchant-saathi.vercel.app/merchant)**
+> Click **Load sample data**, then walk the loop exactly as the video shows: dashboard → evidence → offer workspace → approve → simulated campaign → the ₹300 waterfall. Every visitor gets their own isolated demo session, backed by a hosted Postgres (Neon) — state persists across reloads.
+
+*How this is hosted: the Next.js app runs on Vercel's free tier and the data layer is a hosted Postgres (Neon marketplace) — the serverless path in [DEPLOY.md](DEPLOY.md). The data layer was ported from local SQLite to the `postgres` driver for this (same schema, same invariants, same 117-test suite now running against Postgres). AI answers come from the built-in fact book by default (honestly labeled); a live model can be attached at runtime via the chat's 🧠 key dialog — server memory only, public-host validated, rupee-checked replies.*
 
 ## 🎬 Watch the video walkthrough (narrated, pick your pace)
 
@@ -39,7 +43,7 @@
 One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b> (inventory and restock intelligence), <b>Serve</b> (consent-first customer campaigns). A dashboard alone shows a merchant that orders are down; the copilot answers <b>what to do</b>, <b>whether it is affordable</b>, <b>what to say</b>, <b>whether it worked</b> - and <b>when the stockroom will run dry</b>. Every single number is proven on the way.</p>
 
 <p align="center">
-  <img src="docs/animations/mascot-moods.svg" width="100%" alt="Six mascot buddies with signature animations"/>
+  <img src="docs/animations/mascot-wave.svg" width="42%" alt="Muffin, the cupcake mascot, waving"/>
 </p>
 
 <p align="center">
@@ -56,7 +60,8 @@ One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b>
   <a href="#-run-it-in-10-minutes">Run It</a> •
   <a href="#-testing--verification">Tests</a> •
   <a href="#-roadmap">Roadmap</a> •
-  <a href="#-team-finovatex">Team</a>
+  <a href="#-team-finovatex">Team</a> •
+  <a href="#-certified-at-the-paytm-ai-hackathon">🏅 Certificates</a>
 </p>
 
 ---
@@ -78,6 +83,10 @@ Both documents were regenerated from the current build on Nov 15 and carry **Tea
 ## 🎯 The problem, in real numbers
 
 Our hero user is a Pune bakery owner. Between the two most recent complete Mon–Fri windows, completed **3–6 p.m. orders fell from 100 to 70 (−30%)** and net sales from **₹8,000 to ₹5,600**. Average order value stayed flat at **₹80** — so the problem is **order count, not basket size**.
+
+<p align="center">
+  <img src="docs/animations/evidence-stamp.svg" width="88%" alt="Evidence receipt stamped on the -30% number"/>
+</p>
 
 A dashboard alone just shows the decline. The owner is still stuck with five unanswered questions:
 
@@ -142,6 +151,10 @@ Approving binds version + price + cap + audience hash + inventory version. Execu
 ### 💰 5. Results with a money waterfall
 <p align="center"><img src="docs/screenshots/07-simulated-results.png" width="100%" alt="Simulated results waterfall"/></p>
 
+<p align="center">
+  <img src="docs/animations/money-waterfall.svg" width="88%" alt="Animated money waterfall: Rs 700 minus Rs 400 equals Rs 300"/>
+</p>
+
 ₹700 bundle sales − ₹400 ingredients & packaging = **₹300 contribution toward fixed costs**. Replay R-003 and the app proves idempotency live: *"replaying it changed nothing."* One report model feeds **both downloads**: a real **PDF** (selectable text, business-specific filename, rupee sign and Devanagari glyphs via embedded Noto fonts, honest zero-redemption state) next to the classic `.txt` — the two formats can never disagree because they render from the same authorized campaign results.
 
 ### 🪞 6. The honesty ledger — "insufficient evidence" on demand
@@ -168,6 +181,10 @@ Ask *"why are orders down?"*, *"is ₹70 safe?"*, *"what did the campaign earn?"
 
 ### 🧭 9. Plan my next sale — imports, forecast, festivals, deposits
 <p align="center"><img src="docs/screenshots/13-credits-footer.png" width="100%" alt="Planning entry points on the dashboard"/></p>
+
+<p align="center">
+  <img src="docs/animations/forecast-wave.svg" width="88%" alt="Animated forecast: ridge line with an honest error band"/>
+</p>
 
 **"Plan my next sale"** is one entry that carries a merchant from raw records to a decision:
 
@@ -309,7 +326,7 @@ npm run fixtures:verify         # must print: All fixture checks passed.
 npm run dev
 ```
 
-Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: set `AI_MODE=live` + `LLM_API_KEY` + `LLM_MODEL` + `LLM_BASE_URL`, or paste a key and endpoint in the chat's 🧠 dialog. Prefer a little atmosphere? The 🎵 toggle (bottom-left) plays a soft, synthesized lo-fi pad — opt-in, remembered per browser, paused when the tab is hidden. Node 20+, nothing else to install.
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: paste a key + endpoint in the chat's 🧠 dialog (server memory only, public-host validated; rupee-invented replies fall back to the fact book with a labeled note). Prefer a little atmosphere? The 🎵 toggle (bottom-left) plays a soft, synthesized lo-fi pad — opt-in, remembered per browser, paused when the tab is hidden. Node 20+, nothing else to install.
 
 <details>
 <summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>
@@ -334,10 +351,25 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 
 **Pilot plan:** 3–5 Pune bakery owners · measure time-to-prepare an offer, pricing errors, comprehension of evidence · pricing validated only after real trials.
 
+## 🏅 Certified at the Paytm AI Hackathon
+
+<p align="center"><i>Team FinnovateX participated in the <b>Paytm ♥ AI Hackathon — Build for India</b>, Pune, 15th November: a full day of building, judging and shipping with the Paytm community.</i></p>
+
+<table align="center">
+  <tr>
+    <td align="center" width="50%"><img src="docs/media/event-banner.png" width="92%" alt="Paytm AI Hackathon - Build for India, Pune, 15th November"/><br/><sub><b>The event</b> — Paytm ♥ AI · Build for India · Pune</sub></td>
+    <td align="center" width="50%"><img src="docs/media/certificates.jpeg" width="92%" alt="Three certificates of participation - Arya Jannawar, Siddhant Pardeshi, Avani Jannawar"/><br/><sub><b>Team FinnovateX certificates</b> — one for every builder, signed by Paytm's Community Head</sub></td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/animations/certificate-badge.svg" width="24%" alt="Certified participant rosette"/>
+</p>
+
 ## 👑 Team FinovateX
 
 <p align="center">
-  <img src="docs/animations/credits-finale.svg" width="100%" alt="Team FinovateX - Avani Jannawar, Siddhant Pardeshi, Arya Jannawar"/>
+  <img src="docs/animations/team-finnovatex.svg" width="100%" alt="Team FinnovateX - Arya Jannawar, Siddhant Pardeshi, Avani Jannawar - animated banner"/>
 </p>
 
 | | | |
@@ -346,7 +378,7 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 | Product & QA · mascot cast, animation & sound system, visual identity | Systems & hardening · multi-business engine, idempotency, migration safety | AI & core engine · evidence pipeline, offer guardrails, bounded adapter |
 
 <p align="center">
-  <img src="docs/animations/guardrail-flash.svg" width="60%" alt="The guardrail that rejects unprofitable offers"/>
+  <img src="docs/animations/paytm-thanks.svg" width="88%" alt="Thank you Paytm - Team FinnovateX"/>
 </p>
 
 <p align="center">
@@ -355,7 +387,7 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 </p>
 
 <p align="center">
-  <img src="docs/animations/mascot-moods.svg" width="100%" alt="The mascot cast waving goodbye"/>
+  <img src="docs/animations/mascot-wave.svg" width="30%" alt="Muffin waving goodbye"/>
 </p>
 
 ---

@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll } from "vitest";
 import { openTestDb } from "./helpers";
+import { truncateAll } from "@/lib/db";
 import { resetTenant } from "@/lib/seed";
 import { loadFixture } from "@/lib/fixture";
 import { computeOffer } from "@/domain/offers";
@@ -8,17 +9,19 @@ import { computeBundleCapacity } from "@/domain/metrics";
 const SESSION = "test-offers";
 let merchantId: string;
 
-beforeAll(() => {
-  const db = openTestDb();
-  merchantId = resetTenant(db, SESSION);
+beforeAll(async () => {
+  const db = await openTestDb();
+  // Suites share one hosted database - wipe leftovers from previous runs.
+  await truncateAll(db);
+  merchantId = await resetTenant(db, SESSION);
 });
 
 describe("offer economics", () => {
   const fixture = loadFixture();
 
-  it("validates the hero offer: Rs 70 passes with 42.857% margin", () => {
-    const db = openTestDb();
-    const c = computeOffer(db, merchantId, fixture, 7000, 20);
+  it("validates the hero offer: Rs 70 passes with 42.857% margin", async () => {
+    const db = await openTestDb();
+    const c = await computeOffer(db, merchantId, fixture, 7000, 20);
     expect(c.bundleCostPaise).toBe(4000);
     expect(c.contributionPaise).toBe(3000);
     expect(c.marginPct).toBeCloseTo(42.857, 3);
@@ -39,53 +42,56 @@ describe("offer economics", () => {
     });
   });
 
-  it("rejects Rs 50: 20% margin is below the 25% floor", () => {
-    const db = openTestDb();
-    const c = computeOffer(db, merchantId, fixture, 5000, 20);
+  it("rejects Rs 50: 20% margin is below the 25% floor", async () => {
+    const db = await openTestDb();
+    const c = await computeOffer(db, merchantId, fixture, 5000, 20);
     expect(c.contributionPaise).toBe(1000);
     expect(c.marginPct).toBeCloseTo(20.0, 3);
     expect(c.passes).toBe(false);
     expect(c.violations.some((v) => v.includes("below the 25% floor"))).toBe(true);
   });
 
-  it("rejects zero and negative prices", () => {
-    const db = openTestDb();
-    expect(computeOffer(db, merchantId, fixture, 0, 20).passes).toBe(false);
-    expect(computeOffer(db, merchantId, fixture, -100, 20).violations.some((v) => v.includes("greater than zero"))).toBe(true);
+  it("rejects zero and negative prices", async () => {
+    const db = await openTestDb();
+    expect((await computeOffer(db, merchantId, fixture, 0, 20)).passes).toBe(false);
+    expect((await computeOffer(db, merchantId, fixture, -100, 20)).violations.some((v) => v.includes("greater than zero"))).toBe(true);
   });
 
-  it("treats a missing SKU cost as unknown, never as zero", () => {
-    const db = openTestDb();
-    db.prepare("UPDATE inventory SET unit_variable_cost_paise = NULL WHERE merchant_id = ? AND sku_id = 'SKU-TEA'").run(merchantId);
-    const c = computeOffer(db, merchantId, fixture, 7000, 20);
+  it("treats a missing SKU cost as unknown, never as zero", async () => {
+    const db = await openTestDb();
+    await db.prepare("UPDATE inventory SET unit_variable_cost_paise = NULL WHERE merchant_id = ? AND sku_id = 'SKU-TEA'").run(merchantId);
+    const c = await computeOffer(db, merchantId, fixture, 7000, 20);
     expect(c.bundleCostPaise).toBeNull();
     expect(c.contributionPaise).toBeNull();
     expect(c.atCap).toBeNull();
     expect(c.passes).toBe(false);
     expect(c.violations.some((v) => v.includes("Cannot calculate margin"))).toBe(true);
     // restore
-    db.prepare("UPDATE inventory SET unit_variable_cost_paise = 1000 WHERE merchant_id = ? AND sku_id = 'SKU-TEA'").run(merchantId);
+    await db.prepare("UPDATE inventory SET unit_variable_cost_paise = 1000 WHERE merchant_id = ? AND sku_id = 'SKU-TEA'").run(merchantId);
   });
 
-  it("refuses to silently lower a cap above physical capacity", () => {
-    const db = openTestDb();
-    const c = computeOffer(db, merchantId, fixture, 7000, 30);
+  it("refuses to silently lower a cap above physical capacity", async () => {
+    const db = await openTestDb();
+    const c = await computeOffer(db, merchantId, fixture, 7000, 30);
     expect(c.capacity).toBe(25);
     expect(c.capWithinCapacity).toBe(false);
     expect(c.passes).toBe(false);
     expect(c.violations.some((v) => v.includes("will not be silently lowered"))).toBe(true);
   });
 
-  it("rejects caps below one", () => {
-    const db = openTestDb();
-    expect(computeOffer(db, merchantId, fixture, 7000, 0).passes).toBe(false);
+  it("rejects caps below one", async () => {
+    const db = await openTestDb();
+    expect((await computeOffer(db, merchantId, fixture, 7000, 0)).passes).toBe(false);
   });
 
-  it("enforces non-negative stock at the database level", () => {
-    const db = openTestDb();
-    expect(() =>
-      db.prepare("UPDATE inventory SET quantity = -1 WHERE merchant_id = ? AND sku_id = 'SKU-SAMOSA'").run(merchantId)
-    ).toThrowError();
+  it("enforces non-negative stock at the database level", async () => {
+    const db = await openTestDb();
+    try {
+      await db.prepare("UPDATE inventory SET quantity = -1 WHERE merchant_id = ? AND sku_id = 'SKU-SAMOSA'").run(merchantId);
+      throw new Error("expected the CHECK constraint to reject a negative stock row");
+    } catch (err) {
+      expect(String((err as Error).message)).not.toContain("expected the CHECK constraint");
+    }
   });
 
   it("computes capacity from stock counts", () => {

@@ -13,17 +13,17 @@ export interface WindowTotals {
   netSalesPaise: number;
 }
 
-export function completedTotalsInRange(
+export async function completedTotalsInRange(
   db: SqliteDatabase,
   merchantId: string,
   startIso: string,
   endIsoExclusive: string
-): WindowTotals {
-  const row = db
+): Promise<WindowTotals> {
+  const row = (await db
     .prepare(
-      "SELECT COUNT(*) AS n, COALESCE(SUM(total_paise),0) AS net FROM orders WHERE merchant_id = ? AND status = 'completed' AND occurred_at >= ? AND occurred_at < ?"
+      "SELECT COUNT(*)::int AS n, COALESCE(SUM(total_paise),0)::int AS net FROM orders WHERE merchant_id = ? AND status = 'completed' AND occurred_at >= ? AND occurred_at < ?"
     )
-    .get(merchantId, startIso, endIsoExclusive) as { n: number; net: number };
+    .get(merchantId, startIso, endIsoExclusive)) as { n: number; net: number };
   return { orders: row.n, netSalesPaise: row.net };
 }
 
@@ -43,20 +43,20 @@ export function afternoonBands(windowStartIso: string): { startIso: string; endI
 }
 
 /** Completed orders inside a window's five daily 3-6 p.m. IST bands. */
-export function completedAfternoonTotals(
+export async function completedAfternoonTotals(
   db: SqliteDatabase,
   merchantId: string,
   window: { startIso: string }
-): WindowTotals {
+): Promise<WindowTotals> {
   const bands = afternoonBands(window.startIso);
   const clauses = bands.map(() => "(occurred_at >= ? AND occurred_at < ?)").join(" OR ");
   const params: string[] = [merchantId];
   for (const b of bands) params.push(b.startIso, b.endIso);
-  const row = db
+  const row = (await db
     .prepare(
-      `SELECT COUNT(*) AS n, COALESCE(SUM(total_paise),0) AS net FROM orders WHERE merchant_id = ? AND status = 'completed' AND (${clauses})`
+      `SELECT COUNT(*)::int AS n, COALESCE(SUM(total_paise),0)::int AS net FROM orders WHERE merchant_id = ? AND status = 'completed' AND (${clauses})`
     )
-    .get(...params) as { n: number; net: number };
+    .get(...params)) as { n: number; net: number };
   return { orders: row.n, netSalesPaise: row.net };
 }
 
@@ -109,17 +109,17 @@ export interface OpportunitiesResult {
   };
 }
 
-export function getOpportunities(
+export async function getOpportunities(
   db: SqliteDatabase,
   merchantId: string,
   fixture: Fixture,
   now: Date
-): OpportunitiesResult {
+): Promise<OpportunitiesResult> {
   const currWin: AfternoonWindow = lastCompleteAfternoonWindow(now);
   const prevWin: AfternoonWindow = previousAfternoonWindow(currWin);
 
-  const prevTotals = completedAfternoonTotals(db, merchantId, prevWin);
-  const currTotals = completedAfternoonTotals(db, merchantId, currWin);
+  const prevTotals = await completedAfternoonTotals(db, merchantId, prevWin);
+  const currTotals = await completedAfternoonTotals(db, merchantId, currWin);
 
   const declinePct = salesDeltaPct(currTotals.orders, prevTotals.orders);
   const minOrders = fixture.policy.minCompletedOrdersPerWindow;

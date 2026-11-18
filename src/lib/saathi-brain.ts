@@ -95,20 +95,20 @@ export interface AssistantFacts {
   } | null;
 }
 
-export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixtureOverride?: import("@/lib/fixture").Fixture): AssistantFacts {
+export async function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixtureOverride?: import("@/lib/fixture").Fixture): Promise<AssistantFacts> {
   // The merchant's own fixture owns its numbers and bundle naming (domain-aware).
-  const fixture = fixtureOverride ?? loadMerchantFixture(db, merchantId);
-  const ownerRow = db.prepare("SELECT demo_session_id FROM merchants WHERE id = ?").get(merchantId) as
+  const fixture = fixtureOverride ?? (await loadMerchantFixture(db, merchantId));
+  const ownerRow = (await db.prepare("SELECT demo_session_id FROM merchants WHERE id = ?").get(merchantId)) as
     | { demo_session_id: string }
     | undefined;
-  const state = ownerRow ? getDemoState(db, ownerRow.demo_session_id, merchantId) : null;
+  const state = ownerRow ? await getDemoState(db, ownerRow.demo_session_id, merchantId) : null;
   const now = getNow();
-  const opportunities = getOpportunities(db, merchantId, fixture, now);
+  const opportunities = await getOpportunities(db, merchantId, fixture, now);
   const item = opportunities.items[0] ?? null;
   const economics = item
-    ? (() => {
+    ? await (async () => {
         const s = item.suggestedOffer;
-        const c = computeOffer(db, merchantId, fixture, s.pricePaise, s.cap);
+        const c = await computeOffer(db, merchantId, fixture, s.pricePaise, s.cap);
         return {
           pricePaise: c.pricePaise,
           normalPricePaise: c.normalPricePaise,
@@ -125,9 +125,9 @@ export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixt
       })()
     : null;
 
-  const row = db
+  const row = (await db
     .prepare("SELECT id, version, status, offer_json FROM campaigns WHERE merchant_id = ? ORDER BY created_at DESC, version DESC LIMIT 1")
-    .get(merchantId) as { id: string; version: number; status: "draft" | "approved" | "queued"; offer_json: string } | undefined;
+    .get(merchantId)) as { id: string; version: number; status: "draft" | "approved" | "queued"; offer_json: string } | undefined;
 
   let campaign: AssistantFacts["campaign"] = null;
   if (row) {
@@ -136,7 +136,7 @@ export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixt
     const margin = perBundle === null || stored.pricePaise === 0 ? null : Math.round((perBundle / stored.pricePaise) * 1000) / 10;
     let results: NonNullable<AssistantFacts["campaign"]>["results"] = null;
     if (row.status === "queued") {
-      const r = getCampaignResults(db, merchantId, fixture, row.id);
+      const r = await getCampaignResults(db, merchantId, fixture, row.id);
       results = {
         redemptions: r.redemptions.redemptions,
         revenuePaise: r.redemptions.revenuePaise,
@@ -165,7 +165,7 @@ export function buildAssistantFacts(db: SqliteDatabase, merchantId: string, fixt
     };
   }
 
-  const ops = getOperationsInsights(db, merchantId, fixture, now);
+  const ops = await getOperationsInsights(db, merchantId, fixture, now);
 
   return {
     operations: {
@@ -614,6 +614,30 @@ export function parseAssistantAnswer(content: string, facts: AssistantFacts): { 
 
 interface ChatCompletionResponse {
   choices?: { message?: { content?: string } }[];
+}
+
+export interface LiveModelKeyConfig {
+  apiKey: string;
+  model: string;
+  baseUrl: string;
+}
+
+/**
+ * The one live-model entry point for chat: builds the prompts from the
+ * verified facts, calls the configured endpoint, and parses the reply.
+ * Endpoint host is validated first (same rules as the draft adapter) and the
+ * fetch uses redirect:"error" so the bearer key can never be forwarded to an
+ * unvalidated host. Config arrives only from server memory (browser-saved
+ * brain key) or boot-validated env - never from request bodies.
+ */
+export async function answerAssistantLive(
+  question: string,
+  facts: AssistantFacts,
+  keyConfig: LiveModelKeyConfig
+): Promise<{ answer: string; reasoning: string[]; followUps: string[] }> {
+  const prompts = buildAssistantPrompts(question, facts);
+  const content = await callAssistantModel(prompts, keyConfig);
+  return parseAssistantAnswer(content, facts);
 }
 
 /**

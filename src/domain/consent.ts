@@ -17,12 +17,12 @@ export function hashAudience(sortedIds: string[]): string {
   return createHash("sha256").update(sortedIds.join("|")).digest("hex");
 }
 
-export function getAudience(db: SqliteDatabase, merchantId: string, channel: string): AudienceResult {
-  const rows = db
+export async function getAudience(db: SqliteDatabase, merchantId: string, channel: string): Promise<AudienceResult> {
+  const rows = (await db
     .prepare(
       "SELECT cu.id AS customer_id, c.status AS consent_status FROM customers cu LEFT JOIN consents c ON c.customer_id = cu.id AND c.channel = ? WHERE cu.merchant_id = ? ORDER BY cu.id"
     )
-    .all(channel, merchantId) as { customer_id: string; consent_status: string | null }[];
+    .all(channel, merchantId)) as { customer_id: string; consent_status: string | null }[];
 
   const eligibleIds: string[] = [];
   const excluded: { customerId: string; reason: string }[] = [];
