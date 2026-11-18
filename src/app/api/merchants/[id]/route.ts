@@ -9,6 +9,6 @@ export const dynamic = "force-dynamic";
 export const DELETE = routeHandler(async (_request: Request, ctx: { params: { id: string } }) => {
   const db = await getDb();
   const sessionId = getDemoSessionId();
-  removeMerchant(db, sessionId, ctx.params.id);
+  await removeMerchant(db, sessionId, ctx.params.id);
   return ok({ removed: ctx.params.id });
 });
