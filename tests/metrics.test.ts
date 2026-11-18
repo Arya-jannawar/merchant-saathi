@@ -77,7 +77,7 @@ describe("fixture totals (bakery-v1)", () => {
   it("excludes pending and canceled orders from completed totals", async () => {
     const db = await openTestDb();
     const rows = await (db
-      .prepare("SELECT status, COUNT(*) AS n FROM orders WHERE merchant_id = ? GROUP BY status")
+      .prepare("SELECT status, COUNT(*)::int AS n FROM orders WHERE merchant_id = ? GROUP BY status ORDER BY status")
       .all(merchantId)) as { status: string; n: number }[];
     const byStatus = Object.fromEntries(rows.map((r) => [r.status, r.n]));
     expect(byStatus["pending"]).toBe(1);

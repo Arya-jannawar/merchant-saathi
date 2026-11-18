@@ -1,5 +1,12 @@
 # Verification record
 
+> **Current status (as of the Postgres port, Nov 18):** the data layer is
+> **Postgres (Neon, `postgres` driver)** — not better-sqlite3. All gates green on
+> the current build: `npm run fixtures:verify` (all 8 domain fixtures), `npm test`
+> (117 tests), `npm run lint`, `npm run typecheck`, `npm run build`, Playwright e2e.
+> The sections below are the historical run log; the environment line and SQLite-era
+> notes describe the earliest recorded runs and are kept for the record.
+
 Environment: Windows 11, Node v24.15.0, npm 11.12.1, better-sqlite3 12.x (prebuilt), Next.js 14.2.x.
 All commands run from the project root. Observed output summarized below (from the actual delivery run).
 

@@ -35,7 +35,7 @@ async function freshDb(session: string): Promise<SqliteDatabase> {
   if (!db) db = await openTestDb();
   await truncateAll(db);
   for (const m of await listMerchants(db, session)) {
-    removeMerchant(db, session, m.id);
+    await removeMerchant(db, session, m.id);
   }
   await resetTenant(db, session);
   return db;
@@ -79,7 +79,7 @@ describe("multi-merchant sessions", () => {
     for (let i = 1; i < MAX_MERCHANTS_PER_SESSION; i++) {
       await createMerchant(d, "merchants-cap");
     }
-    expect(async () => await createMerchant(d, "merchants-cap")).toThrow(MerchantLimitError);
+    await expect(async () => await createMerchant(d, "merchants-cap")).rejects.toThrow(MerchantLimitError);
     try {
       await createMerchant(d, "merchants-cap");
     } catch (err) {
@@ -102,7 +102,7 @@ describe("multi-merchant sessions", () => {
   it("removes a business and leaves the others untouched", async () => {
     const d = await freshDb("merchants-remove");
     const extra = await createMerchant(d, "merchants-remove");
-    removeMerchant(d, "merchants-remove", extra.id);
+    await removeMerchant(d, "merchants-remove", extra.id);
     const list = await listMerchants(d, "merchants-remove");
     expect(list.length).toBe(1);
     expect(list[0].isDefault).toBe(true);
@@ -210,7 +210,9 @@ describe("demo insights", () => {
 describe("ownership guard via ApiError shape", () => {
   it("surfaces not_found through the shared error type", async () => {
     const d = await freshDb("merchants-guard");
-    expect(async () => await resolveMerchant(d, "merchants-guard", "mrc_totally_foreign")).toThrow(MerchantNotFoundError);
+    await expect(async () => await resolveMerchant(d, "merchants-guard", "mrc_totally_foreign")).rejects.toThrow(
+      MerchantNotFoundError
+    );
     // MerchantNotFoundError maps to not_found in the route layer.
     const err = new MerchantNotFoundError();
     expect(err.message).toContain("Merchant not found");

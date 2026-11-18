@@ -2,7 +2,7 @@
   "name": "merchant-saathi",
   "version": "0.1.0",
   "private": true,
-  "description": "Merchant Saathi - an evidence-backed AI business partner for small merchants. Paytm AI Hackathon Pune, Track 1 (Merchant Growth AI). Team FinovateX.",
+  "description": "Merchant Saathi - an evidence-backed AI business partner for small merchants. Paytm AI Hackathon Pune, Track 1 (Merchant Growth AI). Team FinnovateX.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

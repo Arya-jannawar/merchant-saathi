@@ -3,9 +3,8 @@
 Read this before pointing any hosting service at the repo. The short version:
 **the app now runs on Vercel's free tier with a hosted Postgres (Neon)** — the
 data layer was ported from local SQLite to the `postgres` driver (same SQL
-surface, same schema, same invariants). It also still runs as-is on any host
-that provides a durable local disk and a long-running Node process (the
-original Option A below).
+surface, same schema, same invariants). It also runs on any Node host that can
+reach a Postgres database via `DATABASE_URL` (Option A below).
 
 ## What is live right now (executed 2026-11-17)
 
@@ -64,26 +63,26 @@ which is why the data layer was ported to Postgres instead.
 4. Verify: `/api/demo/state` from a fresh session, register a business, queue a
    campaign, refresh — the state survives.
 
-**Option A - persistent-disk host (runs a SQLite build unchanged)**
+**Option A - any Node host with a Postgres URL (Render/Railway/Fly/VPS)**
 
 1. Push the repo (it is on GitHub).
 2. Create a Web Service on Render/Railway/Fly (or a small VM): Node 20+,
-   `npm ci && npm run build && npm start`, attach a persistent disk mounted at
-   the project root (or set `DATABASE_PATH` to a durable path).
+   `npm ci && npm run build && npm start`, and provision any Postgres
+   (Neon/Supabase/managed) — set `DATABASE_URL` to its connection string.
 3. Set env vars from `.env.example` (`AI_MODE=fixture` by default; `DEMO_MODE=true`
    pins the demo clock for judging).
 4. Verify: `/api/demo/state` from a fresh session, register a business, queue a
    campaign, refresh — the state survives.
 
-**Option B - Vercel (needs a one-time data-layer port)**
+**Option B - Vercel (the path this deployment took)**
 
-1. Port the repository pattern from better-sqlite3 to a hosted transactional
-   Postgres (Neon/Supabase) — the SQL is already parameterized and centralized
-   in `src/lib/db.ts` + `src/services/*`, but the synchronous API becomes async,
-   which touches every call site. Add versioned migrations for the schema in
-   `src/lib/db.ts`.
-2. Keep local dev on SQLite or switch to dockerized Postgres; keep the seeder
-   out of production startup (demo seeding becomes an explicit, labeled action).
+1. ~~Port the repository pattern from better-sqlite3 to a hosted transactional
+   Postgres~~ — **done**: the SQL is parameterized and centralized in
+   `src/lib/db.ts` + `src/services/*`, calls are async, and the schema is created
+   idempotently on first open.
+2. Local dev connects to the same hosted Postgres (or a dockerized one) through
+   `DATABASE_URL`; the seeder runs explicitly via `npm run db:seed` — demo seeding
+   is an explicit, labeled action, never a side effect of startup.
 3. Move the chat-brain key store (`src/lib/assistant-settings.ts`) from process
    memory to the database, scoped per owner, or disable the key-setting endpoint
    in production and use server-managed model configuration.
@@ -115,7 +114,8 @@ npm run test:e2e                              # hero path in a real browser
 
 ## Rollback
 
-The app is a single Node process with one SQLite file. Rollback = redeploy the
-previous commit (the repo builds identically from any commit) and keep the data
-file — the schema is created idempotently, and the legacy-DB migration is a
-one-way, guarded rebuild that has been tested against pre-migration databases.
+The app is a single Node process backed by one Postgres database. Rollback =
+redeploy the previous commit (the repo builds identically from any commit) and
+keep the database — the schema is created idempotently, and the pre-port SQLite
+to Postgres migration was a one-time, guarded rebuild that has been tested
+against the production data.

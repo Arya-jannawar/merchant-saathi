@@ -75,7 +75,7 @@ describe("import pipeline", () => {
     await confirmImport(db, "mrc_a", "a.csv", AFTERNOON_CSV, "auto");
     await confirmImport(db, "mrc_b", "b.csv", AFTERNOON_CSV, "auto");
     const rows = await (db
-      .prepare("SELECT merchant_id, COUNT(*)::int AS n FROM ledger_events GROUP BY merchant_id")
+      .prepare("SELECT merchant_id, COUNT(*)::int AS n FROM ledger_events GROUP BY merchant_id ORDER BY merchant_id")
       .all()) as { merchant_id: string; n: number }[];
     expect(rows).toEqual([
       { merchant_id: "mrc_a", n: 3 },

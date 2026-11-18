@@ -120,7 +120,7 @@ describe("execution idempotency", () => {
   it("keeps outbox rows unique per recipient per version", async () => {
     const { db, draft } = await queuedCampaign("test-idem-unique");
     const dupes = await db
-      .prepare("SELECT customer_id, COUNT(*) AS n FROM outbox WHERE campaign_id = ? GROUP BY customer_id HAVING n > 1")
+      .prepare("SELECT customer_id, COUNT(*) AS n FROM outbox WHERE campaign_id = ? GROUP BY customer_id HAVING COUNT(*) > 1")
       .all(draft.campaignId);
     expect(dupes).toHaveLength(0);
   });

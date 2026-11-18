@@ -111,7 +111,7 @@ Every stage of the loop is engineered so the **owner stays in control** and the 
 1. **Inspect** — the dashboard tells the story at a glance (interactive metric switcher, per-day bars with hover tooltips, campaign funnel strip). The opportunity page opens the **evidence drawer**: six numbered checks, each with its metric id (`afternoon-order-delta-v1`, `bundle-margin-v1`, …), exact value, definition, period and source table.
 2. **Price** — edit price and cap in the offer workspace; margin, capacity and exposure **recompute instantly in pure functions**. Try ₹50: the meter drops below the floor line and the approve button locks.
 3. **Approve** — the approval binds the **exact preview** with a SHA-256 payload hash. Any later change to price, stock or consent invalidates it — a stale execute is refused with `409 stale_preview`.
-4. **Queue (simulated)** — 40 consented demo customers enter a simulated outbox inside one `BEGIN IMMEDIATE` transaction, with per-recipient idempotency keys. Nothing is ever really sent.
+4. **Queue (simulated)** — 40 consented demo customers enter a simulated outbox inside one atomic transaction (a dedicated connection, committed or rolled back as a unit), with per-recipient idempotency keys. Nothing is ever really sent.
 5. **Measure** — apply 10 simulated redemption events; replays are idempotent; the cap is enforced atomically; the waterfall shows exactly where the money went.
 
 <p align="center">
@@ -236,7 +236,7 @@ flowchart TD
     R --> S[Services - transactional campaign lifecycle]
     S --> D[Domain - PURE logic: metrics, offers, consent]
     S --> A[AI adapter - fixture or live model API, bounded, validated]
-    S --> DB[(SQLite - better-sqlite3, session-scoped tenants)]
+    S --> DB[(Postgres - Neon hosted, session-scoped tenants)]
 ```
 
 **Why it holds up under pressure:**
@@ -316,17 +316,25 @@ npm run fixtures:verify && npm test && npm run lint && npm run typecheck && npm 
 
 ## 🚀 Run it in 10 minutes
 
+The data layer is **Postgres** (`postgres` driver + a hosted Neon database) — so besides Node 20+ you need one Postgres connection string. The fastest path is a free Neon project; anything reachable with a `postgres://` URL works.
+
 ```bash
 git clone https://github.com/Arya-jannawar/merchant-saathi.git
 cd merchant-saathi
 npm install
-cp .env.example .env.local      # defaults are safe; no API key needed
+cp .env.example .env.local      # then set DATABASE_URL below — no API key needed
 npm run db:seed
 npm run fixtures:verify         # must print: All fixture checks passed.
 npm run dev
 ```
 
-Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: paste a key + endpoint in the chat's 🧠 dialog (server memory only, public-host validated; rupee-invented replies fall back to the fact book with a labeled note). Prefer a little atmosphere? The 🎵 toggle (bottom-left) plays a soft, synthesized lo-fi pad — opt-in, remembered per browser, paused when the tab is hidden. Node 20+, nothing else to install.
+(Mirror of the same repo: `https://github.com/siddhant-pardeshi/merchant-saathi.git`.)
+
+Set `DATABASE_URL=postgres://…` in `.env.local` (copy it from the Neon dashboard — pooled connection string). Without it the app refuses to start with a clear error rather than guessing.
+
+> Prefer the hosted demo instead of installing anything? Open **https://merchant-saathi.vercel.app/merchant** — every visitor gets an isolated session against the same hosted Postgres.
+
+Open **http://localhost:3000/merchant**, click **Load sample data**, and follow your buddy (the 🗺 tour button walks you through every screen). Optional live AI: paste a key + endpoint in the chat's 🧠 dialog (server memory only, public-host validated; rupee-invented replies fall back to the fact book with a labeled note). Prefer a little atmosphere? The 🎵 toggle (bottom-left) plays a soft, synthesized lo-fi pad — opt-in, remembered per browser, paused when the tab is hidden.
 
 <details>
 <summary><b>🕹️ The 3-minute demo script (click to expand)</b></summary>
@@ -345,9 +353,10 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 - [x] Mascot cast (interactive emotions + sleep cycle), guided tour, sound kit, infographic dashboard
 - [x] Registration platform: domain-themed fixtures, wizard onboarding, per-domain verification
 - [x] Operations copilot: run-rates, days-of-cover, campaign draw-down, costed restock plans
+- [x] Hosted deployment — Vercel + Neon Postgres, session-scoped demo state, **live at https://merchant-saathi.vercel.app**
 - [ ] Live-AI smoke test with real credentials (fallback path is already honest)
+- [ ] Real auth (the demo runs on an httpOnly session cookie — production needs real accounts)
 - [ ] CSV import with per-row validation and rejected-row report
-- [ ] Hosted deployment (single Node process + durable disk; real auth first)
 
 **Pilot plan:** 3–5 Pune bakery owners · measure time-to-prepare an offer, pricing errors, comprehension of evidence · pricing validated only after real trials.
 
@@ -366,7 +375,7 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
   <img src="docs/animations/certificate-badge.svg" width="24%" alt="Certified participant rosette"/>
 </p>
 
-## 👑 Team FinovateX
+## 👑 Team FinnovateX
 
 <p align="center">
   <img src="docs/animations/team-finnovatex.svg" width="100%" alt="Team FinnovateX - Arya Jannawar, Siddhant Pardeshi, Avani Jannawar - animated banner"/>
@@ -394,5 +403,5 @@ Open **http://localhost:3000/merchant**, click **Load sample data**, and follow 
 
 <p align="center">
   <sub>All data, people and customers are synthetic. Campaigns are simulated. No real messages are ever sent.<br/>
-  Not an official Paytm product and claims no endorsement. Built with 🧁, ☕ and honesty by Team FinovateX — Arya Jannawar · Avani Jannawar · Siddhant Pardeshi.</sub>
+  Not an official Paytm product and claims no endorsement. Built with 🧁, ☕ and honesty by Team FinnovateX — Arya Jannawar · Avani Jannawar · Siddhant Pardeshi.</sub>
 </p>
