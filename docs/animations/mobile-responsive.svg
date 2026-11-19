@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="1200" height="320" role="img" aria-label="Mobile-first responsive design - every screen fits 360 pixels and up - Merchant Saathi">
+  <defs>
+    <linearGradient id="mbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071a35"/><stop offset="0.55" stop-color="#0b2447"/><stop offset="1" stop-color="#071a35"/>
+    </linearGradient>
+    <linearGradient id="mshine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.4" stop-color="#7dd3fc"/><stop offset="0.5" stop-color="#ffd76e"/><stop offset="0.6" stop-color="#00b9f1"/><stop offset="1" stop-color="#ffffff"/>
+      <animateTransform attributeName="gradientTransform" type="translate" values="-1.2 0; 1.2 0; -1.2 0" dur="5s" repeatCount="indefinite"/>
+    </linearGradient>
+    <linearGradient id="mribbon" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00b9f1"/><stop offset="1" stop-color="#005f8f"/>
+    </linearGradient>
+    <linearGradient id="mribbonWarm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffd76e"/><stop offset="1" stop-color="#b8860b"/>
+    </linearGradient>
+    <linearGradient id="screenA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e2f5e"/><stop offset="1" stop-color="#081c3a"/>
+    </linearGradient>
+    <linearGradient id="screenB" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a3a66"/><stop offset="1" stop-color="#062142"/>
+    </linearGradient>
+    <linearGradient id="screenC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d2c56"/><stop offset="1" stop-color="#071d3c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#mbg)"/>
+
+  <!-- corner ribbons, slow drift -->
+  <g opacity="0.8">
+    <path d="M -60 60 L 150 -60 L 230 -60 L 10 60 Z" fill="url(#mribbon)" opacity="0.8">
+      <animateTransform attributeName="transform" type="translate" values="0 0; 20 12; 0 0" dur="8s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 1010 320 L 1230 150 L 1250 195 L 1045 320 Z" fill="url(#mribbonWarm)" opacity="0.55">
+      <animateTransform attributeName="transform" type="translate" values="0 0; -16 -10; 0 0" dur="9s" repeatCount="indefinite"/>
+    </path>
+    <path d="M 1080 0 L 1200 0 L 1200 48 L 1110 48 Z" fill="url(#mribbon)" opacity="0.7">
+      <animateTransform attributeName="transform" type="translate" values="0 0; -10 6; 0 0" dur="10s" repeatCount="indefinite"/>
+    </path>
+  </g>
+
+  <!-- three phone frames: dashboard / offer / results -->
+  <g>
+    <!-- phone 1: dashboard -->
+    <g transform="translate(120,52)">
+      <rect x="0" y="0" width="150" height="264" rx="24" fill="#0d1f3c" stroke="#2c4a7c" stroke-width="3"/>
+      <rect x="10" y="10" width="130" height="244" rx="16" fill="url(#screenA)"/>
+      <rect x="58" y="16" width="34" height="5" rx="2.5" fill="#1c3c6e"/>
+      <rect x="20" y="34" width="46" height="10" rx="4" fill="#00b9f1" opacity="0.9"/>
+      <circle cx="104" cy="39" r="9" fill="#123d7c" stroke="#2c4a7c" stroke-width="2"/>
+      <rect x="20" y="52" width="110" height="34" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="28" y="74" font-family="system-ui, sans-serif" font-size="17" font-weight="800" fill="#ffffff">70<tspan fill="#7dd3fc" font-size="11" font-weight="600" dx="6">100</tspan></text>
+      <text x="96" y="66" font-family="system-ui, sans-serif" font-size="11" font-weight="800" fill="#fb7185">-30%</text>
+      <rect x="20" y="92" width="110" height="34" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="28" y="114" font-family="system-ui, sans-serif" font-size="15" font-weight="800" fill="#ffd76e">₹5,600</text>
+      <text x="94" y="106" font-family="system-ui, sans-serif" font-size="11" font-weight="800" fill="#fb7185">-30%</text>
+      <rect x="20" y="134" width="110" height="30" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="28" y="154" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#e2e8f0">₹80 · AOV flat</text>
+      <rect x="20" y="172" width="110" height="56" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <g transform="translate(30,180)">
+        <rect x="0" y="20" width="10" height="18" rx="2" fill="#00b9f1"/>
+        <rect x="14" y="26" width="10" height="12" rx="2" fill="#00b9f1" opacity="0.85"/>
+        <rect x="28" y="30" width="10" height="8" rx="2" fill="#00b9f1" opacity="0.7"/>
+        <rect x="42" y="36" width="10" height="2" rx="1" fill="#3373a8"/>
+        <rect x="56" y="34" width="10" height="4" rx="2" fill="#3373a8"/>
+        <rect x="70" y="24" width="10" height="14" rx="2" fill="#7dd3fc"/>
+        <rect x="84" y="14" width="10" height="24" rx="2" fill="#7dd3fc" opacity="0.9"/>
+      </g>
+      <rect x="20" y="236" width="110" height="12" rx="6" fill="#123d7c"/>
+      <animateTransform attributeName="transform" type="translate" values="120 52; 120 44; 120 52" dur="5.5s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- phone 2: offer workspace -->
+    <g transform="translate(320,40)">
+      <rect x="0" y="0" width="150" height="264" rx="24" fill="#0d1f3c" stroke="#2c4a7c" stroke-width="3"/>
+      <rect x="10" y="10" width="130" height="244" rx="16" fill="url(#screenB)"/>
+      <rect x="58" y="16" width="34" height="5" rx="2.5" fill="#1c3c6e"/>
+      <rect x="20" y="32" width="110" height="14" rx="5" fill="#123d7c"/>
+      <text x="26" y="43" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#bfdcff">Offer price (₹)</text>
+      <rect x="20" y="50" width="52" height="22" rx="7" fill="#081c3a" stroke="#fb7185" stroke-width="2"/>
+      <text x="30" y="66" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#fb7185">50</text>
+      <rect x="80" y="50" width="50" height="22" rx="7" fill="#081c3a" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="90" y="66" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#e2e8f0">20</text>
+      <rect x="20" y="82" width="110" height="12" rx="6" fill="#0a1f3d"/>
+      <rect x="20" y="82" width="52" height="12" rx="6" fill="#fb7185">
+        <animate attributeName="width" values="52;52;52" dur="4s" repeatCount="indefinite"/>
+      </rect>
+      <line x1="88" y1="78" x2="88" y2="98" stroke="#ffd76e" stroke-width="2" stroke-dasharray="3 3"/>
+      <rect x="20" y="102" width="110" height="26" rx="7" fill="#081c3a" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="28" y="119" font-family="system-ui, sans-serif" font-size="10" font-weight="800" fill="#fb7185">Approve — locked 🔒</text>
+      <rect x="20" y="136" width="110" height="12" rx="6" fill="#0a1f3d"/>
+      <rect x="20" y="136" width="96" height="12" rx="6" fill="#22c55e">
+        <animate attributeName="width" values="96;88;96" dur="6s" repeatCount="indefinite"/>
+      </rect>
+      <rect x="20" y="156" width="110" height="52" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="28" y="174" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#7dd3fc">Set the price to ₹54</text>
+      <text x="28" y="188" font-family="system-ui, sans-serif" font-size="9" fill="#9fb6d9">after the ₹40 cost that clears</text>
+      <text x="28" y="200" font-family="system-ui, sans-serif" font-size="9" fill="#9fb6d9">the 25% floor. [Use ₹54]</text>
+      <rect x="20" y="216" width="110" height="20" rx="9" fill="#00b9f1"/>
+      <text x="42" y="230" font-family="system-ui, sans-serif" font-size="10.5" font-weight="800" fill="#052441">Update draft</text>
+      <animateTransform attributeName="transform" type="translate" values="320 40; 320 50; 320 40" dur="6.5s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- phone 3: results waterfall -->
+    <g transform="translate(520,58)">
+      <rect x="0" y="0" width="150" height="264" rx="24" fill="#0d1f3c" stroke="#2c4a7c" stroke-width="3"/>
+      <rect x="10" y="10" width="130" height="244" rx="16" fill="url(#screenC)"/>
+      <rect x="58" y="16" width="34" height="5" rx="2.5" fill="#1c3c6e"/>
+      <text x="22" y="44" font-family="system-ui, sans-serif" font-size="11" font-weight="800" fill="#bfdcff">₹700</text>
+      <text x="60" y="44" font-family="system-ui, sans-serif" font-size="9" fill="#8fa9d4">sales</text>
+      <text x="22" y="62" font-family="system-ui, sans-serif" font-size="11" font-weight="800" fill="#fb7185">-₹400</text>
+      <text x="72" y="62" font-family="system-ui, sans-serif" font-size="9" fill="#8fa9d4">costs</text>
+      <rect x="22" y="74" width="106" height="14" rx="5" fill="#00b9f1"/>
+      <rect x="22" y="94" width="64" height="14" rx="5" fill="#e63946"/>
+      <rect x="22" y="114" width="42" height="14" rx="5" fill="#22c55e"/>
+      <text x="22" y="146" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#4ade80">= ₹300</text>
+      <text x="72" y="146" font-family="system-ui, sans-serif" font-size="8.5" fill="#8fa9d4">contribution</text>
+      <rect x="22" y="160" width="106" height="30" rx="8" fill="#0f2f5e" stroke="#1d4478" stroke-width="1.5"/>
+      <text x="30" y="180" font-family="system-ui, sans-serif" font-size="10" font-weight="700" fill="#e2e8f0">10 of cap 20</text>
+      <rect x="22" y="200" width="106" height="20" rx="9" fill="#00b9f1"/>
+      <text x="44" y="214" font-family="system-ui, sans-serif" font-size="10.5" font-weight="800" fill="#052441">Download PDF</text>
+      <rect x="22" y="228" width="106" height="18" rx="9" fill="#123d7c"/>
+      <text x="40" y="241" font-family="system-ui, sans-serif" font-size="9.5" font-weight="700" fill="#bfdcff">Download text (.txt)</text>
+      <animateTransform attributeName="transform" type="translate" values="520 58; 520 48; 520 58" dur="7s" repeatCount="indefinite"/>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g transform="translate(740,96)">
+    <text x="0" y="0" font-family="system-ui, sans-serif" font-size="30" font-weight="900" fill="#ffffff">Built for the phone first.</text>
+    <text x="0" y="34" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="url(#mshine)">Every screen fits 360 px and up.</text>
+    <text x="0" y="58" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="url(#mshine)">Cards stack · charts resize · snap nav · docked buddy</text>
+    <g transform="translate(0,86)">
+      <rect x="0" y="0" width="100" height="30" rx="15" fill="#00b9f1" opacity="0.16" stroke="#00b9f1" stroke-width="1.5"/>
+      <text x="12" y="20" font-family="system-ui, sans-serif" font-size="12.5" font-weight="800" fill="#7dd3fc">360 px ✓</text>
+      <rect x="110" y="0" width="100" height="30" rx="15" fill="#00b9f1" opacity="0.16" stroke="#00b9f1" stroke-width="1.5"/>
+      <text x="122" y="20" font-family="system-ui, sans-serif" font-size="12.5" font-weight="800" fill="#7dd3fc">390 px ✓</text>
+      <rect x="220" y="0" width="100" height="30" rx="15" fill="#00b9f1" opacity="0.16" stroke="#00b9f1" stroke-width="1.5"/>
+      <text x="233" y="20" font-family="system-ui, sans-serif" font-size="12.5" font-weight="800" fill="#7dd3fc">768 px ✓</text>
+      <rect x="330" y="0" width="100" height="30" rx="15" fill="#00b9f1" opacity="0.16" stroke="#00b9f1" stroke-width="1.5"/>
+      <text x="349" y="20" font-family="system-ui, sans-serif" font-size="12.5" font-weight="800" fill="#7dd3fc">Desktop ✓</text>
+    </g>
+  </g>
+</svg>

@@ -6,7 +6,7 @@ import BusinessHeaderControl from "@/components/business-header-control";
 export const metadata: Metadata = {
   title: "Merchant Saathi - AI business partner (demo)",
   description:
-    "Evidence-backed growth partner for small merchants. Paytm AI Hackathon Pune, Track 1. Team FinovateX. Synthetic demo data only.",
+    "Evidence-backed growth partner for small merchants. Paytm AI Hackathon Pune, Track 1. Team FinnovateX. Synthetic demo data only.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -21,20 +21,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <span className="text-lg font-extrabold tracking-tight text-navy">Merchant Saathi</span>
               </a>
               <BusinessHeaderControl />
-              <nav className="order-3 flex w-full items-center gap-1 text-sm font-semibold text-slate-600 sm:order-2 sm:w-auto">
-                <a className="rounded-lg px-3 py-1.5 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant">
+              <nav
+                className="order-3 -mx-4 flex w-full items-center gap-1 overflow-x-auto px-4 text-sm font-semibold text-slate-600 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:order-2 sm:mx-0 sm:w-auto sm:overflow-visible sm:px-0"
+                aria-label="Primary"
+              >
+                <a className="whitespace-nowrap rounded-lg px-3 py-2 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant">
                   Dashboard
                 </a>
-                <a className="rounded-lg px-3 py-1.5 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/planning">
+                <a className="whitespace-nowrap rounded-lg px-3 py-2 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/planning">
                   Planning
                 </a>
-                <a className="rounded-lg px-3 py-1.5 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/opportunity">
+                <a className="whitespace-nowrap rounded-lg px-3 py-2 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/opportunity">
                   Opportunity
                 </a>
-                <a className="rounded-lg px-3 py-1.5 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/offer">
+                <a className="whitespace-nowrap rounded-lg px-3 py-2 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/offer">
                   Offer workspace
                 </a>
-                <a className="rounded-lg px-3 py-1.5 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/operations">
+                <a className="whitespace-nowrap rounded-lg px-3 py-2 transition hover:scale-105 hover:bg-brand-light hover:text-brand" href="/merchant/operations">
                   Operations
                 </a>
               </nav>
@@ -45,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <p className="ms-credits-glow mb-1.5 text-base font-extrabold tracking-wide text-navy">
               Built with <span className="ms-credits-hop" aria-hidden>🧁</span> by{" "}
               <span className="ms-credits-shine">Arya Jannawar · Avani Jannawar · Siddhant Pardeshi</span>
-              {" "}— <span className="ms-credits-glow text-brand">Team FinovateX ✦</span>
+              {" "}— <span className="ms-credits-glow text-brand">Team FinnovateX ✦</span>
             </p>
             Prototype for the Paytm AI Hackathon (Track 1 - Merchant Growth AI). All data, people and customers are synthetic;
             campaigns are simulated; no real messages are sent. Not an official Paytm product or endorsement.

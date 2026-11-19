@@ -11,6 +11,8 @@
   &nbsp;
   <img src="https://img.shields.io/badge/AI-fixture%20or%20live%20model%20API-fbbf24?style=for-the-badge" alt="AI fixture or live"/>
   &nbsp;
+  <img src="https://img.shields.io/badge/layout-mobile%20responsive%20%C2%B7%20360px%2B-06b6d4?style=for-the-badge" alt="Mobile responsive layout, 360px and up"/>
+  &nbsp;
   <img src="https://img.shields.io/badge/deps-zero%20chart%2Fanimation%20libraries-8b5cf6?style=for-the-badge" alt="zero chart or animation dependencies"/>
 </p>
 
@@ -26,6 +28,27 @@
 > Click **Load sample data**, then walk the loop exactly as the video shows: dashboard → evidence → offer workspace → approve → simulated campaign → the ₹300 waterfall. Every visitor gets their own isolated demo session, backed by a hosted Postgres (Neon) — state persists across reloads.
 
 *How this is hosted: the Next.js app runs on Vercel's free tier and the data layer is a hosted Postgres (Neon marketplace) — the serverless path in [DEPLOY.md](DEPLOY.md). The data layer was ported from local SQLite to the `postgres` driver for this (same schema, same invariants, same 117-test suite now running against Postgres). AI answers come from the built-in fact book by default (honestly labeled); a live model can be attached at runtime via the chat's 🧠 key dialog — server memory only, public-host validated, rupee-checked replies.*
+
+## 📱 Built for the shop counter — mobile-first, every screen
+
+<p align="center">
+  <img src="docs/animations/mobile-responsive.svg" width="88%" alt="Mobile-first responsive design banner - three phone screens showing the dashboard, offer workspace and results waterfall"/>
+</p>
+
+A merchant checks this between customers, on a phone, one-handed. Every screen was audited at **360 px, 390 px and tablet widths** — zero horizontal overflow, cards stack, charts resize, the header nav becomes a snap-scrolling pill strip, and the buddy docks bottom-right out of the data's way. The same hero loop runs end-to-end on a phone:
+
+<p align="center">
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/screenshots/m1-dashboard-mobile.png" width="100%" alt="Mobile dashboard - KPI cards, decline story and consent donut at 390 px"/><br/><sub><b>Dashboard</b> · KPIs + evidence story</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/m2-offer-mobile.png" width="100%" alt="Mobile offer workspace - price, cap and guardrail meters at 390 px"/><br/><sub><b>Offer workspace</b> · live guardrails</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/m3-planning-mobile.png" width="100%" alt="Mobile planning - imports, forecast, festival planner and deposits at 390 px"/><br/><sub><b>Plan my next sale</b> · imports → festivals</sub></td>
+    <td align="center" width="25%"><img src="docs/screenshots/m4-results-mobile.png" width="100%" alt="Mobile campaign results - the Rs 300 waterfall at 390 px"/><br/><sub><b>Campaign results</b> · the ₹300 waterfall</sub></td>
+  </tr>
+</table>
+</p>
+
+*Screenshots re-captured from the current build (Nov 2026); the desktop gallery below shows the same screens at full width.*
 
 ## 🎬 Watch the video walkthrough (narrated, pick your pace)
 
@@ -48,6 +71,7 @@ One platform, three pillars: <b>Grow</b> (evidence-backed offers), <b>Manage</b>
 
 <p align="center">
   <a href="#-try-it-live--no-install-needed">🌐 Live Demo</a> •
+  <a href="#-built-for-the-shop-counter--mobile-first-every-screen">📱 Mobile</a> •
   <a href="#-watch-the-video-walkthrough-narrated-pick-your-pace">🎬 Video Walkthrough</a> •
   <a href="#-pitch-deck--feature-guide-download-read-present">🎞️ Deck & Guide</a> •
   <a href="#-the-problem-in-real-numbers">The Problem</a> •

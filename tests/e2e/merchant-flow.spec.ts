@@ -7,6 +7,10 @@ import { test, expect } from "@playwright/test";
  */
 
 test("merchant hero path: from decline to simulated contribution", async ({ page }) => {
+  // The hosted Postgres makes each write a network round trip; the full loop
+  // (seed -> draft -> approve -> queue 40 -> apply 10) needs minutes, not seconds.
+  test.setTimeout(300_000);
+
   // 1. Dashboard: load sample data
   await page.goto("/merchant");
   await page.getByRole("button", { name: /load sample data/i }).click();
@@ -33,13 +37,16 @@ test("merchant hero path: from decline to simulated contribution", async ({ page
   await page.getByRole("button", { name: /approve this exact version/i }).click();
   await expect(page.getByText(/approved \(/i)).toBeVisible();
   await page.getByRole("button", { name: /queue simulated campaign/i }).click();
-  await expect(page.getByRole("link", { name: /view campaign activity/i })).toBeVisible();
+  // The data layer is a hosted Postgres; queueing writes 40 outbox rows and
+  // applying writes 10 redemption rows, each a network round trip. Give both
+  // steps a latency budget well beyond the 15s default expect timeout.
+  await expect(page.getByRole("link", { name: /view campaign activity/i })).toBeVisible({ timeout: 90_000 });
 
   // 5. Campaign activity: 40 simulated recipients, apply all redemptions
   await page.getByRole("link", { name: /view campaign activity/i }).click();
   await expect(page.getByText(/40 recipients - simulated, never sent/i)).toBeVisible();
   await page.getByRole("button", { name: /apply all 10 events/i }).click();
-  await expect(page.getByText("\u20B9300")).toBeVisible(); // contribution toward fixed costs
+  await expect(page.getByText("\u20B9300")).toBeVisible({ timeout: 150_000 }); // contribution toward fixed costs
 
   // 6. Duplicate event replay changes nothing
   await page.getByRole("button", { name: /re-apply R-003/i }).click();
